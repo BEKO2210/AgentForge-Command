@@ -203,6 +203,19 @@ The console runs each agent as a real terminal, adds buttons for the common comm
 (Kickoff, `state`, Enter, `y`, Esc, ^C, restart), and polls `.team/` for the live vitals
 strip. Details in [`gui/README.md`](gui/README.md).
 
+**Optional — the Agent Arena (Mission Control)**
+
+```bash
+node gui/server.js            # then open http://localhost:4173/arena
+```
+
+A second surface on the same server: **ATLAS PRIME** orchestrates a swarm of 11
+specialists (Sentinel, Aurora, Forge, Prism, Echo, Vega, Scribe, Ledger, Raven,
+Luma, Nova) — each with its own role, super-skill, animated mascot and an
+evolution lab. A broadcast bar dispatches briefings to the whole swarm and a
+per-PTY **auto-enter watchdog** can press Enter on permission prompts so you
+don't have to keep approving. See [`gui/README.md`](gui/README.md#agent-arena--mission-control-arena).
+
 ## Architecture
 
 ```mermaid
