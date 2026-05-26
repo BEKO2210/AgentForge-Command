@@ -71,3 +71,80 @@ The agents launch in the directory you run from (override with `REPO_DIR=/path/t
   line-by-line.
 - `node-pty` is a native module; if `npm install` can't find a prebuilt binary it will
   compile (needs Python + a C/C++ toolchain).
+
+---
+
+## Agent Arena · Mission Control (`/arena`)
+
+The same server also hosts a second surface — **Agent Arena**, an orchestration
+cockpit for a swarm of specialised agents led by **ATLAS PRIME**.
+
+```bash
+node gui/server.js
+# open http://localhost:4173/arena
+```
+
+What you get:
+
+- **Atlas Prime** (cyber turtle, lead) plus 11 specialists with their own roles, super-skills
+  and mascots: Sentinel (owl · risk), Aurora (fox · UI), Forge (mole · build),
+  Prism (chameleon · viz), Echo (bat · events), Vega (hummingbird · perf),
+  Scribe (raven · docs), Ledger (raccoon · cost), Raven (debug), Luma (firefly · a11y),
+  Nova (dragon · product story).
+- **Spawn timeline** — every rule firing and every spawn event Atlas makes.
+- **Per-agent terminal cards** with idle / thinking / working / success / warning
+  mascot animations, plus mini stats (confidence, risk, evolution).
+- **Mascot Evolution** — five levels per mascot, additive SVG detail per level.
+- **Broadcast bar** — type a briefing, press Enter, Atlas dispatches to every
+  specialist and the terminals reply with role-flavoured logs.
+- **Detail drawer** — click any card to see the agent's super-skill, briefing,
+  capabilities, recent logs and mascot evolution controls.
+- **Filters** — All / Active / Warning / Completed.
+- **Reduced motion** — every animation respects `prefers-reduced-motion: reduce`.
+
+### Auto-enter for permission prompts
+
+The brief asked for an agent that can *steuern mehrere Terminals und auch Enter
+drücken wenn man das erlaubt*. The Arena ships a per-PTY **auto-enter watchdog**:
+
+- Toggle **⏎ auto** on an arena card (or use **⏎ Auto · all** in the toolbar).
+- The arena tells the server which agents are armed. The server then watches
+  every armed PTY's output for clear permission prompts —
+  `(y/n)`, `[y/n]`, `press enter to continue`, `approve?`, `allow this tool to run`, etc. —
+  and presses Enter for the operator (single fire, 1.5s cooldown so it can't
+  loop on a stuck prompt).
+- A note is broadcast back to the arena (`auto-fired`) so you see in the
+  terminal log exactly when and why the server intervened.
+
+It only fires on patterns that are unambiguously confirmations. It will not
+auto-press through arbitrary CLI output. Disable any agent's auto-enter by
+clicking the toggle again.
+
+### Architecture
+
+```
+gui/server.js
+  ├── http   /          → public/index.html      (original 4-agent console)
+  ├── http   /arena     → public/arena.html      (Agent Mission Control)
+  ├── http   /agents    → JSON config
+  ├── http   /state     → folded .team state
+  ├── http   /arena/state → arena server state (autoEnter list)
+  ├── ws     /          → PTY bridge for the console
+  └── ws     /arena     → arena protocol (auto-enter toggles)
+
+gui/public/arena/
+  ├── data.js       → registry, briefings, spawn rules, response bank
+  ├── mascots.js    → 12 SVG mascot templates (evolution-aware)
+  ├── state.js      → tiny reactive store
+  ├── spawner.js    → Atlas's rule-based spawn engine
+  ├── broadcast.js  → broadcast simulator (state machine per agent)
+  ├── ui.js         → renderers (hero, lead panel, grid, drawer, timeline)
+  ├── main.js       → app entry; ties store, engine, UI, WS
+  └── styles.css    → cockpit dark theme + mascot animations
+```
+
+### Adding more agents
+
+`gui/public/arena/data.js` is the single source of truth. Add a row to
+`SEED_AGENTS`, add a matching SVG template to `gui/public/arena/mascots.js`,
+optionally extend `SPAWN_RULES`. Atlas picks them up on next page load.
