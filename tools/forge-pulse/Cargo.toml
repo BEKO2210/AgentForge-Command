@@ -1,0 +1,15 @@
+[package]
+name = "forge-pulse"
+version = "0.1.0"
+edition = "2021"
+description = "Optional Rust accelerator for AgentForge — fast pattern detection on PTY byte streams."
+license = "MIT"
+publish = false
+
+[dependencies]
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1

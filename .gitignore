@@ -7,6 +7,16 @@
 .team/snapshots/
 .team/metrics.md
 
+# Arena UI persistence (runtime state, not source of truth)
+.team/arena.json
+
+# Rust build artefacts for the optional forge-pulse sidecar
+tools/*/target/
+tools/*/Cargo.lock
+
+# Node modules in the GUI server
+gui/node_modules/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
