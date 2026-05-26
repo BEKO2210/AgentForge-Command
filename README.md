@@ -1,366 +1,256 @@
 <div align="center">
 
-<img src="assets/readme/hero.svg" alt="TEAM // CONSOLE — the 4-Agent Team Kit for Claude Code" width="100%" />
+# AgentForge Command
 
-### Four Claude Code sessions. One repository. Coordinated through plain files.
-
-A **task-agnostic** scaffold that lets four Claude Code agents build one repo together —
-no database, no message broker, no framework. Coordination lives entirely in a `.team/`
-folder of Markdown and a handful of POSIX shell scripts.
+### A premium mission-control cockpit for a swarm of Claude Code agents.
 
 <p>
-  <a href="https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code/actions/workflows/gate.yml"><img alt="Gate workflow state" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/4-Agent-Team-Kit-for-Claude-Code/gate.yml?label=gate"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea043"></a>
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea043">
+  <img alt="Stack: Node + Vanilla JS" src="https://img.shields.io/badge/stack-Node%20%2B%20Vanilla%20JS-3c873a">
+  <img alt="Optional: Rust accelerator" src="https://img.shields.io/badge/optional-Rust%20accelerator-orange">
   <img alt="Built for Claude Code" src="https://img.shields.io/badge/built%20for-Claude%20Code-5b8cff">
-  <img alt="Core dependencies: zero" src="https://img.shields.io/badge/core%20deps-0-2ea043">
-  <img alt="GUI: Node.js" src="https://img.shields.io/badge/GUI-Node.js-3c873a">
 </p>
 
 <a href="#quickstart"><b>Quickstart</b></a> ·
-<a href="#usage"><b>Usage</b></a> ·
+<a href="#mission-control"><b>Mission Control</b></a> ·
+<a href="#auto-enter"><b>Auto-enter</b></a> ·
 <a href="#architecture"><b>Architecture</b></a> ·
-<a href=".team/PROTOCOL.md"><b>Protocol</b></a> ·
-<a href="ROADMAP.md"><b>Roadmap</b></a> ·
-<a href="CHANGELOG.md"><b>Changelog</b></a> ·
-<a href="README.de.md"><b>Deutsch</b></a>
+<a href="#optional-rust-accelerator"><b>Rust accelerator</b></a>
 
 </div>
 
 ---
 
-## Contents
+**AgentForge Command** is a local cockpit for orchestrating multiple Claude Code
+sessions in one window. A lead agent — **Atlas Prime** — analyses the repository
+and spawns a swarm of specialised agents, each with its own role, super-skill
+and animated mascot. The operator can broadcast briefings, watch terminals
+react, and arm a server-side auto-enter watchdog that presses Enter on
+permission prompts so they don't have to keep approving.
 
-- [Why this exists](#why-this-exists)
-- [Features](#features)
-- [Preview](#preview)
-- [Quickstart](#quickstart)
-- [Usage](#usage)
-- [Architecture](#architecture)
-- [Project structure](#project-structure)
-- [Quality and security](#quality-and-security)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-
----
-
-## Why this exists
-
-Running several AI coding agents on one repository usually ends in chaos: they overwrite
-each other's files, race on commits, and lose track of who is doing what. The common fix
-is a heavyweight orchestration framework with its own runtime and learning curve.
-
-This kit takes the opposite path. Coordination is reduced to its primitives — a **board**,
-per-agent **logs**, file **locks**, and a **green gate** — and each primitive is implemented
-with nothing more than the file system and Git. The result is a coordination *protocol*,
-not a framework: copy it into any repo, open four terminals, and the agents stay in their
-lanes, serialize their commits, and never ship red.
-
-**Who it's for**
-
-- Developers who want to drive a small team of Claude Code agents on a real codebase.
-- Anyone curious how multi-agent coordination works without framework lock-in.
-- Teams that need coordination with **zero external infrastructure**.
+It is local-first, file-coordinated and dependency-light. The optional Rust
+accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 
 > [!NOTE]
-> This is a coordination scaffold, not an autopilot. You supply the goal; the agents do the
-> work within the rules in [`.team/PROTOCOL.md`](.team/PROTOCOL.md).
+> The 4-agent coordination kit that started this project is preserved at
+> [`/console`](http://localhost:4173/console) and in [`.team/`](.team/) — the
+> file-based protocol, scripts, MCP server and 88-check test suite all stay
+> in place. AgentForge Command builds **on top** of that scaffold.
 
-## Features
+## Contents
 
-| | Feature | What it does |
-|---|---|---|
-| 🗂️ | **File-based coordination** | All state lives in `.team/` (board, logs, roles, locks) — readable, auditable, Git-versioned. No services to run. |
-| 🔒 | **Atomic commit serialization** | `team-commit.sh` takes an atomic `mkdir` lock, runs the gate, stages only your paths, commits as `[role] …`. Never `git add -A`. |
-| ✅ | **Green gate** | `team-check.sh` must pass before any commit — "never commit red." Edit one file to match your stack. |
-| 🫀 | **Health, stale-task & deadlock detection** | `team-health.sh` reports each agent's liveness, flags tasks stuck `doing`, and signals when everything is blocked. |
-| 🔁 | **Board ↔ log reconciliation** | `team-sync.sh` treats the append-only logs as the source of truth and reports where the board has drifted. |
-| ♻️ | **Crash recovery & memory** | `team-resume.sh` rebuilds state from logs + Git; `.team/memory.md` carries decisions across runs. |
-| 🛟 | **Resilience** | Fallback-lead (`team-lead-claim.sh`) and `.team/` snapshots (`team-backup.sh`) so a stalled lead or a bad push isn't fatal. |
-| 🌿 | **Stronger isolation (optional)** | `team-worktrees.sh` gives each agent its own Git worktree + branch; the lead integrates by merge. |
-| 🖥️ | **Optional live console** | A tiny local web UI (`gui/`) runs all four sessions in one window. Per-role progress bars, role-coloured cards with corner brackets and channel callsigns, a centred equalizer-style activity meter, a clear "selected" ring on the focused card, and an auto-pulsing "⚠ needs input" badge when an agent looks like it's waiting for a confirmation. |
-| 🔌 | **Optional MCP server** | `mcp/` exposes the team state (board, logs, memory, health, metrics) as read-only Model Context Protocol resources for any MCP client. |
-| 🧬 | **Typed state contract** | [`schema/team-state.schema.json`](schema/team-state.schema.json) is the machine-validatable contract honoured by `/state`, the MCP server, and `team-snapshot.sh`. Snapshots can be diffed with `team-diff.sh` to see exactly what moved between two points in time. |
-| 🧪 | **Tested in CI** | A self-contained Bash test suite (`tests/run.sh`, currently 88 checks) runs on every push via [`.github/workflows/gate.yml`](.github/workflows/gate.yml) — no test framework required. |
-
-## Preview
-
-The optional GUI — **TEAM // CONSOLE** — runs all four agents in one window and shows a live
-vitals strip (per-role progress bars and per-agent health) derived from `.team/`.
-
-![TEAM // CONSOLE: four role-coloured agent terminals in a 2×2 grid, a per-role progress bar strip on top, channel callsigns and a centred equalizer activity meter in each card header](docs/console.png)
-
-A closer look at one card — corner brackets in the role colour, channel callsign
-(`CH·01`), the centred 4-bar activity meter that animates with live terminal output,
-and a "selected" badge when the card is focused:
-
-![Detail of the selected Lead card showing gold corner brackets, the CH·01 callsign, the selected badge and the centred 4-bar equalizer activity meter mid-animation](docs/console-card.png)
-
-Launch it locally with [`node gui/server.js`](#optional-the-gui) — see [Usage](#usage).
+- [Quickstart](#quickstart)
+- [Mission Control](#mission-control)
+- [Auto-enter](#auto-enter)
+- [Persistence](#persistence)
+- [Spawn-Builder](#spawn-builder)
+- [Architecture](#architecture)
+- [Optional Rust accelerator](#optional-rust-accelerator)
+- [Quality and security](#quality-and-security)
+- [Legacy 4-agent console](#legacy-4-agent-console)
+- [License](#license)
 
 ## Quickstart
 
 > [!IMPORTANT]
-> Prerequisites: **Bash**, **Git**, and the **[Claude Code](https://claude.com/claude-code) CLI**.
-> The optional GUI additionally needs **Node.js** (18+).
-
-**0. See the kit in action without installing Claude Code**
+> Prerequisites: **Bash**, **Git**, the **[Claude Code](https://claude.com/claude-code) CLI**,
+> and **Node.js 18+**. Optional: **Rust / Cargo** for the `forge-pulse` accelerator.
 
 ```bash
-git clone https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code
-cd 4-Agent-Team-Kit-for-Claude-Code
-bash scripts/team-demo.sh         # 30-second self-running demo of the helpers
-```
-
-**1. Drop the kit into your repo**
-
-```bash
-# one-command install (from inside the kit's directory)
-bash scripts/team-init.sh /path/to/your/repo
-```
-
-Or copy by hand if you prefer — `scripts/team-init.sh` is short and self-documenting.
-
-**2. Point the gate and lanes at your project**
-
-```bash
-$EDITOR scripts/team-check.sh     # set your real lint + test command
-$EDITOR .team/roles/*.md          # point each lane's globs at YOUR repo
-```
-
-**3. Verify the scripts work**
-
-```bash
-bash tests/run.sh                 # the script test suite (88 checks at last count); all should pass
-scripts/team-health.sh            # prints a team-health report
-```
-
-## Usage
-
-**Run the team (four terminals)**
-
-1. Open **4 terminals** in the repo and run `claude` in each.
-2. Paste the matching block from [`PROMPTS.md`](PROMPTS.md) — Lead, Backend, Frontend, Quality.
-3. In the **Lead** terminal, replace `<<< paste … >>>` with your goal.
-4. The lead fills the board and pings the others; they start working their lanes.
-5. Nudge any terminal with `state` to push it forward; it continues autonomously.
-6. Done when every board row is `done`, quality signs the gate, and the lead pushes.
-
-> [!TIP]
-> `state` means *do the next thing*, not *report*. A nudged agent re-reads the board and
-> the other logs, unblocks others first, and keeps the gate green.
-
-**The rules in one breath**
-
-Stay in your lane · write only your own files · commit only via `team-commit.sh` (never
-`git add -A`) · green before commit · only the lead pushes · heavy ops under a lock · log
-every step.
-
-**Coordination helpers**
-
-```bash
-scripts/team-health.sh                  # who's active/idle/stale · stale tasks · deadlock
-scripts/team-sync.sh [--strict]         # where board.md drifts from the logs (lead reconciles)
-scripts/team-resume.sh                  # rebuild state from logs + git after a crash/restart
-scripts/team-metrics.sh                 # throughput per role + board progress → .team/metrics.md
-scripts/team-backup.sh [restore [file]] # snapshot / restore .team/ (git isn't the only copy)
-scripts/team-lead-claim.sh <role>       # fallback-lead: record the acting lead
-scripts/team-lint-log.sh                # validate structured @role handoff lines
-scripts/team-worktrees.sh setup         # per-role git worktrees for stronger isolation
-scripts/team-role.sh add <name> <globs> # add a runtime role + emit its start prompt
-scripts/team-handoff.sh                 # produce a briefing for a fresh session
-scripts/team-sections.sh                # per-section view (board.md "## name" headings)
-scripts/team-federate.sh <repo>...      # aggregate boards across multiple repos
-scripts/team-snapshot.sh [--save]       # capture full state as one JSON document (schema/)
-scripts/team-diff.sh A.json B.json      # diff two snapshots
-scripts/team-init.sh <target>           # one-command install into another repo
-scripts/team-demo.sh                    # 30-second self-running demo (no Claude Code needed)
-scripts/team-commit.sh --dry-run <role> "msg" <paths>   # run the gate + preview, don't commit
-```
-
-<details>
-<summary><b>Tunables &amp; behaviour</b></summary>
-
-- `TEAM_ACTIVE_SECS` (default `900`) and `TEAM_STALE_SECS` (default `1800`) set the
-  liveness/stale-task thresholds for `team-health.sh`.
-- Lock, commit, and health events are appended to `.team/log/events.log` (gitignored).
-- `.team/memory.md` is read at kickoff and carries durable decisions across runs.
-- Logs are the authority for automated reconciliation; the board is the human-facing view.
-
-</details>
-
-<a id="optional-the-gui"></a>
-
-**Optional — the GUI**
-
-```bash
+git clone https://github.com/BEKO2210/AgentForge-Command
+cd AgentForge-Command
 cd gui && npm install && cd ..
-node gui/server.js            # → http://localhost:4173
+node gui/server.js
+# open http://localhost:4173/   → Mission Control
 ```
 
-The console runs each agent as a real terminal, adds buttons for the common commands
-(Kickoff, `state`, Enter, `y`, Esc, ^C, restart), and polls `.team/` for the live vitals
-strip. Details in [`gui/README.md`](gui/README.md).
-
-**Optional — the Agent Arena (Mission Control)**
+Optional — build the Rust accelerator (auto-detected on next launch):
 
 ```bash
-node gui/server.js            # then open http://localhost:4173/arena
+cd tools/forge-pulse
+cargo build --release
 ```
 
-A second surface on the same server: **ATLAS PRIME** orchestrates a swarm of 11
-specialists (Sentinel, Aurora, Forge, Prism, Echo, Vega, Scribe, Ledger, Raven,
-Luma, Nova) — each with its own role, super-skill, animated mascot and an
-evolution lab. A broadcast bar dispatches briefings to the whole swarm and a
-per-PTY **auto-enter watchdog** can press Enter on permission prompts so you
-don't have to keep approving. See [`gui/README.md`](gui/README.md#agent-arena--mission-control-arena).
+## Mission Control
+
+The default surface (`/`) is **Mission Control**. Atlas Prime sits at the top,
+the swarm below.
+
+- **Atlas Prime** — Chief Orchestrator (Cyber Turtle). Scans the repo, runs the
+  spawn rules, holds the integration window.
+- **Sentinel** — Risk & Safety (Guardian Owl). Audits gates, blocks unsafe
+  outputs.
+- **Aurora** — Premium UI / Motion (Neon Fox). Visual hierarchy, restrained
+  motion, atmosphere.
+- **Forge** — Build & Release (Forge Mole). CI, deps, release stability.
+- **Prism** — Visualisation & Graphs (Prism Chameleon). Renders agent graphs
+  and tool-call flows.
+- **Echo** — Event Stream & Replay (Signal Bat). Subscribes to hooks, surfaces
+  patterns.
+- **Vega** — Performance & Motion Engine (Neon Hummingbird). FPS, jank, RAF.
+- **Scribe** — Documentation (Scribe Raven). README, tutorials, changelog.
+- **Ledger** — Cost & Tokens (Accountant Raccoon). Budget guardrails, burn rate.
+- **Raven** — Debug & Failure Analysis (Debug Raven). Stack traces, bisects.
+- **Luma** — Accessibility (Firefly). Contrast, ARIA, keyboard flow.
+- **Nova** — Product Story (Star Dragon). Demo arc, positioning.
+
+Each specialist has its own terminal card with:
+
+- An animated SVG mascot that reflects its current state
+  (`idle / thinking / working / success / warning`).
+- Channel callsign (`CH·01`), role badge, status pill with a pulsing dot.
+- Live terminal lines with a blinking cursor and a sweeping activity glow
+  while the agent is busy.
+- Confidence / Risk / Evolution mini-bars.
+- Per-card **⏎ auto** toggle and **★ evolve** button.
+
+The **broadcast bar** at the bottom dispatches a briefing to the entire swarm.
+Atlas appends to its own terminal, every specialist transitions through
+`thinking → working → success → idle` and responds with a role-flavoured log
+line. Press `/` to focus, `Enter` to dispatch, `Esc` to close any drawer.
+
+## Auto-enter
+
+> *„Sag dem System einmal: du darfst Enter drücken — und es macht es ab jetzt für dich."*
+
+A per-PTY watchdog presses Enter on clear permission prompts so the operator
+doesn't keep approving them by hand.
+
+Server-side, the watchdog matches a conservative whitelist:
+
+```
+(y/n)   [y/n]   (yes/no)   [yes/no]
+press enter to continue   press any key
+approve?   approve this?
+do you want to ...   are you sure ...   continue?   confirm?
+allow this to run   allow this tool to run
+```
+
+When armed, the server presses `\r` (single fire, 1.5s cooldown so it can't
+loop on a stuck prompt) and broadcasts an `auto-fired` note back to the arena
+so the operator sees exactly when and why it acted.
+
+Arm per agent with the **⏎ auto** card toggle, or hit **⏎ Auto · all** in the
+toolbar. The choice is persisted (see below) — turn it off any time.
+
+## Persistence
+
+Arena UI state lives at `<repo>/.team/arena.json`:
+
+```json
+{
+  "evolution":    { "sentinel": 3, "aurora": 2 },
+  "autoEnter":    ["lead", "backend"],
+  "customAgents": [ /* operator-defined specialists */ ],
+  "atlasMission": ""
+}
+```
+
+The file is gitignored: it is runtime state, not a source of truth. Reset it
+from the UI ("↺ Reset") or by deleting the file.
+
+## Spawn-Builder
+
+Atlas's seed roster is 12 specialists. To add more on the fly, click **+ New
+agent** (or press <kbd>Alt+N</kbd>):
+
+- Name, title, role, super-skill
+- Mascot (pick one of 12 SVG templates — turtle, owl, fox, mole, chameleon,
+  bat, hummingbird, raven, raccoon, debug-raven, firefly, dragon)
+- Accent colour
+
+The new agent appears in the grid immediately, is persisted to `arena.json`
+and survives restarts. The mascot library lives in
+[`gui/public/arena/mascots.js`](gui/public/arena/mascots.js) — drop in another
+SVG template if you want a new species.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  human([You: the goal]) --> lead
+```
+gui/server.js                          Node HTTP + WebSocket bridge
+  ├── http   /             → Mission Control (default)
+  ├── http   /console      → Legacy 4-agent console
+  ├── http   /api/agents   → PTY config
+  ├── http   /api/state    → folded .team state
+  ├── http   /api/arena    → arena server state
+  ├── ws     /             → PTY bridge (xterm-style terminals)
+  └── ws     /arena        → arena protocol (auto-enter, persistence, live)
 
-  subgraph agents [Four Claude Code sessions]
-    lead[Lead — plan · integrate · push]
-    backend[Backend — server · data]
-    frontend[Frontend — UI · UX]
-    quality[Quality — tests · gate]
-  end
+gui/public/arena/
+  ├── arena.html      ← Mission Control shell
+  ├── styles.css      ← cockpit theme + per-species mascot animations
+  ├── data.js         ← registry + briefings + spawn rules
+  ├── mascots.js      ← 12 SVG mascot templates, 5 evolution levels
+  ├── state.js        ← tiny reactive store
+  ├── spawner.js      ← Atlas's rule-based spawn engine
+  ├── broadcast.js    ← broadcast simulator (state machine per agent)
+  ├── ui.js           ← renderers (hero, lead panel, grid, drawer, modal, timeline)
+  └── main.js         ← app entry; ties store, engine, UI, persistence, WS
 
-  subgraph team [".team/ — the shared blackboard"]
-    board[board.md — single work board]
-    logs[log/*.md — append-only events]
-    memory[memory.md — durable decisions]
-    locks[locks/*.lock — runtime locks]
-  end
-
-  scripts[["scripts/team-*.sh — commit · check · health · sync · resume …"]]
-
-  lead --> board
-  agents --> logs
-  agents -. read .-> board
-  agents --> scripts --> team
-  gui[["gui/ — optional console"]] -. reads state .-> team
+tools/forge-pulse/    ← OPTIONAL Rust accelerator (see below)
+.team/                ← file-based coordination scaffold (unchanged)
 ```
 
-- **Agents** are four `claude` sessions, each with an explicit lane and definition-of-done
-  in [`.team/roles/`](.team/roles).
-- **`.team/`** is the blackboard: the lead owns `board.md`; every agent appends only to its
-  own `log/*.md`; `memory.md` survives across runs.
-- **`scripts/`** are the only sanctioned way to commit and run heavy/exclusive operations;
-  [`lib/lock.sh`](scripts/lib/lock.sh) provides the atomic lock used everywhere.
+## Optional Rust accelerator
 
-## Project structure
+Most of the runtime is I/O-bound; Node handles it comfortably. The one place
+that benefits from a tighter implementation is the **hot loop that watches
+every PTY byte** for permission prompts and activity changes. As the swarm
+grows we want that loop to stay sub-millisecond and crash-isolated.
 
-```text
-.
-├─ .team/
-│  ├─ PROTOCOL.md         # the rules (read-only, never changes)
-│  ├─ board.md            # the single work board (lead-owned)
-│  ├─ memory.md           # durable, run-spanning decisions
-│  ├─ roles/              # per-agent lane + definition-of-done
-│  └─ log/                # per-agent append-only logs
-├─ scripts/
-│  ├─ lib/lock.sh         # atomic mkdir lock + event-log helpers
-│  ├─ team-commit.sh      # lock → gate → stage your paths → commit "[role] …"
-│  ├─ team-check.sh       # the green gate (edit for your stack)
-│  ├─ team-exclusive.sh   # serialize heavy ops (build/e2e/migrations)
-│  ├─ team-health.sh      # liveness · stale tasks · deadlock
-│  ├─ team-sync.sh        # board ↔ log drift report
-│  ├─ team-resume.sh      # rebuild state after a crash/restart
-│  ├─ team-metrics.sh     # throughput + board progress
-│  ├─ team-backup.sh      # snapshot / restore .team/
-│  ├─ team-lead-claim.sh  # fallback-lead
-│  ├─ team-lint-log.sh    # validate @role handoff lines
-│  ├─ team-worktrees.sh   # per-role git worktrees
-│  ├─ team-role.sh        # add / list / remove team roles at runtime
-│  ├─ team-handoff.sh     # produce a briefing for a fresh Claude Code session
-│  ├─ team-sections.sh    # per-section board view (sub-teams)
-│  ├─ team-federate.sh    # cross-repo aggregation for a meta-lead view
-│  ├─ team-snapshot.{sh,mjs} # capture full state as one JSON document
-│  ├─ team-diff.{sh,mjs}     # diff two snapshots
-│  ├─ team-init.sh           # one-command install into another repo
-│  └─ team-demo.sh           # self-running demo of the helpers
-├─ gui/                   # optional one-window web console (Node.js)
-├─ mcp/                   # optional read-only MCP server (exposes .team/ as resources)
-├─ schema/                # JSON Schema for the team state contract
-├─ examples/              # worked examples (todo-cli, …)
-├─ .github/workflows/     # GitHub Actions (gate workflow runs the suite on every push)
-├─ tests/run.sh           # Bash test suite (88 checks at last count)
-├─ docs/console.png       # GUI screenshot
-├─ PROMPTS.md             # the 4 copy-paste terminal prompts
-├─ ROADMAP.md             # phased plan + implementation state
-└─ LICENSE                # MIT
+`tools/forge-pulse/` is a single-file, zero-dependency Rust binary that does
+exactly this. The Node server pipes PTY bytes into its stdin and forwards
+its stdout as `{t:"pulse", kind:"prompt"|"activity", …}` events to the
+arena WebSocket. It is **purely advisory** — Node's JS matcher still drives
+auto-enter, so removing or skipping the binary changes nothing functionally.
+
+```bash
+cd tools/forge-pulse
+cargo build --release          # produces target/release/forge-pulse
+cargo test --release           # 5 unit tests
+cargo clippy --release -- -D warnings   # lint clean
 ```
+
+Auto-detected by the server on the next start. Set `FORGE_PULSE=0` to disable
+even when present.
+
+**Why Rust here and not the rest of the stack?**
+The UI must stay in the browser. The server is I/O-bound — JavaScript is fine
+for that. But the matcher is in the hot path of every byte coming out of
+every PTY, and Rust gives us crash isolation, headroom for richer detection
+(token streams, multi-line context, diff-aware logs) and an easy export point
+to a remote VM later. It is a contained, well-scoped use of Rust — exactly
+the way a polyglot stack should grow.
 
 ## Quality and security
 
-- **Continuous integration** — every push runs [`.github/workflows/gate.yml`](.github/workflows/gate.yml),
-  which executes the full green gate (`bash -n` + `shellcheck` + the test suite) on Ubuntu.
-- **Tests** — `bash tests/run.sh` runs 88 sandboxed checks against the real scripts; no
-  external test framework is required. `mcp/test.js` adds 12 MCP smoke checks.
-- **Green gate** — [`scripts/team-check.sh`](scripts/team-check.sh) syntax-checks every
-  script (`bash -n`), runs `shellcheck -S warning` when available, and runs the test suite.
-- **Concurrency safety** — locks use an atomic `mkdir` directory with PID-liveness stale
-  detection and an atomic, rename-based break, so two agents can't both acquire one lock.
-- **Privacy** — everything is local and file-based: the coordination state lives in your
-  own repo, and runtime artifacts (`events.log`, `locks/`, `state/`, `backups/`, `metrics.md`)
-  are gitignored.
+- **Tests** — `bash tests/run.sh` runs **88** bash checks against the real
+  coordination scripts. `cargo test --release` in `tools/forge-pulse` adds 5
+  Rust unit tests.
+- **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + tests)
+  and `cargo clippy --release -- -D warnings` are both clean.
+- **Concurrency safety** — locks are atomic `mkdir` directories with stale
+  detection (unchanged from the original kit).
+- **Privacy** — everything is local. The server binds to `127.0.0.1`. Arena
+  state lives in `.team/arena.json` and is gitignored. No external trackers,
+  no telemetry, no LLM calls leave the machine unless you wire them yourself.
+- **Accessibility** — focus rings on every interactive element, keyboard
+  shortcuts for the broadcast bar (`/`), drawer (`Esc`), and spawn-builder
+  (`Alt+N`). All animations honour `prefers-reduced-motion: reduce`.
 
-> [!NOTE]
-> There is no `SECURITY.md` yet — please report concerns privately to the maintainer
-> (see [LICENSE](LICENSE) for contact context).
+## Legacy 4-agent console
 
-## Roadmap
+The original 4-agent coordination kit is preserved unchanged at
+[`/console`](http://localhost:4173/console). The board, role lanes, locks,
+green gate, MCP server and `team-*.sh` scripts in [`.team/`](.team/) and
+[`scripts/`](scripts/) work exactly as before — they are the substrate
+Mission Control sits on top of.
 
-Shipped in this repo:
-
-- [x] Atomic locking library + serialized commits (`lib/lock.sh`, `team-commit.sh`)
-- [x] Green gate, dry-run commits, central event log
-- [x] Health, stale-task & deadlock detection (`team-health.sh`)
-- [x] Board ↔ log drift reconciliation (`team-sync.sh`)
-- [x] Crash recovery (`team-resume.sh`) + run-spanning memory (`memory.md`)
-- [x] Fallback-lead (`team-lead-claim.sh`) + state backup (`team-backup.sh`)
-- [x] Throughput metrics (`team-metrics.sh`)
-- [x] Structured handoff schema + linter (`team-lint-log.sh`)
-- [x] Git worktrees for stronger isolation (`team-worktrees.sh`)
-- [x] Live web console with vitals (`gui/`, `/state`)
-- [x] Dynamic / additional roles at runtime (`team-role.sh`)
-- [x] Cross-session handoff briefing (`team-handoff.sh`)
-- [x] GitHub Actions CI + live badge (`.github/workflows/gate.yml`)
-- [x] Optional read-only MCP server exposing coordination state (`mcp/`)
-- [x] Sub-team sections in the board (`team-sections.sh`)
-- [x] Cross-repo federation for multi-service teams (`team-federate.sh`)
-- [x] Typed state contract + snapshots & diff (`schema/`, `team-snapshot.sh`, `team-diff.sh`)
-
-All numbered roadmap milestones are shipped. The remaining backlog is the optional
-"academic" appendix (BDI / Contract Net / partial global planning / org self-design),
-which the kit intentionally omits to stay simple — see [`ROADMAP.md`](ROADMAP.md).
-
-See [`ROADMAP.md`](ROADMAP.md) for the full phased plan, priorities, and rationale.
-
-## Contributing
-
-Contributions are welcome. Please open an issue first for anything non-trivial so we can
-agree on the shape of the change. The full contributor guide lives in
-[`CONTRIBUTING.md`](CONTRIBUTING.md); the project ships with a
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and a [`SECURITY.md`](SECURITY.md) that
-explains how to report vulnerabilities privately. Before opening a PR, run the gate:
-
-```bash
-bash scripts/team-check.sh
-```
+See [`gui/README.md`](gui/README.md) for the console's own documentation, and
+[`.team/PROTOCOL.md`](.team/PROTOCOL.md) for the file-based coordination
+rules.
 
 ## License
 
-[MIT](LICENSE) — Copyright © 2026 Belkis Aslani (BEKO2210). Use it freely, including
-commercially. Commercial support, custom integrations and dual-licensing for embedded
-use are available — see [`COMMERCIAL.md`](COMMERCIAL.md).
-
-## Acknowledgements
-
-- Built for [Claude Code](https://claude.com/claude-code) by Anthropic.
-- The optional GUI uses [xterm.js](https://xtermjs.org/), [node-pty](https://github.com/microsoft/node-pty), and [ws](https://github.com/websockets/ws).
-- Distilled from a real multi-agent run, with the friction designed out.
+[MIT](LICENSE) — Copyright © 2026 Belkis Aslani (BEKO2210). Use it freely,
+including commercially.

@@ -11,9 +11,15 @@ import { SEED_AGENTS, BRIEFINGS, SEED_LINES, SPAWN_RULES, LEAD_ID } from "./data
 
 const NOW = () => Date.now();
 
-export function createSpawnEngine({ store, signals }) {
+export function createSpawnEngine({ store, signals, persisted = {} }) {
+  const savedEvolution   = persisted.evolution   || {};
+  const savedAutoEnter   = new Set(persisted.autoEnter || []);
+  const savedCustom      = Array.isArray(persisted.customAgents) ? persisted.customAgents : [];
+
   /** @type {Map<string, any>} */
-  const registry = new Map(SEED_AGENTS.map((a) => [a.id, makeAgent(a, false)]));
+  const registry = new Map(
+    [...SEED_AGENTS, ...savedCustom].map((a) => [a.id, makeAgent(a, false)])
+  );
   /** @type {Array<{ts:number, kind:string, agentId?:string, label:string, rule?:string}>} */
   const timeline = [];
 
@@ -22,14 +28,27 @@ export function createSpawnEngine({ store, signals }) {
       ...spec,
       status: justSpawned ? "thinking" : "idle",
       animationState: justSpawned ? "thinking" : "idle",
-      briefing: BRIEFINGS[spec.id] || "Briefing pending from Atlas.",
+      briefing: spec.briefing || BRIEFINGS[spec.id] || `${spec.name || spec.id} briefing pending from Atlas.`,
       currentTask: justSpawned ? "Awaiting initial briefing." : "Standing by.",
       lastAction: "—",
-      evolutionLevel: 1,
+      evolutionLevel: savedEvolution[spec.id] || 1,
       spawnedAt: justSpawned ? NOW() : NOW() - 1000,
-      terminalLines: [...(SEED_LINES[spec.id] || [`${spec.id} ▸ online`])],
-      autoEnter: false,
+      terminalLines: [...(SEED_LINES[spec.id] || [
+        `${spec.id} ▸ online`,
+        `${spec.id} ▸ awaiting orders from atlas`,
+      ])],
+      autoEnter: savedAutoEnter.has(spec.id),
       autoEnterCount: 0,
+      seed: spec.seed !== false,
+      capabilities: spec.capabilities || ["briefing", "report"],
+      mascot: spec.mascot || "fox",
+      mascotSpecies: spec.mascotSpecies || spec.mascot || "Mascot",
+      mascotLabel:   spec.mascotLabel   || "specialist mascot",
+      color: spec.color || "#5b8cff",
+      accentColor: spec.accentColor || spec.color || "#5b8cff",
+      risk: spec.risk ?? 0.18,
+      confidence: spec.confidence ?? 0.82,
+      qualityScore: spec.qualityScore ?? 0.86,
       health: { fps: 60, errors: 0, lastBeat: NOW() },
     };
   }
@@ -132,10 +151,30 @@ export function createSpawnEngine({ store, signals }) {
     return agent;
   }
 
+  function customAgentSpecs() {
+    return Array.from(registry.values())
+      .filter((a) => a.seed === false)
+      .map((a) => ({
+        id: a.id, name: a.name, title: a.title, role: a.role, domain: a.domain || "specialist",
+        superSkill: a.superSkill, mascot: a.mascot, mascotSpecies: a.mascotSpecies, mascotLabel: a.mascotLabel,
+        color: a.color, accentColor: a.accentColor,
+        capabilities: a.capabilities, seed: false, spawnedBy: a.spawnedBy,
+        risk: a.risk, confidence: a.confidence, qualityScore: a.qualityScore,
+        briefing: a.briefing,
+      }));
+  }
+
+  function evolutionMap() {
+    const m = {};
+    for (const a of registry.values()) m[a.id] = a.evolutionLevel;
+    return m;
+  }
+
   return {
     bootstrap, publish, publishAgent,
     get, update, appendLine, setAnimationState,
     evolve, toggleAutoEnter, spawnAgent,
+    customAgentSpecs, evolutionMap,
     registry, timeline,
   };
 }

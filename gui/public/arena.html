@@ -2,79 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AGENT ARENA · Mission Control</title>
-<meta name="description" content="Atlas Prime orchestrates a swarm of specialised AI agents — visual cockpit for Claude Code teams." />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#04060c" />
+<title>AgentForge Command · Mission Control</title>
+<meta name="description" content="Atlas Prime orchestrates a specialised swarm for your repository — a local mission control for Claude Code agents." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/arena/styles.css" />
 </head>
 <body>
-  <header class="appbar">
-    <div class="brand">
-      <span class="b1">AGENT</span><span class="b2">//</span><span class="b1">ARENA</span><span class="caret"></span>
+  <a class="sr-only" href="#agent-grid">Skip to swarm</a>
+
+  <header class="appbar" role="banner">
+    <div class="brand" aria-label="AgentForge Command">
+      <span class="b1">AGENT</span><span class="b2">FORGE</span><span class="b1">·CMD</span><span class="caret" aria-hidden="true"></span>
       <span class="sub">· LOCAL · <span class="ok">ATLAS PRIME</span> · MISSION CONTROL ·</span>
     </div>
-    <nav class="nav-tabs">
-      <a href="/" title="Original 4-agent terminal console">CONSOLE</a>
-      <a href="/arena" class="active">ARENA</a>
+    <span class="conn off" id="conn-dot" aria-live="polite"
+          data-tip="WebSocket connection state">
+      <span class="dot"></span><span class="txt">offline</span>
+    </span>
+    <nav class="nav-tabs" aria-label="Surfaces">
+      <a href="/" class="active" aria-current="page">ARENA</a>
+      <a href="/console" title="Legacy 4-agent terminal console">CONSOLE</a>
     </nav>
   </header>
 
-  <section class="hero">
+  <section class="hero" aria-label="Mission overview">
     <div>
-      <h1>Agent Mission Control <span class="accent">·</span> Bot Arena</h1>
+      <h1>Mission Control <span class="accent">·</span> AgentForge Command</h1>
       <p class="sub">
-        <b>Atlas Prime</b> has scanned this repository and spawned a specialised swarm. Each agent
-        owns a terminal, a domain, a super-skill and a mascot that evolves as it ships value. Broadcast a
-        briefing below and watch the swarm react.
+        <b>Atlas Prime</b> scanned the repository and assembled the swarm below. Each agent owns a domain,
+        a super-skill and a mascot that evolves as it ships value. Broadcast a briefing, watch the swarm react,
+        or arm <kbd>⏎ auto</kbd> on the agents you trust to approve their own permission prompts.
       </p>
       <div id="hero-stats"></div>
     </div>
     <div id="lead-panel"></div>
   </section>
 
-  <section class="toolbar">
+  <section class="toolbar" role="toolbar" aria-label="Arena toolbar">
     <div class="seg" id="filter-bar" role="tablist" aria-label="Filter agents">
-      <button data-filter="all" class="active" role="tab">All</button>
-      <button data-filter="active" role="tab">Active</button>
-      <button data-filter="warning" role="tab">Warning</button>
-      <button data-filter="completed" role="tab">Completed</button>
+      <button data-filter="all" class="active" role="tab" aria-selected="true">All</button>
+      <button data-filter="active" role="tab" aria-selected="false">Active</button>
+      <button data-filter="warning" role="tab" aria-selected="false">Warning</button>
+      <button data-filter="completed" role="tab" aria-selected="false">Completed</button>
     </div>
     <span class="grow"></span>
+    <button class="btn" id="new-agent" data-tip="Define a new specialist (Alt+N)">+ New agent</button>
     <button class="btn" id="evolve-all" data-tip="Increase every mascot's evolution level">★ Evolve all</button>
-    <button class="btn" id="auto-all"   data-tip="Toggle auto-enter on every specialist">⏎ Auto · all</button>
-    <button class="btn danger" id="reset" data-tip="Re-run Atlas's spawn pass">↺ Reset arena</button>
+    <button class="btn" id="auto-all"   data-tip="Toggle auto-enter for every specialist">⏎ Auto · all</button>
+    <button class="btn danger" id="reset" data-tip="Wipe persistence and re-run Atlas's spawn pass">↺ Reset</button>
   </section>
 
   <section class="main-cols">
     <main id="agent-grid" class="grid" aria-label="Specialist terminals"></main>
     <aside class="right">
       <div id="timeline"></div>
-      <div class="timeline" aria-label="Atlas notes">
-        <h3>Atlas notes</h3>
-        <ul style="font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.55;list-style:disc inside;padding-left:6px">
+      <div class="timeline" aria-label="Operator notes">
+        <h3>Operator notes</h3>
+        <ul style="font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.6;list-style:disc inside;padding-left:6px;margin:0;display:flex;flex-direction:column;gap:4px">
           <li>Click any terminal card to open the agent's detail drawer.</li>
-          <li>Press <kbd>/</kbd> to focus the broadcast bar, <kbd>Esc</kbd> to close the drawer.</li>
-          <li>Toggle <b>⏎ auto</b> on an agent if you want the server to press Enter on its permission prompts.</li>
-          <li>Atlas re-runs the spawn pass on every page load; the rules live in <code>arena/data.js</code>.</li>
+          <li><kbd>/</kbd> focuses broadcast · <kbd>Esc</kbd> closes drawer / modal · <kbd>Alt+N</kbd> spawns a new specialist.</li>
+          <li><b>⏎ auto</b> arms server-side auto-enter on permission prompts for that agent.</li>
+          <li>State persists to <code>.team/arena.json</code> — evolution + auto-enter survive restarts.</li>
         </ul>
       </div>
     </aside>
   </section>
 
-  <footer class="broadcast" aria-label="Atlas broadcast bar">
+  <footer class="broadcast" aria-label="Atlas broadcast bar" role="contentinfo">
     <div class="broadcast-inner">
-      <span class="broadcast-prompt">broadcast &gt;</span>
+      <span class="broadcast-prompt" aria-hidden="true">broadcast &gt;</span>
+      <label class="sr-only" for="broadcast-input">Broadcast briefing to every agent</label>
       <input id="broadcast-input" type="text" autocomplete="off" spellcheck="false"
              placeholder="brief the swarm — Enter dispatches to every agent…" />
-      <span class="brand"><span class="sub">⏎ DISPATCH · / FOCUS · ESC CLOSE</span></span>
+      <span class="meta" aria-hidden="true">⏎ DISPATCH · / FOCUS · ESC CLOSE</span>
     </div>
   </footer>
 
-  <div id="drawer-backdrop" class="drawer-backdrop"></div>
-  <aside id="drawer" class="drawer" role="dialog" aria-label="Agent detail"></aside>
+  <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Agent detail" aria-hidden="true"></aside>
+
+  <div id="modal-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Spawn a new specialist" aria-hidden="true"></div>
+  </div>
 
   <script type="module" src="/arena/main.js"></script>
 </body>
