@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Über die test-site — wie das 4-Agent-Team-Kit die Seite gebaut hat.">
+  <title>test-site — Über das Projekt</title>
+  <link rel="stylesheet" href="/styles/main.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+  <header class="site-header" role="banner">
+    <div class="container header-row">
+      <a class="brand" href="/" aria-label="test-site Startseite">
+        <span class="brand-mark" aria-hidden="true">◆</span>
+        <span class="brand-name">test-site</span>
+      </a>
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <ul>
+          <li><a href="/">Start</a></li>
+          <li><a href="/about" aria-current="page">Über</a></li>
+          <li><a href="/contact">Kontakt</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <article aria-labelledby="about-title">
+      <h1 id="about-title">Über die test-site</h1>
+      <p class="lede">
+        Diese Seite ist das sichtbare Artefakt des
+        <a href="https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code" rel="noopener">4-Agent-Team-Kit</a>.
+        Vier Claude-Code-Agenten teilen sich ein Repository, einen Branch und genau
+        eine Quelle der Wahrheit: das Board unter <code>.team/board.md</code>.
+      </p>
+
+      <section aria-labelledby="roles-title">
+        <h2 id="roles-title">Die Rollen</h2>
+        <dl class="roles-list">
+          <dt>Lead</dt>
+          <dd>Plant das Board, integriert die Beiträge, pusht.</dd>
+
+          <dt>Backend</dt>
+          <dd>Schreibt nur unter <code>test-site/server/**</code> — Node-<code>http</code>-Server ohne Dependencies.</dd>
+
+          <dt>Frontend</dt>
+          <dd>Schreibt nur unter <code>test-site/public/**</code> und <code>test-site/styles/**</code> — semantisches HTML + responsives CSS.</dd>
+
+          <dt>Quality</dt>
+          <dd>Schreibt nur unter <code>test-site/tests/**</code> — Smoke-Test, der Server bootet und Routen prüft.</dd>
+        </dl>
+      </section>
+
+      <section aria-labelledby="how-title">
+        <h2 id="how-title">So fließt die Arbeit</h2>
+        <ol class="flow-list">
+          <li>Lead zerlegt das Ziel in Board-Zeilen mit Owner und State.</li>
+          <li>Jeder Agent <em>claimt</em> seine Zeile im eigenen Log.</li>
+          <li>Commits laufen serialisiert über <code>scripts/team-commit.sh</code> — niemals von Hand.</li>
+          <li>Die Quality-Gate (<code>scripts/team-check.sh</code>) muss grün sein, bevor ein Commit durchgeht.</li>
+          <li>Nur der Lead pusht — und nur, wenn die Quality-Signoff vorliegt.</li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="stack-title">
+        <h2 id="stack-title">Technik bewusst minimal</h2>
+        <p>
+          Keine Frameworks, keine Build-Pipeline, keine npm-Dependencies im
+          Demo-Server. Das hält den Smoke-Test ehrlich: was die Quality testet,
+          ist exakt das, was die Nutzerin im Browser sieht.
+        </p>
+      </section>
+    </article>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p>© test-site — Demo des 4-Agent-Team-Kit. Keine echten Daten.</p>
+    </div>
+  </footer>
+</body>
+</html>

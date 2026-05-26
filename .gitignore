@@ -1,0 +1,12 @@
+# Runtime locks + state created by the scripts — never commit these
+.team/locks/*
+!.team/locks/.gitkeep
+.team/log/events.log
+.team/state/
+.team/backups/
+.team/snapshots/
+.team/metrics.md
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

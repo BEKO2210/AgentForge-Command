@@ -1,0 +1,33 @@
+name: Feature request / idea
+description: Suggest an improvement or new capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What problem does this feature solve? Who benefits?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Compatibility with the kit's principles
+      description: The kit's whole point is staying simple. Tick what applies.
+      options:
+        - label: Stays within the `.team/` protocol (no new daemons, no shared writers)
+        - label: Keeps the core dependency-free (extra deps OK inside `gui/` or `mcp/`)
+        - label: I'm willing to send a PR for this
