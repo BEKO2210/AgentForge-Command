@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kontaktformular der test-site — Demo, ohne Datenversand.">
+  <title>test-site — Kontakt</title>
+  <link rel="stylesheet" href="/styles/main.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+  <header class="site-header" role="banner">
+    <div class="container header-row">
+      <a class="brand" href="/" aria-label="test-site Startseite">
+        <span class="brand-mark" aria-hidden="true">◆</span>
+        <span class="brand-name">test-site</span>
+      </a>
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <ul>
+          <li><a href="/">Start</a></li>
+          <li><a href="/about">Über</a></li>
+          <li><a href="/contact" aria-current="page">Kontakt</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <section aria-labelledby="contact-title">
+      <h1 id="contact-title">Kontakt</h1>
+      <p class="lede">
+        Diese Demo verschickt nichts — das Formular validiert clientseitig und
+        zeigt den eingegebenen Inhalt als Bestätigung. Reale Übermittlung wäre
+        Sache des Backends.
+      </p>
+
+      <form id="contact-form" class="contact-form" novalidate aria-describedby="form-help">
+        <p id="form-help" class="form-help">
+          Pflichtfelder sind mit <span aria-hidden="true">*</span><span class="sr-only">Stern</span> markiert.
+        </p>
+
+        <div class="field">
+          <label for="name">Name <span aria-hidden="true">*</span></label>
+          <input
+            id="name" name="name" type="text"
+            autocomplete="name" required minlength="2" maxlength="80"
+            aria-required="true" aria-describedby="name-error">
+          <p class="field-error" id="name-error" hidden>Bitte einen Namen mit mindestens 2 Zeichen eingeben.</p>
+        </div>
+
+        <div class="field">
+          <label for="email">E-Mail <span aria-hidden="true">*</span></label>
+          <input
+            id="email" name="email" type="email"
+            autocomplete="email" required maxlength="120"
+            aria-required="true" aria-describedby="email-error">
+          <p class="field-error" id="email-error" hidden>Bitte eine gültige E-Mail-Adresse eingeben.</p>
+        </div>
+
+        <div class="field">
+          <label for="message">Nachricht <span aria-hidden="true">*</span></label>
+          <textarea
+            id="message" name="message" rows="5"
+            required minlength="5" maxlength="2000"
+            aria-required="true" aria-describedby="message-error message-hint"></textarea>
+          <p class="field-hint" id="message-hint">Max. 2000 Zeichen.</p>
+          <p class="field-error" id="message-error" hidden>Bitte eine Nachricht mit mindestens 5 Zeichen eingeben.</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submit-btn">Absenden</button>
+          <button type="reset" class="btn btn-ghost">Zurücksetzen</button>
+        </div>
+
+        <div
+          id="form-status" class="form-status" role="status" aria-live="polite" hidden></div>
+      </form>
+
+      <noscript>
+        <p class="notice">
+          JavaScript ist deaktiviert. Du kannst die Felder ausfüllen,
+          eine Übermittlung findet in dieser Demo aber nicht statt.
+        </p>
+      </noscript>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p>© test-site — Demo des 4-Agent-Team-Kit. Keine echten Daten.</p>
+    </div>
+  </footer>
+
+  <script src="/styles/app.js" defer></script>
+</body>
+</html>

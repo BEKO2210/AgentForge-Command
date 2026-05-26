@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Demo-Webseite des 4-Agent-Team-Kit — Landing-Seite.">
+  <title>test-site — Startseite</title>
+  <link rel="stylesheet" href="/styles/main.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+  <header class="site-header" role="banner">
+    <div class="container header-row">
+      <a class="brand" href="/" aria-label="test-site Startseite">
+        <span class="brand-mark" aria-hidden="true">◆</span>
+        <span class="brand-name">test-site</span>
+      </a>
+      <nav class="site-nav" aria-label="Hauptnavigation">
+        <ul>
+          <li><a href="/" aria-current="page">Start</a></li>
+          <li><a href="/about">Über</a></li>
+          <li><a href="/contact">Kontakt</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Vier Agenten, ein Repo, eine Webseite.</h1>
+      <p class="lede">
+        Diese Mini-Site demonstriert die <strong>4-Agent-Team-Kit</strong>-Pipeline:
+        Lead plant, Backend liefert die API, Frontend baut das Interface, Quality
+        sichert den Smoke-Test ab.
+      </p>
+      <p class="cta-row">
+        <a class="btn btn-primary" href="/about">Wie das Team arbeitet</a>
+        <a class="btn btn-ghost" href="/contact">Kontakt aufnehmen</a>
+      </p>
+    </section>
+
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title">Was hier läuft</h2>
+      <ul class="feature-grid" role="list">
+        <li class="feature-card">
+          <h3>Statisches Frontend</h3>
+          <p>Drei semantische HTML-Seiten, ein gemeinsames CSS, keine Build-Pipeline.</p>
+        </li>
+        <li class="feature-card">
+          <h3>Mini-Backend</h3>
+          <p>Node-<code>http</code>-Server liefert HTML aus und beantwortet <code>/api/hello</code>.</p>
+        </li>
+        <li class="feature-card">
+          <h3>Quality-Smoke</h3>
+          <p>Bash-Skript bootet den Server und prüft, ob alle Routen <code>200</code> antworten.</p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="api-demo" aria-labelledby="api-title">
+      <h2 id="api-title">Live-Probe der API</h2>
+      <p>
+        Sobald das Backend läuft, antwortet <code>/api/hello</code> mit JSON.
+        Der Button unten ruft den Endpoint im Browser auf.
+      </p>
+      <p>
+        <button type="button" class="btn btn-primary" id="api-probe" aria-controls="api-output">
+          /api/hello abrufen
+        </button>
+      </p>
+      <output id="api-output" class="api-output" role="status" aria-live="polite">
+        Noch keine Anfrage gesendet.
+      </output>
+      <noscript>
+        <p class="notice">JavaScript ist deaktiviert — die Live-Probe ist statisch.
+          Du kannst <code>/api/hello</code> direkt im Browser oder mit <code>curl</code> aufrufen.</p>
+      </noscript>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p>© test-site — Demo des 4-Agent-Team-Kit. Keine echten Daten.</p>
+    </div>
+  </footer>
+
+  <script src="/styles/app.js" defer></script>
+</body>
+</html>

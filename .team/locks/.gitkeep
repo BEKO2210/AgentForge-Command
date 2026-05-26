@@ -1,0 +1,1 @@
+# Runtime locks live here (git.lock, build.lock, e2e.lock …). Keep the dir, ignore the *.lock files.

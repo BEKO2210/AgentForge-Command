@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code/schema/team-state.schema.json",
+  "title": "Team state",
+  "description": "Folded view of the .team/ blackboard: board progress + per-agent liveness. Produced by gui/server.js GET /state, the MCP team://state resource, and scripts/team-snapshot.{mjs,sh}.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generatedAt", "counts", "tasks", "roles"],
+  "properties": {
+    "generatedAt": { "type": "string", "format": "date-time", "description": "ISO-8601 timestamp at which the state was folded" },
+    "repoDir": { "type": "string", "description": "Absolute path of the repo root from which .team/ was read" },
+    "gitHead": { "type": ["string", "null"], "description": "Current HEAD commit sha (snapshot only)" },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "todo", "doing", "blocked", "done"],
+      "properties": {
+        "total":   { "type": "integer", "minimum": 0 },
+        "todo":    { "type": "integer", "minimum": 0 },
+        "doing":   { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "done":    { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "task", "owner", "state"],
+        "properties": {
+          "id":    { "type": "string", "pattern": "^[0-9]+$" },
+          "task":  { "type": "string" },
+          "owner": { "type": "string", "description": "Lowercased role name, or '' / '—' for unassigned" },
+          "state": { "enum": ["todo", "doing", "blocked", "done", ""] }
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "ageSec", "state"],
+        "properties": {
+          "id":     { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+          "ageSec": { "type": "integer", "description": "Seconds since the role's last log append; -1 if no log exists" },
+          "state":  { "enum": ["active", "idle", "stale", "no-log"] }
+        }
+      }
+    }
+  }
+}

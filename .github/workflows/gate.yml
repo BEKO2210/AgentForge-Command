@@ -1,0 +1,55 @@
+name: gate
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: bash + shellcheck + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          bash --version | head -1
+          git --version
+          (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed"
+
+      - name: Run the green gate (bash -n + shellcheck + tests/run.sh)
+        run: scripts/team-check.sh
+
+  audit:
+    name: npm audit (gui + mcp)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit gui dependencies
+        working-directory: gui
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+
+      - name: Audit mcp dependencies
+        working-directory: mcp
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high

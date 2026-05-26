@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue (private)
+    url: https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code/security/advisories/new
+    about: Please report vulnerabilities privately via GitHub Security Advisories.
+  - name: Commercial enquiry
+    url: https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code/issues/new?labels=commercial&title=Commercial+enquiry
+    about: Open an issue labelled "commercial" for support, integrations or dual-licensing.

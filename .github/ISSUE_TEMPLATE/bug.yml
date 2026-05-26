@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a defect in the kit
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more reproducible, the better.
+        For security issues, please use Private Security Advisories instead (link in the
+        issue templates menu).
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Clear description of the unexpected behaviour.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Ideally a minimal sequence that reliably reproduces the issue.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `git rev-parse --short HEAD` or the tag you are on.
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: macOS 14.5 / Ubuntu 24.04 / Windows 11 (WSL)
+        - Bash: 5.2.x
+        - Node (if GUI / MCP): 20.x
+        - Claude Code CLI version
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / output
+      render: shell
