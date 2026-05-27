@@ -1,0 +1,78 @@
+{
+  "_comment": "Drop this into ~/.claude/settings.json (or .claude/settings.local.json in a repo) and AgentForge gets AUTHORITATIVE state updates from every tool call — instead of inferring state from raw stdout. Hooks fire inside the PTY spawned by the cockpit, so AGENTFORGE_AGENT_ID and AGENTFORGE_HOOK_URL are already set in the env. The fallbacks (`-id` / port) handle running claude outside the cockpit.",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"PreToolUse\\\",\\\"tool\\\":\\\"$CLAUDE_TOOL_NAME\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"PreToolUse\\\",\\\"tool\\\":\\\"$CLAUDE_TOOL_NAME\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|BashOutput",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"PreToolUse\\\",\\\"tool\\\":\\\"Bash\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"PreToolUse\\\",\\\"tool\\\":\\\"Task\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"PostToolUse\\\",\\\"tool\\\":\\\"$CLAUDE_TOOL_NAME\\\",\\\"ok\\\":true}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
+
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"Notification\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsS -m 1 -X POST \"${AGENTFORGE_HOOK_URL:-http://127.0.0.1:4173/api/hooks}\" -H 'content-type: application/json' -d \"{\\\"agent\\\":\\\"${AGENTFORGE_AGENT_ID:-unknown}\\\",\\\"event\\\":\\\"Stop\\\"}\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}

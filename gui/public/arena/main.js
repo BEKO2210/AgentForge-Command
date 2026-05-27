@@ -496,6 +496,21 @@ function handleServerMessage(m) {
     engine.appendLine(LEAD_ID, `[server] auto-enter → ${m.target} · ${m.reason || "prompt"}`);
   } else if (m.t === "pulse") {
     if (m.kind && m.id) engine.appendLine(LEAD_ID, `[forge-pulse] ${m.id}: ${m.kind} ${m.reason || ""}`);
+  } else if (m.t === "hook") {
+    // Authoritative state from a Claude Code tool hook. Beats heuristic
+    // PTY-byte sniffing: we know EXACTLY what the specialist is doing.
+    const a = engine.get(m.id);
+    if (a && m.state) engine.setAnimationState(m.id, m.state);
+    const label = m.tool ? `${m.event} ${m.tool}` : m.event;
+    const detail = m.file ? ` · ${m.file}` : "";
+    if (a) engine.appendLine(m.id, `[hook] ${label}${detail}`);
+    // PostToolUse success → kurzer Glanz dann zurück nach idle.
+    if (m.event === "PostToolUse" && m.ok && a) {
+      setTimeout(() => {
+        const cur = engine.get(m.id);
+        if (cur && cur.animationState === "success") engine.setAnimationState(m.id, "idle");
+      }, 1000);
+    }
   } else if (m.t === "started") {
     engine.setPtyRunning(m.id, true);
   } else if (m.t === "exit") {

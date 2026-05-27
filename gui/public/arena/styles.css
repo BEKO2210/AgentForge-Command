@@ -1079,17 +1079,106 @@ kbd {
   @keyframes t-celeb-led    { 0% { fill:#22d3ee; } 25% { fill:#54e6a8; } 50% { fill:#fcd34d; } 75% { fill:#f472b6; } 100% { fill:#22d3ee; } }
   @keyframes t-celeb-shell  { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-3deg); } 75% { transform:rotate(3deg); } }
 
-  /* ---- OWL ---- pupils blink + track, scan line drifts */
-  .mascot-owl .r-eye-pupil { animation: o-track 4.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-owl .r-eye-bg    { animation: o-blink 4.5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-owl .r-scan      { animation: o-scan 3.5s linear infinite; }
-  .mascot-owl .r-tuft      { animation: o-tuft 6s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
-  .mascot-owl.state-warning .r-eye-pupil { animation: o-track 1.1s ease-in-out infinite; }
-  .mascot-owl.state-warning { color:#fde047; }
-  @keyframes o-track { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(1px); } }
-  @keyframes o-blink { 0%,88%,100% { transform:scaleY(1); } 92%,96% { transform:scaleY(.1); } }
-  @keyframes o-scan  { 0% { transform:translateY(-4px); opacity:0; } 30%,70% { opacity:.6; } 100% { transform:translateY(4px); opacity:0; } }
-  @keyframes o-tuft  { 0%,90%,100% { transform:none; } 94%,96% { transform:scale(1.1); } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  SENTINEL · GUARDIAN OWL — 10-state animation machine
+   *
+   *  Sentinel is the swarm's risk officer, so its state vocabulary leans
+   *  toward "watching", "scanning", "raising alarms". Every state has a
+   *  distinct visual signature:
+   *
+   *    idle         sporadic full blinks, slow pupil drift
+   *    listening    tufts perk up, pupils widen (eyes open + still)
+   *    thinking     pupils dart across the sclera (rapid saccade)
+   *    typing       feathers fluff in rhythm + tiny eye twitches
+   *    working      head ticks side-to-side (security scan sweep)
+   *    reading      scan-ring orbits + slow horizontal pupil sweep
+   *    success      eyes flash green, tufts give a one-shot pop
+   *    warning      eyes go amber, tufts raise + stay raised
+   *    error        eyes red, head bows (lid covers more), body shakes
+   *    celebrating  feather burst around + 360° head twirl
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  .mascot-owl .r-eye-bg    { animation: o-idle-blink 5.2s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-owl .r-eye-pupil { animation: o-idle-drift 6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-owl .r-tuft      { animation: o-idle-tuft 6s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-owl .r-eye-lid   { animation: o-idle-lid 5.2s steps(2) infinite; transform:translateY(-2px); transform-box:fill-box; transform-origin:bottom; }
+  @keyframes o-idle-blink { 0%,90%,100% { transform:scaleY(1); } 92%,96% { transform:scaleY(.15); } }
+  @keyframes o-idle-drift { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(1px); } }
+  @keyframes o-idle-tuft  { 0%,90%,100% { transform:none; } 94%,96% { transform:scale(1.1); } }
+  @keyframes o-idle-lid   { 0%,90%,100% { transform:translateY(-2px); } 92%,96% { transform:translateY(0); } }
+
+  /* ---- LISTENING ---- tufts perk up + eyes wide and still */
+  .mascot-owl.state-listening .r-tuft       { animation: o-listen-tuft 1.4s ease-in-out infinite; }
+  .mascot-owl.state-listening .r-eye-pupil  { animation: none; transform:translate(0,0); }
+  .mascot-owl.state-listening .r-eye-bg     { animation: none; transform:scaleY(1); }
+  .mascot-owl.state-listening .r-eye-lid    { transform:translateY(-3px); animation:none; }
+  @keyframes o-listen-tuft { 0%,100% { transform:scaleY(1) translateY(0); } 50% { transform:scaleY(1.2) translateY(-1px); } }
+
+  /* ---- THINKING ---- pupils dart across the sclera (saccade) */
+  .mascot-owl.state-thinking .r-eye-pupil { animation: o-think-saccade .9s steps(4) infinite; }
+  .mascot-owl.state-thinking .r-eye-bg    { animation: o-idle-blink 2.5s steps(2) infinite; }
+  @keyframes o-think-saccade { 0% { transform:translate(-1px,0); } 25% { transform:translate(1px,0); } 50% { transform:translate(-1px,-.5px); } 75% { transform:translate(1px,.5px); } 100% { transform:translate(-1px,0); } }
+
+  /* ---- TYPING ---- feathers fluff + rapid micro-blinks */
+  .mascot-owl.state-typing .r-feather   { animation: o-type-feather .35s steps(2) infinite; }
+  .mascot-owl.state-typing .r-eye-bg    { animation: o-idle-blink 1.2s steps(2) infinite; }
+  .mascot-owl.state-typing .r-eye-lid   { animation: o-idle-lid 1.2s steps(2) infinite; }
+  @keyframes o-type-feather { 50% { opacity:.5; } }
+
+  /* ---- WORKING ---- head ticks side-to-side (security scan sweep) */
+  .mascot-owl.state-working .r-head-hi,
+  .mascot-owl.state-working .r-face,
+  .mascot-owl.state-working .r-face-groove,
+  .mascot-owl.state-working .r-eye-bg,
+  .mascot-owl.state-working .r-eye-rim,
+  .mascot-owl.state-working .r-eye-pupil,
+  .mascot-owl.state-working .r-eye-glint,
+  .mascot-owl.state-working .r-eye-lid,
+  .mascot-owl.state-working .r-beak,
+  .mascot-owl.state-working .r-tuft { animation: o-work-scan 1.6s ease-in-out infinite; }
+  @keyframes o-work-scan { 0%,100% { transform:translateX(-1.5px); } 50% { transform:translateX(1.5px); } }
+
+  /* ---- READING ---- scan-ring orbits + slow horizontal pupil sweep */
+  .mascot-owl.state-reading .r-eye-pupil { animation: o-read-sweep 2.4s ease-in-out infinite; }
+  .mascot-owl.state-reading .r-scan-ring { animation: o-read-ring 1.6s linear infinite; opacity:1 !important; }
+  @keyframes o-read-sweep { 0%,100% { transform:translateX(-1.5px); } 50% { transform:translateX(1.5px); } }
+  @keyframes o-read-ring  { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+
+  /* ---- SUCCESS ---- eyes flash green, tufts pop, scale bounce */
+  .mascot-owl.state-success .mascot-body { animation: o-success-pop .7s ease-out; transform-origin:center; }
+  .mascot-owl.state-success .r-eye-bg    { animation: o-success-eye .7s ease-out; }
+  .mascot-owl.state-success .r-eye-rim   { animation: o-success-rim .7s ease-out; }
+  .mascot-owl.state-success .r-tuft      { animation: o-success-tuft .7s ease-out; transform-origin:bottom; transform-box:fill-box; }
+  @keyframes o-success-pop  { 0% { transform:scale(1); } 30% { transform:scale(1.1); } 60% { transform:scale(.96); } 100% { transform:scale(1); } }
+  @keyframes o-success-eye  { 0% { fill:#fcd34d; } 40% { fill:#54e6a8; } 100% { fill:#fcd34d; } }
+  @keyframes o-success-rim  { 0% { fill:#b45309; } 40% { fill:#16a34a; } 100% { fill:#b45309; } }
+  @keyframes o-success-tuft { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.4) translateY(-2px); } }
+
+  /* ---- WARNING ---- amber eyes + tufts raised */
+  .mascot-owl.state-warning .r-eye-bg    { fill:#fb923c; }
+  .mascot-owl.state-warning .r-eye-rim   { fill:#9a3412; }
+  .mascot-owl.state-warning .r-tuft      { transform:scaleY(1.3) translateY(-1px); transform-origin:bottom; transform-box:fill-box; animation: o-warn-tuft 1.2s steps(2) infinite; }
+  .mascot-owl.state-warning .r-eye-pupil { animation: o-think-saccade .6s steps(4) infinite; }
+  @keyframes o-warn-tuft { 50% { opacity:.6; } }
+
+  /* ---- ERROR ---- red eyes, head bows (lid covers), body shake */
+  .mascot-owl.state-error .mascot-body   { animation: o-err-shake .2s ease-in-out infinite; }
+  .mascot-owl.state-error .r-eye-bg      { fill:#ef4444; }
+  .mascot-owl.state-error .r-eye-rim     { fill:#7f1d1d; }
+  .mascot-owl.state-error .r-eye-lid     { transform:translateY(1px); animation: o-err-lid .4s steps(2) infinite; }
+  .mascot-owl.state-error .r-eye-pupil   { transform:translateY(1px); }
+  @keyframes o-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes o-err-lid   { 50% { opacity:.5; } }
+
+  /* ---- CELEBRATING ---- feather burst + 360° head twirl */
+  .mascot-owl.state-celebrating .mascot-body { animation: o-celeb-twirl 1s ease-in-out; transform-origin:center; }
+  .mascot-owl.state-celebrating .r-feather   { animation: o-celeb-feather .35s ease-in-out infinite; }
+  .mascot-owl.state-celebrating .r-tail-feather { animation: o-celeb-feather .35s ease-in-out infinite; animation-delay:.2s; }
+  .mascot-owl.state-celebrating .r-eye-bg    { animation: o-celeb-eye .25s ease-in-out infinite; }
+  @keyframes o-celeb-twirl   { 0% { transform:rotate(0); } 50% { transform:rotate(360deg) scale(1.1); } 100% { transform:rotate(0); } }
+  @keyframes o-celeb-feather { 50% { opacity:.4; } }
+  @keyframes o-celeb-eye     { 0% { fill:#fcd34d; } 25% { fill:#54e6a8; } 50% { fill:#22d3ee; } 75% { fill:#f472b6; } 100% { fill:#fcd34d; } }
 
   /* ---- FOX ---- tail swishes, ears twitch */
   .mascot-fox .r-tail      { animation: f-tail 3.6s ease-in-out infinite; transform-origin:23px 17px; transform-box:fill-box; }

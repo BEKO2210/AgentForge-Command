@@ -159,6 +159,76 @@ function arenaBroadcastSafe(msg) {
   for (const c of arenaClients) if (c.readyState === 1) { try { c.send(s); } catch {} }
 }
 
+/* ----- Claude Code tool-hook receiver -----
+ *
+ * Claude Code can run shell commands as hooks at PreToolUse / PostToolUse /
+ * Notification / Stop. When configured to POST here, those events become the
+ * AUTHORITATIVE source for specialist state — the cockpit doesn't have to
+ * guess from raw stdout bytes any more.
+ *
+ *   PreToolUse  Read|Grep|Glob|WebFetch|WebSearch   → state = "reading"
+ *   PreToolUse  Edit|Write|MultiEdit                → state = "working"
+ *   PreToolUse  Bash|BashOutput                     → state = "working"
+ *   PreToolUse  Task                                → state = "thinking"
+ *   PostToolUse  (any, success)                     → state = "success" → idle
+ *   PostToolUse  (any, error)                       → state = "warning"
+ *   Notification                                    → state = "listening"
+ *   Stop                                            → state = "idle"
+ *
+ * Hooks identify which specialist they belong to via the AGENTFORGE_AGENT_ID
+ * env var the server injects when it spawns each PTY. */
+const HOOK_STATE_MAP = {
+  // Read-style tools
+  "PreToolUse:Read":      "reading",
+  "PreToolUse:Grep":      "reading",
+  "PreToolUse:Glob":      "reading",
+  "PreToolUse:WebFetch":  "reading",
+  "PreToolUse:WebSearch": "reading",
+  // Write-style tools
+  "PreToolUse:Write":     "working",
+  "PreToolUse:Edit":      "working",
+  "PreToolUse:MultiEdit": "working",
+  "PreToolUse:NotebookEdit": "working",
+  // Run-style
+  "PreToolUse:Bash":      "working",
+  "PreToolUse:BashOutput":"working",
+  // Plan-style
+  "PreToolUse:Task":      "thinking",
+  // Lifecycle
+  "Notification":         "listening",
+  "Stop":                 "idle",
+  "SessionStart":         "listening",
+  "UserPromptSubmit":     "listening",
+};
+
+function resolveHookState(event, tool, ok) {
+  // Post-tool events override map: success → success ping, failure → warning.
+  if (event === "PostToolUse") return ok === false ? "warning" : "success";
+  const key = tool ? `${event}:${tool}` : event;
+  return HOOK_STATE_MAP[key] || HOOK_STATE_MAP[event] || null;
+}
+
+function consumeHookEvent(body) {
+  // Body shape we accept (lenient):
+  //   { agent, event, tool, ok, summary, file, session_id }
+  // `agent` falls back to AGENTFORGE_AGENT_ID env-style query string for
+  // shells that can't easily build JSON. Returns { ok, agentId, state }.
+  const agent = String(body.agent || body.id || "").toLowerCase().trim();
+  const event = String(body.event || body.hook || "").trim();
+  const tool = body.tool ? String(body.tool).trim() : "";
+  const ok = body.ok === undefined ? true : (body.ok === false || body.ok === "false") ? false : true;
+  if (!agent || !event) return { ok: false, reason: "missing agent or event" };
+  const state = resolveHookState(event, tool, ok);
+  const payload = {
+    t: "hook", id: agent, event, tool: tool || null, state, ok,
+    summary: body.summary || body.tool_response_summary || null,
+    file: body.file || body.path || null,
+    ts: Date.now(),
+  };
+  arenaBroadcastSafe(payload);
+  return { ok: true, agentId: agent, state, event, tool };
+}
+
 /* ----- Atlas brief parser -----
  * Atlas's system prompt asks for a paragraph plus a `BRIEFINGS:` block of
  * `- <id>: <task>` lines. We pull those out so the server can autodispatch
@@ -295,8 +365,16 @@ function startAgent(def) {
   if (prev && prev.term) {
     try { prev.term.kill(); } catch {}
   }
+  // Inject env vars so Claude Code hooks running inside this PTY know
+  // which specialist they belong to and where to POST events. The hook
+  // script in .claude/settings.json reads these to build its curl call.
+  const ptyEnv = {
+    ...process.env,
+    AGENTFORGE_AGENT_ID: def.id,
+    AGENTFORGE_HOOK_URL: `http://127.0.0.1:${PORT}/api/hooks`,
+  };
   const term = pty.spawn(def.cmd, def.args || [], {
-    name: "xterm-256color", cols: 140, rows: 30, cwd: REPO_DIR, env: process.env,
+    name: "xterm-256color", cols: 140, rows: 30, cwd: REPO_DIR, env: ptyEnv,
   });
   const rec = { def, term, buf: "", alive: true, tail: "" };
   term.onData((d) => {
@@ -367,6 +445,40 @@ const server = http.createServer((req, res) => {
       llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
       spend: spendSnapshot(),
     }));
+  }
+
+  // Tool-hook receiver — POST /api/hooks
+  // Body: JSON { agent, event, tool?, ok?, summary?, file? }
+  //  OR    application/x-www-form-urlencoded same fields
+  //  OR    GET /api/hooks?agent=…&event=…&tool=…  (curl convenience)
+  // Always replies with the resolved state so the hook script can also be
+  // used as a probe in non-production sessions.
+  if (url === "/api/hooks") {
+    if (req.method === "GET") {
+      const u = new URL(req.url, `http://localhost:${PORT}`);
+      const body = Object.fromEntries(u.searchParams);
+      const r = consumeHookEvent(body);
+      res.writeHead(r.ok ? 200 : 400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(r));
+    }
+    if (req.method === "POST") {
+      let raw = "";
+      req.setEncoding("utf8");
+      req.on("data", (c) => { raw += c; if (raw.length > 64 * 1024) req.destroy(); });
+      req.on("end", () => {
+        let body = {};
+        try { body = JSON.parse(raw); }
+        catch {
+          // form-urlencoded fallback
+          try { body = Object.fromEntries(new URLSearchParams(raw)); } catch { body = {}; }
+        }
+        const r = consumeHookEvent(body);
+        res.writeHead(r.ok ? 200 : 400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(r));
+      });
+      return;
+    }
+    res.writeHead(405); return res.end("method not allowed");
   }
 
   // Pretty routes ----------------------------------------------------------
