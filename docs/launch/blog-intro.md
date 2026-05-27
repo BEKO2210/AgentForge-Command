@@ -43,7 +43,7 @@ command-bridge shell — sits at the top and orchestrates a swarm of eleven
 specialists. Each one has a role, a super-skill, a mascot that breathes and
 reacts to state, and a terminal that you can either drive yourself or hand
 over to a real Claude session. The board, the locks, the green gate, the
-MCP server, the 88-check test suite — all still there, still honest. The
+MCP server, the bash test suite — all still there, still honest. The
 cockpit is built **on top of** them.
 
 ## What I kept and what I added
@@ -55,7 +55,7 @@ I kept everything that earned its keep:
 - The atomic `mkdir` locks.
 - The green gate that nothing pushes through red.
 - The MCP server that exposes state read-only.
-- The 88 sandboxed bash tests.
+- The 87 sandboxed bash tests (plus 40 arena unit + 20 server integration on top).
 
 I added what was missing:
 

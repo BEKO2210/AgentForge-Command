@@ -38,7 +38,7 @@ zwingend.
 > Das 4-Agent-Coordination-Kit, mit dem dieses Projekt begann, läuft unverändert
 > unter [`/console`](http://localhost:4173/console) und in
 > [`.team/`](.team/) — das datei-basierte Protokoll, die Scripts, der MCP-Server
-> und die 88-Check-Testsuite sind alle noch da. AgentForge Command setzt **auf**
+> und die Bash-Testsuite sind alle noch da. AgentForge Command setzt **auf**
 > diesem Scaffold auf.
 
 ## Maskottchen
@@ -98,8 +98,14 @@ der Schwarm darunter.
 
 Jeder Spezialist hat eine eigene Terminal-Karte mit:
 
-- Einem animierten SVG-Maskottchen, das den aktuellen Zustand wiedergibt
-  (`idle / thinking / working / success / warning`).
+- Einem animierten SVG-Maskottchen, das den aktuellen Zustand wiedergibt —
+  volle 10er-Palette (`idle / listening / thinking / typing / working /
+  reading / success / warning / error / celebrating`). Jedes Maskottchen
+  hat dabei eigene Keyframes, sodass dasselbe `working` bei Sentinel
+  (Security-Scan-Sweep), Forge (Amboss-Funken), Ledger (rotierende Münze)
+  oder Nova (Feueratem) jeweils anders aussieht. Eine Side-by-side-Vorschau
+  liegt unter
+  [`/mascot-preview.html`](gui/public/mascot-preview.html).
 - Channel-Callsign (`CH·01`), Rollen-Badge, Status-Pille mit pulsierendem Punkt.
 - Live-Terminal-Zeilen mit blinkendem Cursor und einem unteren
   Activity-Glow-Streifen, solange der Agent arbeitet.
@@ -136,6 +142,28 @@ sichtbar in Atlas' Terminal.
 Scharf schalten pro Agent mit dem **⏎ auto** Karten-Toggle oder via
 **⏎ Auto · all** in der Toolbar. Die Auswahl wird persistiert — einmal scharf,
 bleibt scharf bis zur Deaktivierung.
+
+## Tool-Hooks
+
+Statt den Agenten-Zustand aus dem PTY-Stdout zu raten, kann das Cockpit
+auch direkt vom Claude-Code-Hook-System getrieben werden. Der Server hat
+dafür genau einen Endpunkt:
+
+```
+POST /api/hooks            { "agent": "<id>", "event": "<hook>", "tool": "<name>" }
+```
+
+Dieselbe Payload wird als JSON-Body, `application/x-www-form-urlencoded`
+oder GET-Query-String akzeptiert — je nachdem was im Hook-Script am
+einfachsten ist. Event + Tool lösen einen der 11 Activity-States auf
+(`reading`, `working`, `thinking`, `listening`, `success`, `warning`,
+`idle`, …) und werden über denselben WebSocket ans Maskottchen propagiert,
+den auch das Cockpit nutzt.
+
+Jede gespawnte PTY sieht `AGENTFORGE_AGENT_ID` und `AGENTFORGE_HOOK_URL`
+in ihrer Umgebung — die mitgelieferte
+[`.claude/agentforge-hooks.example.json`](.claude/agentforge-hooks.example.json)
+lässt sich somit 1:1 in eine Projekt-`settings.json` droppen.
 
 ## Persistenz
 
@@ -258,9 +286,11 @@ deaktiviert auch bei vorhandenem Binary.
 
 ## Qualität & Sicherheit
 
-- **Tests** — `bash tests/run.sh` führt **88** Bash-Checks gegen die echten
-  Coordination-Scripts aus. `cargo test --release` in `tools/forge-pulse`
-  ergänzt 5 Rust-Unit-Tests.
+- **Tests** — `bash tests/run.sh` führt **147** Checks aus (87 Bash gegen
+  die Coordination-Scripts + 40 Arena-Unit-Tests für die Cockpit-Module +
+  20 Server-Integration-Tests, die den echten `gui/server.js` über HTTP +
+  WebSocket booten). `cargo test --release` in `tools/forge-pulse` ergänzt
+  5 Rust-Unit-Tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + Tests)
   und `cargo clippy --release -- -D warnings` sind beide clean.
 - **Privacy** — alles lokal. Server bindet `127.0.0.1`. Arena-State in

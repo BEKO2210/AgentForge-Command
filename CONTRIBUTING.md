@@ -22,10 +22,9 @@ Before opening one, please make sure:
   bash scripts/team-check.sh        # → tests + bash -n + shellcheck
   ```
 - `shellcheck` is happy (the gate runs it at `-S warning`).
-- The Bash test suite is green and you've added tests for any new script
-  behaviour:
+- The full test suite is green and you've added tests for any new behaviour:
   ```bash
-  bash tests/run.sh                  # 88 sandboxed checks
+  bash tests/run.sh                  # 147 checks (87 bash + 40 arena + 20 server)
   ```
 - If you touched the Rust accelerator:
   ```bash

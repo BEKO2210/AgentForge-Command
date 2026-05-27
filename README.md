@@ -89,7 +89,7 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 > [!NOTE]
 > The `.team/` file-based protocol that started this project is preserved —
 > the board, the per-lane logs, the atomic `mkdir` locks, the green gate,
-> the MCP server and the 88-check test suite all stay in place. AgentForge
+> the MCP server and the bash test suite all stay in place. AgentForge
 > specialists each map onto a lane (`lead`, `backend`, `frontend`, `quality`)
 > via `gui/agents.json` and write into that lane's log. The original
 > 4-terminal flow now lives directly in the cockpit as well — Atlas is the
@@ -183,8 +183,13 @@ the swarm below.
 
 Each specialist has its own terminal card with:
 
-- An animated SVG mascot that reflects its current state
-  (`idle / thinking / working / success / warning`).
+- An animated SVG mascot that reflects its current state across the full
+  10-state vocabulary (`idle / listening / thinking / typing / working /
+  reading / success / warning / error / celebrating`). Every mascot has its
+  own keyframe set, so the same `working` reads differently on Sentinel
+  (security scan sweep), Forge (anvil sparks), Ledger (spinning coin),
+  Nova (mouth fire), etc. A side-by-side preview lives at
+  [`/mascot-preview.html`](gui/public/mascot-preview.html).
 - Channel callsign (`CH·01`), role badge, status pill with a pulsing dot.
 - Live terminal lines with a blinking cursor and a sweeping activity glow
   while the agent is busy.
@@ -219,6 +224,27 @@ so the operator sees exactly when and why it acted.
 
 Arm per agent with the **⏎ auto** card toggle, or hit **⏎ Auto · all** in the
 toolbar. The choice is persisted (see below) — turn it off any time.
+
+## Tool hooks
+
+The cockpit can be driven authoritatively by Claude Code's native hook system
+instead of inferring agent state from PTY stdout. The server exposes a single
+endpoint:
+
+```
+POST /api/hooks            { "agent": "<id>", "event": "<hook>", "tool": "<name>" }
+```
+
+The same payload is accepted as JSON body, `application/x-www-form-urlencoded`,
+or a GET query string — pick whichever is easiest from the hook script. The
+event + tool resolve to one of the 11 activity states (`reading`, `working`,
+`thinking`, `listening`, `success`, `warning`, `idle`, …) and propagate to the
+agent's mascot through the same WebSocket the cockpit already uses.
+
+Every spawned PTY sees `AGENTFORGE_AGENT_ID` and `AGENTFORGE_HOOK_URL` in its
+environment, so the bundled
+[`.claude/agentforge-hooks.example.json`](.claude/agentforge-hooks.example.json)
+template drops straight into a project's `settings.json` and just works.
 
 ## Persistence
 
@@ -311,9 +337,11 @@ the way a polyglot stack should grow.
 
 ## Quality and security
 
-- **Tests** — `bash tests/run.sh` runs **88** bash checks against the real
-  coordination scripts. `cargo test --release` in `tools/forge-pulse` adds 5
-  Rust unit tests.
+- **Tests** — `bash tests/run.sh` runs **147** checks (87 bash against the
+  coordination scripts + 40 arena unit tests for the cockpit modules + 20
+  server integration tests that boot the real `gui/server.js` over HTTP +
+  WebSocket). `cargo test --release` in `tools/forge-pulse` adds 5 Rust
+  unit tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + tests)
   and `cargo clippy --release -- -D warnings` are both clean.
 - **Concurrency safety** — locks are atomic `mkdir` directories with stale
