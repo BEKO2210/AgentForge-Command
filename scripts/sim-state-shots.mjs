@@ -22,7 +22,7 @@ const PORT = Number(process.env.PORT || 4830);
 const CHROME = process.env.CHROME
   || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 
-const WIRED = ["atlas", "sentinel", "aurora", "forge", "prism", "echo"];
+const WIRED = ["atlas", "sentinel", "aurora", "forge", "prism", "echo", "vega"];
 
 /* ----- Chrome / CDP plumbing (same pattern as render-screenshots.mjs) ----- */
 

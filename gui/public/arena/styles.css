@@ -1699,16 +1699,181 @@ kbd {
   @keyframes b-celeb-sonar { 0% { opacity:1; transform:scaleX(.4); fill:#f472b6; } 33% { fill:#fcd34d; } 66% { fill:#22d3ee; } 100% { opacity:0; transform:scaleX(2.2); fill:#a78bfa; } }
   @keyframes b-celeb-dot   { 0% { opacity:1; transform:scale(.5); fill:#f472b6; } 50% { fill:#fcd34d; } 100% { opacity:0; transform:scale(2.4); fill:#22d3ee; } }
 
-  /* ---- HUMMINGBIRD ---- ultra-fast wings, trail particles */
-  .mascot-hummingbird .r-wing-t { animation: h-wing .08s linear infinite; transform-origin:15px 12px; transform-box:fill-box; }
-  .mascot-hummingbird .r-wing-b { animation: h-wing .08s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
-  .mascot-hummingbird .r-trail  { animation: h-trail 1.2s linear infinite; }
-  .mascot-hummingbird .r-trail:nth-of-type(2) { animation-delay:.3s; }
-  .mascot-hummingbird .r-trail2 { animation: h-trail 1.2s linear .6s infinite; }
-  .mascot-hummingbird .r-beak-tip { animation: h-tip 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  @keyframes h-wing  { 0%,100% { transform:scaleY(.3); } 50% { transform:scaleY(1.2); } }
-  @keyframes h-trail { 0% { opacity:0; transform:translateX(4px); } 30% { opacity:.8; } 100% { opacity:0; transform:translateX(-6px); } }
-  @keyframes h-tip   { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  VEGA · NEON HUMMINGBIRD — 10-state animation machine
+   *
+   *  Vega is the performance specialist — frame budget, FPS, hover speed.
+   *  Its signature move is the wing motion blur: 4 layers per side cycling
+   *  through opacity at different timings so even the static frame reads
+   *  as "this thing is hovering at impossible RPM".
+   *
+   *    idle         slow wing-flap cycle + sporadic eye blink + trail breath
+   *    listening    wings PAUSE mid-beat (hover stillness) + tail spreads
+   *    thinking     wings at half speed (calculating), gorget pulses
+   *    typing       wings BLUR rapid + beak streaks + trail in tap rhythm
+   *    working      ALL wing layers cycle at full RPM, speed-lines streak
+   *                 ahead of the beak, beak-glow lights up
+   *    reading      wings slow, eye saccades, gorget steady
+   *    success      explosive forward dart + gorget rainbow flash
+   *    warning      wings stutter (irregular timing), gorget dims to amber
+   *    error        wings COLLAPSE inward (fold), beak droops down,
+   *                 eye goes red, body shake
+   *    celebrating  tornado-spin wings (all layers alternate) + body bobs +
+   *                 gorget cycles full spectrum
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  /* Wing layers cycle at staggered delays so the motion-blur looks alive
+     even when the bird is just hovering still. */
+  .mascot-hummingbird .r-wing-t      { animation: h-idle-wing .12s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-t-near { animation: h-idle-wing .12s linear .03s infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-t-mid  { animation: h-idle-wing .12s linear .06s infinite; transform-origin:15px 11px; transform-box:fill-box; opacity:.5; }
+  .mascot-hummingbird .r-wing-t-far  { animation: h-idle-wing .12s linear .09s infinite; transform-origin:15px 11px; transform-box:fill-box; opacity:.3; }
+  .mascot-hummingbird .r-wing-b      { animation: h-idle-wing .12s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-b-near { animation: h-idle-wing .12s linear .03s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-b-mid  { animation: h-idle-wing .12s linear .06s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; opacity:.5; }
+  .mascot-hummingbird .r-wing-b-far  { animation: h-idle-wing .12s linear .09s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; opacity:.3; }
+  .mascot-hummingbird .r-trail       { animation: h-idle-trail 1.4s linear infinite; }
+  .mascot-hummingbird .r-trail:nth-of-type(2) { animation-delay:.35s; }
+  .mascot-hummingbird .r-trail:nth-of-type(3) { animation-delay:.7s; }
+  .mascot-hummingbird .r-eye         { animation: h-idle-blink 4.5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-hummingbird .r-gorget-hi   { animation: h-idle-gorget 2.6s ease-in-out infinite; }
+  @keyframes h-idle-wing   { 0%,100% { transform:scaleY(.35); } 50% { transform:scaleY(1.15); } }
+  @keyframes h-idle-trail  { 0% { opacity:0; transform:translateX(2px); } 30% { opacity:.7; } 100% { opacity:0; transform:translateX(-3px); } }
+  @keyframes h-idle-blink  { 0%,90%,100% { transform:scaleY(1); } 92%,95% { transform:scaleY(.1); } }
+  @keyframes h-idle-gorget { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+
+  /* ---- LISTENING ---- wings PAUSE (hover stillness) + tail spreads ---- */
+  .mascot-hummingbird.state-listening .r-wing-t,
+  .mascot-hummingbird.state-listening .r-wing-t-near,
+  .mascot-hummingbird.state-listening .r-wing-t-mid,
+  .mascot-hummingbird.state-listening .r-wing-t-far,
+  .mascot-hummingbird.state-listening .r-wing-b,
+  .mascot-hummingbird.state-listening .r-wing-b-near,
+  .mascot-hummingbird.state-listening .r-wing-b-mid,
+  .mascot-hummingbird.state-listening .r-wing-b-far { animation: h-listen-wing 1.4s ease-in-out infinite; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-listening .r-tail      { animation: h-listen-tail 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:right; }
+  .mascot-hummingbird.state-listening .r-eye       { animation: none; transform:scaleY(1.1); }
+  @keyframes h-listen-wing { 0%,100% { transform:scaleY(.6); } 50% { transform:scaleY(.7); } }
+  @keyframes h-listen-tail { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.3); } }
+
+  /* ---- THINKING ---- wings half-speed + gorget pulses ---- */
+  .mascot-hummingbird.state-thinking .r-wing-t,
+  .mascot-hummingbird.state-thinking .r-wing-t-near,
+  .mascot-hummingbird.state-thinking .r-wing-t-mid,
+  .mascot-hummingbird.state-thinking .r-wing-t-far { animation: h-idle-wing .24s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-thinking .r-wing-b,
+  .mascot-hummingbird.state-thinking .r-wing-b-near,
+  .mascot-hummingbird.state-thinking .r-wing-b-mid,
+  .mascot-hummingbird.state-thinking .r-wing-b-far { animation: h-idle-wing .24s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-thinking .r-gorget    { animation: h-think-gorget 1.2s ease-in-out infinite; }
+  .mascot-hummingbird.state-thinking .r-gorget-hi { animation: h-think-gorget 1.2s ease-in-out .2s infinite; }
+  @keyframes h-think-gorget { 0%,100% { opacity:.7; } 50% { opacity:1; transform:scaleX(1.1); } }
+
+  /* ---- TYPING ---- wings BLUR rapid + beak streaks + tap-rhythm trail */
+  .mascot-hummingbird.state-typing .r-wing-t,
+  .mascot-hummingbird.state-typing .r-wing-t-near,
+  .mascot-hummingbird.state-typing .r-wing-t-mid,
+  .mascot-hummingbird.state-typing .r-wing-t-far { animation: h-type-wing .06s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-typing .r-wing-b,
+  .mascot-hummingbird.state-typing .r-wing-b-near,
+  .mascot-hummingbird.state-typing .r-wing-b-mid,
+  .mascot-hummingbird.state-typing .r-wing-b-far { animation: h-type-wing .06s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-typing .r-trail   { animation: h-type-trail .3s steps(2) infinite; }
+  .mascot-hummingbird.state-typing .r-beak-tip { animation: h-type-tip .25s steps(2) infinite; }
+  @keyframes h-type-wing  { 0%,100% { transform:scaleY(.2); } 50% { transform:scaleY(1.4); } }
+  @keyframes h-type-trail { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+  @keyframes h-type-tip   { 50% { fill:#f472b6; } }
+
+  /* ---- WORKING ---- full RPM + speed lines + beak glow ---- */
+  .mascot-hummingbird.state-working .r-wing-t,
+  .mascot-hummingbird.state-working .r-wing-t-near,
+  .mascot-hummingbird.state-working .r-wing-t-mid,
+  .mascot-hummingbird.state-working .r-wing-t-far { animation: h-work-wing .05s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-working .r-wing-b,
+  .mascot-hummingbird.state-working .r-wing-b-near,
+  .mascot-hummingbird.state-working .r-wing-b-mid,
+  .mascot-hummingbird.state-working .r-wing-b-far { animation: h-work-wing .05s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-working .r-speed     { opacity:1 !important; animation: h-work-speed .35s ease-out infinite; }
+  .mascot-hummingbird.state-working .r-speed:nth-of-type(2) { animation-delay:.17s; }
+  .mascot-hummingbird.state-working .r-beak-glow { opacity:1 !important; animation: h-work-glow .45s ease-in-out infinite; }
+  .mascot-hummingbird.state-working .r-trail     { animation: h-idle-trail .6s linear infinite; opacity:1; }
+  @keyframes h-work-wing  { 0%,100% { transform:scaleY(.1); } 50% { transform:scaleY(1.6); } }
+  @keyframes h-work-speed { 0% { opacity:1; transform:translateX(0); } 100% { opacity:0; transform:translateX(3px); } }
+  @keyframes h-work-glow  { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.4); } }
+
+  /* ---- READING ---- wings slow, eye saccades, gorget steady ---- */
+  .mascot-hummingbird.state-reading .r-wing-t,
+  .mascot-hummingbird.state-reading .r-wing-t-near,
+  .mascot-hummingbird.state-reading .r-wing-t-mid,
+  .mascot-hummingbird.state-reading .r-wing-t-far { animation: h-idle-wing .3s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-reading .r-wing-b,
+  .mascot-hummingbird.state-reading .r-wing-b-near,
+  .mascot-hummingbird.state-reading .r-wing-b-mid,
+  .mascot-hummingbird.state-reading .r-wing-b-far { animation: h-idle-wing .3s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-reading .r-eye   { animation: h-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-hummingbird.state-reading .r-eye-w { animation: h-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes h-read-eye { 0%,100% { transform:translateX(-.5px); } 50% { transform:translateX(.5px); } }
+
+  /* ---- SUCCESS ---- forward dart + gorget rainbow flash ---- */
+  .mascot-hummingbird.state-success .mascot-body { animation: h-success-dart .9s ease-out; transform-origin:center; }
+  .mascot-hummingbird.state-success .r-gorget    { animation: h-success-gorget .9s ease-out; }
+  .mascot-hummingbird.state-success .r-gorget-hi { animation: h-success-gorget .9s ease-out .1s; }
+  .mascot-hummingbird.state-success .r-beak      { animation: h-success-beak .9s ease-out; }
+  .mascot-hummingbird.state-success .r-beak-tip  { animation: h-success-beak .9s ease-out; }
+  @keyframes h-success-dart   { 0% { transform:translateX(0); } 30% { transform:translateX(2px) scale(1.08); } 60% { transform:translateX(-.5px); } 100% { transform:translateX(0); } }
+  @keyframes h-success-gorget { 0% { fill:#f472b6; } 33% { fill:#54e6a8; } 66% { fill:#fcd34d; } 100% { fill:#f472b6; } }
+  @keyframes h-success-beak   { 0%,100% { fill:#fcd34d; } 50% { fill:#54e6a8; } }
+
+  /* ---- WARNING ---- wings stutter, gorget dims to amber ---- */
+  .mascot-hummingbird.state-warning .r-wing-t,
+  .mascot-hummingbird.state-warning .r-wing-t-near,
+  .mascot-hummingbird.state-warning .r-wing-t-mid,
+  .mascot-hummingbird.state-warning .r-wing-t-far { animation: h-warn-stutter .8s steps(3) infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-warning .r-wing-b,
+  .mascot-hummingbird.state-warning .r-wing-b-near,
+  .mascot-hummingbird.state-warning .r-wing-b-mid,
+  .mascot-hummingbird.state-warning .r-wing-b-far { animation: h-warn-stutter .8s steps(3) infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-warning .r-gorget    { fill:#fb923c; animation:none; }
+  .mascot-hummingbird.state-warning .r-gorget-hi { fill:#fdba74; animation:none; }
+  @keyframes h-warn-stutter { 0%,30% { transform:scaleY(.3); } 50% { transform:scaleY(1); } 80%,100% { transform:scaleY(.5); } }
+
+  /* ---- ERROR ---- wings COLLAPSE inward, beak droops, red eye, shake ---- */
+  .mascot-hummingbird.state-error .mascot-body { animation: h-err-shake .2s ease-in-out infinite; }
+  .mascot-hummingbird.state-error .r-wing-t,
+  .mascot-hummingbird.state-error .r-wing-t-near,
+  .mascot-hummingbird.state-error .r-wing-t-mid,
+  .mascot-hummingbird.state-error .r-wing-t-far { transform:scaleY(.15) translateY(2px); transform-origin:15px 11px; transform-box:fill-box; animation:none; opacity:.3; }
+  .mascot-hummingbird.state-error .r-wing-b,
+  .mascot-hummingbird.state-error .r-wing-b-near,
+  .mascot-hummingbird.state-error .r-wing-b-mid,
+  .mascot-hummingbird.state-error .r-wing-b-far { transform:scaleY(.15) translateY(-2px); transform-origin:15px 19px; transform-box:fill-box; animation:none; opacity:.3; }
+  .mascot-hummingbird.state-error .r-beak,
+  .mascot-hummingbird.state-error .r-beak-outline,
+  .mascot-hummingbird.state-error .r-beak-tip { transform:rotate(10deg); transform-origin:24px 14px; transform-box:fill-box; animation:none; }
+  .mascot-hummingbird.state-error .r-eye { fill:#ef4444; transform:scale(1.4); transform-box:fill-box; transform-origin:center; animation: h-err-blink .3s steps(2) infinite; }
+  .mascot-hummingbird.state-error .r-eye-w { fill:#7f1d1d; }
+  .mascot-hummingbird.state-error .r-gorget,
+  .mascot-hummingbird.state-error .r-gorget-hi { opacity:.3; animation:none; }
+  @keyframes h-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes h-err-blink { 50% { opacity:.3; } }
+
+  /* ---- CELEBRATING ---- tornado spin + gorget rainbow + body bob ---- */
+  .mascot-hummingbird.state-celebrating .mascot-body { animation: h-celeb-bob .8s ease-in-out; transform-origin:center; }
+  .mascot-hummingbird.state-celebrating .r-wing-t,
+  .mascot-hummingbird.state-celebrating .r-wing-t-near,
+  .mascot-hummingbird.state-celebrating .r-wing-t-mid,
+  .mascot-hummingbird.state-celebrating .r-wing-t-far { animation: h-celeb-tornado .15s linear infinite; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-celebrating .r-wing-b,
+  .mascot-hummingbird.state-celebrating .r-wing-b-near,
+  .mascot-hummingbird.state-celebrating .r-wing-b-mid,
+  .mascot-hummingbird.state-celebrating .r-wing-b-far { animation: h-celeb-tornado .15s linear infinite reverse; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-celebrating .r-gorget    { animation: h-celeb-rainbow .4s linear infinite; }
+  .mascot-hummingbird.state-celebrating .r-gorget-hi { animation: h-celeb-rainbow .4s linear .1s infinite; }
+  .mascot-hummingbird.state-celebrating .r-trail     { animation: h-idle-trail .35s linear infinite; opacity:1; }
+  @keyframes h-celeb-bob     { 0% { transform:translateY(0); } 30% { transform:translateY(-3px) scale(1.08); } 60% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes h-celeb-tornado { 0% { transform:scaleY(.2) rotate(0deg); } 50% { transform:scaleY(1.6) rotate(180deg); } 100% { transform:scaleY(.2) rotate(360deg); } }
+  @keyframes h-celeb-rainbow { 0% { fill:#f472b6; } 25% { fill:#fcd34d; } 50% { fill:#54e6a8; } 75% { fill:#22d3ee; } 100% { fill:#f472b6; } }
 
   /* ---- RAVEN (scribe) ---- quill bobs writing, ink blinks */
   .mascot-raven .r-quill-shaft, .mascot-raven .r-quill-feather { animation: rv-write 1.6s ease-in-out infinite; transform-origin:18px 24px; transform-box:fill-box; }

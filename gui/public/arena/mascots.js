@@ -549,57 +549,101 @@ const SPRITES = {
   },
 
   /* ── VEGA — Neon Hummingbird ──────────────────────────────────────── *
-   * Ramp: #064e3b / #10b981 / #34d399 / #a7f3d0   green back            *
-   *       #be185d / #f472b6 / #fbcfe8              pink chest           *
-   * Streamlined body, long needle beak, wings touching the shoulder.    */
+   * Ramp: #064e3b / #10b981 / #34d399 / #a7f3d0     green back/head     *
+   *       #6ee7b7 / #a7f3d0                          belly (lighter)    *
+   *       #be185d / #f472b6 / #fbcfe8                gorget (throat)    *
+   *       #92400e / #fcd34d / #fde68a                beak (gold needle) *
+   *
+   * Anatomy that makes a hummingbird READ as a hummingbird:
+   *   - LONG NEEDLE BEAK (7px — wider than the head)
+   *   - Iridescent GORGET (pink throat patch right below the head)
+   *   - Wing motion-blur stack (4 opacity layers per side, fading at the
+   *     edges) so even on a static screenshot you see "this thing is
+   *     hovering at impossible speed"
+   *   - Forked tail with clear V-shape and an outer-tip feather flare
+   *   - Streamlined teardrop body (pointed at the tail end)
+   *   - Big visible eye with a white sclera so the head reads from afar
+   *
+   * Facing right. Trail behind on the left, beak streaking forward on
+   * the right.                                                            */
   hummingbird: {
     label: "neon hummingbird",
     base: [
-      // motion trail
-      { c: "trail",  x: 1, y: 14, w: 1, h: 1, f: "#34d399", o: 0.6 },
-      { c: "trail",  x: 3, y: 14, w: 2, h: 1, f: "#34d399", o: 0.5 },
-      { c: "trail",  x: 6, y: 14, w: 2, h: 1, f: "#34d399", o: 0.4 },
-      // body outline (green back + pink chest)
-      { c: "body-outline", x: 11, y: 10, w: 10, h: 1, f: "#064e3b" },
-      { c: "body-outline", x: 11, y: 18, w: 10, h: 1, f: "#064e3b" },
-      { c: "body-outline", x: 10, y: 11, w: 1, h: 7, f: "#064e3b" },
-      { c: "body-outline", x: 21, y: 11, w: 1, h: 7, f: "#064e3b" },
-      // back (green)
-      { c: "back", x: 11, y: 11, w: 10, h: 4, f: "#10b981" },
-      { c: "back-hi", x: 11, y: 11, w: 9, h: 1, f: "#34d399" },
-      // chest (pink)
-      { c: "chest", x: 11, y: 15, w: 10, h: 3, f: "#f472b6" },
-      { c: "chest-hi", x: 12, y: 15, w: 6, h: 1, f: "#fbcfe8" },
-      // head
-      { c: "head-outline", x: 17, y: 9, w: 6, h: 1, f: "#064e3b" },
-      { c: "head-outline", x: 17, y: 14, w: 6, h: 1, f: "#064e3b" },
-      { c: "head-outline", x: 23, y: 10, w: 1, h: 4, f: "#064e3b" },
-      { c: "head", x: 17, y: 10, w: 6, h: 4, f: "#10b981" },
-      { c: "head-hi", x: 17, y: 10, w: 5, h: 1, f: "#34d399" },
-      // eye
-      { c: "eye-w", x: 19, y: 11, w: 1, h: 1, f: "#fff" },
-      { c: "eye", x: 19, y: 11, w: 1, h: 1, f: "#0f172a" },
-      // long needle beak
-      { c: "beak-outline", x: 22, y: 10, w: 9, h: 1, f: "#92400e" },
-      { c: "beak-outline", x: 22, y: 12, w: 9, h: 1, f: "#92400e" },
-      { c: "beak",         x: 22, y: 11, w: 9, h: 1, f: "#fcd34d" },
-      // wings (top + bottom) anchored to body
-      { c: "wing-t-outline", x: 9, y: 9, w: 11, h: 1, f: "#064e3b" },
-      { c: "wing-t", x: 10, y: 9, w: 9, h: 2, f: "#6ee7b7" },
-      { c: "wing-t", x: 13, y: 8, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
-      { c: "wing-b-outline", x: 9, y: 19, w: 11, h: 1, f: "#064e3b" },
-      { c: "wing-b", x: 10, y: 19, w: 9, h: 2, f: "#6ee7b7" },
-      { c: "wing-b", x: 13, y: 21, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
-      // forked tail
-      { c: "tail", x: 6, y: 13, w: 4, h: 1, f: "#10b981" },
-      { c: "tail", x: 6, y: 16, w: 4, h: 1, f: "#10b981" },
-      { c: "tail", x: 6, y: 15, w: 1, h: 1, f: "#064e3b" },
+      // ── MOTION TRAIL (fades off the left edge) ──
+      { c: "trail", x: 0, y: 14, w: 1, h: 1, f: "#34d399", o: 0.30 },
+      { c: "trail", x: 1, y: 14, w: 1, h: 1, f: "#34d399", o: 0.45 },
+      { c: "trail", x: 2, y: 14, w: 1, h: 1, f: "#34d399", o: 0.65 },
+
+      // ── FORKED TAIL (clearly V-shaped, fork groove at y=14-15) ──
+      // Upper fork
+      { c: "tail-outline", x: 3, y: 12, w: 6, h: 1, f: "#064e3b" },
+      { c: "tail-outline", x: 2, y: 13, w: 1, h: 1, f: "#064e3b" },   // outer tip
+      { c: "tail",         x: 3, y: 13, w: 6, h: 1, f: "#10b981" },
+      { c: "tail-hi",      x: 3, y: 13, w: 5, h: 1, f: "#34d399" },
+      // Lower fork
+      { c: "tail-outline", x: 3, y: 16, w: 6, h: 1, f: "#064e3b" },
+      { c: "tail-outline", x: 2, y: 16, w: 1, h: 1, f: "#064e3b" },   // outer tip
+      { c: "tail",         x: 3, y: 16, w: 6, h: 1, f: "#10b981" },
+      { c: "tail-hi",      x: 3, y: 16, w: 5, h: 1, f: "#a7f3d0" },
+
+      // ── BODY (streamlined teardrop, pointed at tail, full at head) ──
+      // Outline first
+      { c: "body-outline", x:  9, y: 12, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x:  9, y: 17, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x:  8, y: 13, w: 1, h: 4, f: "#064e3b" },
+      // Back (top half, dark emerald)
+      { c: "back",    x:  9, y: 13, w: 10, h: 2, f: "#10b981" },
+      { c: "back-hi", x:  9, y: 13, w:  9, h: 1, f: "#34d399" },
+      // Belly (bottom half, lighter teal — distinct from back)
+      { c: "belly",    x:  9, y: 15, w: 10, h: 2, f: "#6ee7b7" },
+      { c: "belly-hi", x: 10, y: 15, w:  7, h: 1, f: "#a7f3d0" },
+
+      // ── GORGET (iridescent pink throat patch — SIGNATURE) ──
+      { c: "gorget",    x: 15, y: 15, w: 4, h: 2, f: "#f472b6" },
+      { c: "gorget-hi", x: 16, y: 15, w: 3, h: 1, f: "#fbcfe8" },
+      { c: "gorget-sh", x: 15, y: 16, w: 1, h: 1, f: "#be185d" },
+
+      // ── HEAD (round, distinctly separate from body) ──
+      { c: "head-outline", x: 18, y: 11, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 18, y: 16, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 24, y: 12, w: 1, h: 4, f: "#064e3b" },
+      { c: "head",    x: 19, y: 12, w: 5, h: 4, f: "#10b981" },
+      { c: "head-hi", x: 19, y: 12, w: 4, h: 1, f: "#34d399" },
+
+      // ── EYE (2px tall + white sclera + glint — reads at any size) ──
+      { c: "eye-w",     x: 20, y: 13, w: 2, h: 2, f: "#fff" },
+      { c: "eye",       x: 21, y: 13, w: 1, h: 2, f: "#0f172a" },
+      { c: "eye-glint", x: 20, y: 13, w: 1, h: 1, f: "#fff" },
+
+      // ── LONG NEEDLE BEAK (7px — clearly longer than head width) ──
+      { c: "beak-outline", x: 24, y: 13, w: 7, h: 1, f: "#92400e" },   // upper edge
+      { c: "beak-outline", x: 24, y: 15, w: 7, h: 1, f: "#92400e" },   // lower edge
+      { c: "beak",         x: 24, y: 14, w: 7, h: 1, f: "#fcd34d" },   // gold needle
+      { c: "beak-tip",     x: 30, y: 14, w: 1, h: 1, f: "#fde68a" },   // brighter tip
+      { c: "beak-glow",    x: 31, y: 14, w: 1, h: 1, f: "currentColor", o: 0 }, // visible only in working
+
+      // ── WINGS — TOP MOTION-BLUR STACK ──
+      // 4 layers fading outward, so the screenshot reads "hovering blur"
+      { c: "wing-t-far",  x: 11, y:  6, w:  8, h: 1, f: "#6ee7b7", o: 0.30 },
+      { c: "wing-t-mid",  x: 10, y:  7, w: 10, h: 1, f: "#6ee7b7", o: 0.50 },
+      { c: "wing-t",      x:  9, y:  8, w: 12, h: 2, f: "#6ee7b7", o: 0.75 },
+      { c: "wing-t-near", x: 10, y: 10, w: 10, h: 1, f: "#6ee7b7", o: 0.90 },
+
+      // ── WINGS — BOTTOM (mirror) ──
+      { c: "wing-b-near", x: 10, y: 18, w: 10, h: 1, f: "#6ee7b7", o: 0.90 },
+      { c: "wing-b",      x:  9, y: 19, w: 12, h: 2, f: "#6ee7b7", o: 0.75 },
+      { c: "wing-b-mid",  x: 10, y: 21, w: 10, h: 1, f: "#6ee7b7", o: 0.50 },
+      { c: "wing-b-far",  x: 11, y: 22, w:  8, h: 1, f: "#6ee7b7", o: 0.30 },
+
+      // ── SPEED LINES (revealed only in working state, ahead of the beak) ──
+      { c: "speed", x: 28, y: 12, w: 3, h: 1, f: "#6ee7b7", o: 0 },
+      { c: "speed", x: 27, y: 16, w: 3, h: 1, f: "#6ee7b7", o: 0 },
     ],
     evo: [
-      [ { c: "trail2", x: 1, y: 13, w: 1, h: 1, f: "currentColor", o: 0.7 } ],
-      [ { c: "shimmer", x: 14, y: 16, w: 1, h: 1, f: "currentColor" } ],
-      [ { c: "beak-tip", x: 30, y: 11, w: 1, h: 1, f: "currentColor" } ],
-      [ { c: "orbit", x: 4, y: 5, w: 26, h: 22, f: "currentColor", o: 0.1 } ],
+      [ { c: "trail2", x: 0, y: 13, w: 1, h: 1, f: "currentColor", o: 0.5 } ],
+      [ { c: "shimmer", x: 14, y: 13, w: 1, h: 1, f: "currentColor" } ],
+      [ { c: "beak-tip-glow", x: 30, y: 13, w: 1, h: 3, f: "currentColor", o: 0.5 } ],
+      [ { c: "orbit", x: 4, y: 5, w: 24, h: 22, f: "currentColor", o: 0.1 } ],
     ],
   },
 
