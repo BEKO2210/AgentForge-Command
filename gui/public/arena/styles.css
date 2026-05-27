@@ -1699,56 +1699,607 @@ kbd {
   @keyframes b-celeb-sonar { 0% { opacity:1; transform:scaleX(.4); fill:#f472b6; } 33% { fill:#fcd34d; } 66% { fill:#22d3ee; } 100% { opacity:0; transform:scaleX(2.2); fill:#a78bfa; } }
   @keyframes b-celeb-dot   { 0% { opacity:1; transform:scale(.5); fill:#f472b6; } 50% { fill:#fcd34d; } 100% { opacity:0; transform:scale(2.4); fill:#22d3ee; } }
 
-  /* ---- HUMMINGBIRD ---- ultra-fast wings, trail particles */
-  .mascot-hummingbird .r-wing-t { animation: h-wing .08s linear infinite; transform-origin:15px 12px; transform-box:fill-box; }
-  .mascot-hummingbird .r-wing-b { animation: h-wing .08s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
-  .mascot-hummingbird .r-trail  { animation: h-trail 1.2s linear infinite; }
-  .mascot-hummingbird .r-trail:nth-of-type(2) { animation-delay:.3s; }
-  .mascot-hummingbird .r-trail2 { animation: h-trail 1.2s linear .6s infinite; }
-  .mascot-hummingbird .r-beak-tip { animation: h-tip 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  @keyframes h-wing  { 0%,100% { transform:scaleY(.3); } 50% { transform:scaleY(1.2); } }
-  @keyframes h-trail { 0% { opacity:0; transform:translateX(4px); } 30% { opacity:.8; } 100% { opacity:0; transform:translateX(-6px); } }
-  @keyframes h-tip   { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  VEGA · NEON HUMMINGBIRD — 10-state animation machine
+   *
+   *  Vega is the performance specialist — frame budget, FPS, hover speed.
+   *  Its signature move is the wing motion blur: 4 layers per side cycling
+   *  through opacity at different timings so even the static frame reads
+   *  as "this thing is hovering at impossible RPM".
+   *
+   *    idle         slow wing-flap cycle + sporadic eye blink + trail breath
+   *    listening    wings PAUSE mid-beat (hover stillness) + tail spreads
+   *    thinking     wings at half speed (calculating), gorget pulses
+   *    typing       wings BLUR rapid + beak streaks + trail in tap rhythm
+   *    working      ALL wing layers cycle at full RPM, speed-lines streak
+   *                 ahead of the beak, beak-glow lights up
+   *    reading      wings slow, eye saccades, gorget steady
+   *    success      explosive forward dart + gorget rainbow flash
+   *    warning      wings stutter (irregular timing), gorget dims to amber
+   *    error        wings COLLAPSE inward (fold), beak droops down,
+   *                 eye goes red, body shake
+   *    celebrating  tornado-spin wings (all layers alternate) + body bobs +
+   *                 gorget cycles full spectrum
+   * ─────────────────────────────────────────────────────────────────── */
 
-  /* ---- RAVEN (scribe) ---- quill bobs writing, ink blinks */
-  .mascot-raven .r-quill-shaft, .mascot-raven .r-quill-feather { animation: rv-write 1.6s ease-in-out infinite; transform-origin:18px 24px; transform-box:fill-box; }
-  .mascot-raven .r-ink   { animation: rv-ink 1.6s steps(2) infinite; }
-  .mascot-raven .r-line  { animation: rv-line 2.4s linear infinite; }
-  .mascot-raven .r-eye   { animation: rv-eye 5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raven.state-working .r-quill-shaft, .mascot-raven.state-working .r-quill-feather { animation-duration:.7s; }
-  @keyframes rv-write { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(10deg); } }
-  @keyframes rv-ink   { 50% { opacity:.3; } }
-  @keyframes rv-line  { 0%,100% { opacity:.6; } 50% { opacity:1; } }
-  @keyframes rv-eye   { 0%,90%,100% { transform:scaleY(1); } 93%,96% { transform:scaleY(.1); } }
+  /* ---- IDLE (default) ---- */
+  /* Wing layers cycle at staggered delays so the motion-blur looks alive
+     even when the bird is just hovering still. */
+  .mascot-hummingbird .r-wing-t      { animation: h-idle-wing .12s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-t-near { animation: h-idle-wing .12s linear .03s infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-t-mid  { animation: h-idle-wing .12s linear .06s infinite; transform-origin:15px 11px; transform-box:fill-box; opacity:.5; }
+  .mascot-hummingbird .r-wing-t-far  { animation: h-idle-wing .12s linear .09s infinite; transform-origin:15px 11px; transform-box:fill-box; opacity:.3; }
+  .mascot-hummingbird .r-wing-b      { animation: h-idle-wing .12s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-b-near { animation: h-idle-wing .12s linear .03s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-b-mid  { animation: h-idle-wing .12s linear .06s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; opacity:.5; }
+  .mascot-hummingbird .r-wing-b-far  { animation: h-idle-wing .12s linear .09s infinite reverse; transform-origin:15px 19px; transform-box:fill-box; opacity:.3; }
+  .mascot-hummingbird .r-trail       { animation: h-idle-trail 1.4s linear infinite; }
+  .mascot-hummingbird .r-trail:nth-of-type(2) { animation-delay:.35s; }
+  .mascot-hummingbird .r-trail:nth-of-type(3) { animation-delay:.7s; }
+  .mascot-hummingbird .r-eye         { animation: h-idle-blink 4.5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-hummingbird .r-gorget-hi   { animation: h-idle-gorget 2.6s ease-in-out infinite; }
+  @keyframes h-idle-wing   { 0%,100% { transform:scaleY(.35); } 50% { transform:scaleY(1.15); } }
+  @keyframes h-idle-trail  { 0% { opacity:0; transform:translateX(2px); } 30% { opacity:.7; } 100% { opacity:0; transform:translateX(-3px); } }
+  @keyframes h-idle-blink  { 0%,90%,100% { transform:scaleY(1); } 92%,95% { transform:scaleY(.1); } }
+  @keyframes h-idle-gorget { 0%,100% { opacity:.6; } 50% { opacity:1; } }
 
-  /* ---- RACCOON ---- coin spins, tail flicks */
-  .mascot-raccoon .r-coin       { animation: rc-spin 2.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raccoon .r-coin2      { animation: rc-spin 2.4s ease-in-out .6s infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raccoon .r-tail       { animation: rc-tail 3.5s ease-in-out infinite; transform-origin:22px 22px; transform-box:fill-box; }
-  .mascot-raccoon .r-eye-pupil  { animation: rc-glance 5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raccoon .r-bar-fill   { animation: rc-bar 3s ease-in-out infinite; transform-origin:left; transform-box:fill-box; }
-  .mascot-raccoon .r-tick       { animation: rc-tick 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raccoon .r-tick:nth-of-type(2) { animation-delay:.4s; }
-  .mascot-raccoon .r-tick:nth-of-type(3) { animation-delay:.8s; }
-  @keyframes rc-spin   { 0%,100% { transform:scaleX(1); } 50% { transform:scaleX(.15); } }
-  @keyframes rc-tail   { 0%,100% { transform:rotate(-4deg); } 50% { transform:rotate(6deg); } }
-  @keyframes rc-glance { 0%,100% { transform:translateX(-.5px); } 50% { transform:translateX(.5px); } }
-  @keyframes rc-bar    { 0% { transform:scaleX(.3); } 60% { transform:scaleX(1); } 100% { transform:scaleX(.3); } }
-  @keyframes rc-tick   { 0%,100% { opacity:.3; transform:translateY(0); } 50% { opacity:1; transform:translateY(-1px); } }
+  /* ---- LISTENING ---- wings PAUSE (hover stillness) + tail spreads ---- */
+  .mascot-hummingbird.state-listening .r-wing-t,
+  .mascot-hummingbird.state-listening .r-wing-t-near,
+  .mascot-hummingbird.state-listening .r-wing-t-mid,
+  .mascot-hummingbird.state-listening .r-wing-t-far,
+  .mascot-hummingbird.state-listening .r-wing-b,
+  .mascot-hummingbird.state-listening .r-wing-b-near,
+  .mascot-hummingbird.state-listening .r-wing-b-mid,
+  .mascot-hummingbird.state-listening .r-wing-b-far { animation: h-listen-wing 1.4s ease-in-out infinite; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-listening .r-tail      { animation: h-listen-tail 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:right; }
+  .mascot-hummingbird.state-listening .r-eye       { animation: none; transform:scaleY(1.1); }
+  @keyframes h-listen-wing { 0%,100% { transform:scaleY(.6); } 50% { transform:scaleY(.7); } }
+  @keyframes h-listen-tail { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.3); } }
 
-  /* ---- DARK RAVEN (debug) ---- glitch lines flash, red eye-glow pulses */
-  .mascot-darkRaven .r-eye      { animation: drv-eye 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-darkRaven .r-eye-glow { animation: drv-glow 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-darkRaven .r-glitch   { animation: drv-glitch .8s steps(2) infinite; }
-  .mascot-darkRaven .r-trace    { animation: drv-trace 1.4s ease-in-out infinite; }
-  .mascot-darkRaven .r-trace:nth-of-type(2) { animation-delay:.2s; }
-  .mascot-darkRaven .r-trace:nth-of-type(3) { animation-delay:.4s; }
-  .mascot-darkRaven .r-trace:nth-of-type(4) { animation-delay:.6s; }
-  .mascot-darkRaven.state-warning .r-eye, .mascot-darkRaven.state-warning .r-eye-glow { animation-duration:.5s; }
-  @keyframes drv-eye    { 0%,100% { opacity:.6; } 50% { opacity:1; } }
-  @keyframes drv-glow   { 0%,100% { opacity:.15; transform:scale(1); } 50% { opacity:.6; transform:scale(1.4); } }
-  @keyframes drv-glitch { 0%,100% { transform:translateX(0); opacity:.7; } 50% { transform:translateX(2px); opacity:1; } }
-  @keyframes drv-trace  { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+  /* ---- THINKING ---- wings half-speed + gorget pulses ---- */
+  .mascot-hummingbird.state-thinking .r-wing-t,
+  .mascot-hummingbird.state-thinking .r-wing-t-near,
+  .mascot-hummingbird.state-thinking .r-wing-t-mid,
+  .mascot-hummingbird.state-thinking .r-wing-t-far { animation: h-idle-wing .24s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-thinking .r-wing-b,
+  .mascot-hummingbird.state-thinking .r-wing-b-near,
+  .mascot-hummingbird.state-thinking .r-wing-b-mid,
+  .mascot-hummingbird.state-thinking .r-wing-b-far { animation: h-idle-wing .24s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-thinking .r-gorget    { animation: h-think-gorget 1.2s ease-in-out infinite; }
+  .mascot-hummingbird.state-thinking .r-gorget-hi { animation: h-think-gorget 1.2s ease-in-out .2s infinite; }
+  @keyframes h-think-gorget { 0%,100% { opacity:.7; } 50% { opacity:1; transform:scaleX(1.1); } }
+
+  /* ---- TYPING ---- wings BLUR rapid + beak streaks + tap-rhythm trail */
+  .mascot-hummingbird.state-typing .r-wing-t,
+  .mascot-hummingbird.state-typing .r-wing-t-near,
+  .mascot-hummingbird.state-typing .r-wing-t-mid,
+  .mascot-hummingbird.state-typing .r-wing-t-far { animation: h-type-wing .06s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-typing .r-wing-b,
+  .mascot-hummingbird.state-typing .r-wing-b-near,
+  .mascot-hummingbird.state-typing .r-wing-b-mid,
+  .mascot-hummingbird.state-typing .r-wing-b-far { animation: h-type-wing .06s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-typing .r-trail   { animation: h-type-trail .3s steps(2) infinite; }
+  .mascot-hummingbird.state-typing .r-beak-tip { animation: h-type-tip .25s steps(2) infinite; }
+  @keyframes h-type-wing  { 0%,100% { transform:scaleY(.2); } 50% { transform:scaleY(1.4); } }
+  @keyframes h-type-trail { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+  @keyframes h-type-tip   { 50% { fill:#f472b6; } }
+
+  /* ---- WORKING ---- full RPM + speed lines + beak glow ---- */
+  .mascot-hummingbird.state-working .r-wing-t,
+  .mascot-hummingbird.state-working .r-wing-t-near,
+  .mascot-hummingbird.state-working .r-wing-t-mid,
+  .mascot-hummingbird.state-working .r-wing-t-far { animation: h-work-wing .05s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-working .r-wing-b,
+  .mascot-hummingbird.state-working .r-wing-b-near,
+  .mascot-hummingbird.state-working .r-wing-b-mid,
+  .mascot-hummingbird.state-working .r-wing-b-far { animation: h-work-wing .05s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-working .r-speed     { opacity:1 !important; animation: h-work-speed .35s ease-out infinite; }
+  .mascot-hummingbird.state-working .r-speed:nth-of-type(2) { animation-delay:.17s; }
+  .mascot-hummingbird.state-working .r-beak-glow { opacity:1 !important; animation: h-work-glow .45s ease-in-out infinite; }
+  .mascot-hummingbird.state-working .r-trail     { animation: h-idle-trail .6s linear infinite; opacity:1; }
+  @keyframes h-work-wing  { 0%,100% { transform:scaleY(.1); } 50% { transform:scaleY(1.6); } }
+  @keyframes h-work-speed { 0% { opacity:1; transform:translateX(0); } 100% { opacity:0; transform:translateX(3px); } }
+  @keyframes h-work-glow  { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.4); } }
+
+  /* ---- READING ---- wings slow, eye saccades, gorget steady ---- */
+  .mascot-hummingbird.state-reading .r-wing-t,
+  .mascot-hummingbird.state-reading .r-wing-t-near,
+  .mascot-hummingbird.state-reading .r-wing-t-mid,
+  .mascot-hummingbird.state-reading .r-wing-t-far { animation: h-idle-wing .3s linear infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-reading .r-wing-b,
+  .mascot-hummingbird.state-reading .r-wing-b-near,
+  .mascot-hummingbird.state-reading .r-wing-b-mid,
+  .mascot-hummingbird.state-reading .r-wing-b-far { animation: h-idle-wing .3s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-reading .r-eye   { animation: h-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-hummingbird.state-reading .r-eye-w { animation: h-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes h-read-eye { 0%,100% { transform:translateX(-.5px); } 50% { transform:translateX(.5px); } }
+
+  /* ---- SUCCESS ---- forward dart + gorget rainbow flash ---- */
+  .mascot-hummingbird.state-success .mascot-body { animation: h-success-dart .9s ease-out; transform-origin:center; }
+  .mascot-hummingbird.state-success .r-gorget    { animation: h-success-gorget .9s ease-out; }
+  .mascot-hummingbird.state-success .r-gorget-hi { animation: h-success-gorget .9s ease-out .1s; }
+  .mascot-hummingbird.state-success .r-beak      { animation: h-success-beak .9s ease-out; }
+  .mascot-hummingbird.state-success .r-beak-tip  { animation: h-success-beak .9s ease-out; }
+  @keyframes h-success-dart   { 0% { transform:translateX(0); } 30% { transform:translateX(2px) scale(1.08); } 60% { transform:translateX(-.5px); } 100% { transform:translateX(0); } }
+  @keyframes h-success-gorget { 0% { fill:#f472b6; } 33% { fill:#54e6a8; } 66% { fill:#fcd34d; } 100% { fill:#f472b6; } }
+  @keyframes h-success-beak   { 0%,100% { fill:#fcd34d; } 50% { fill:#54e6a8; } }
+
+  /* ---- WARNING ---- wings stutter, gorget dims to amber ---- */
+  .mascot-hummingbird.state-warning .r-wing-t,
+  .mascot-hummingbird.state-warning .r-wing-t-near,
+  .mascot-hummingbird.state-warning .r-wing-t-mid,
+  .mascot-hummingbird.state-warning .r-wing-t-far { animation: h-warn-stutter .8s steps(3) infinite; transform-origin:15px 11px; transform-box:fill-box; }
+  .mascot-hummingbird.state-warning .r-wing-b,
+  .mascot-hummingbird.state-warning .r-wing-b-near,
+  .mascot-hummingbird.state-warning .r-wing-b-mid,
+  .mascot-hummingbird.state-warning .r-wing-b-far { animation: h-warn-stutter .8s steps(3) infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird.state-warning .r-gorget    { fill:#fb923c; animation:none; }
+  .mascot-hummingbird.state-warning .r-gorget-hi { fill:#fdba74; animation:none; }
+  @keyframes h-warn-stutter { 0%,30% { transform:scaleY(.3); } 50% { transform:scaleY(1); } 80%,100% { transform:scaleY(.5); } }
+
+  /* ---- ERROR ---- wings COLLAPSE inward, beak droops, red eye, shake ---- */
+  .mascot-hummingbird.state-error .mascot-body { animation: h-err-shake .2s ease-in-out infinite; }
+  .mascot-hummingbird.state-error .r-wing-t,
+  .mascot-hummingbird.state-error .r-wing-t-near,
+  .mascot-hummingbird.state-error .r-wing-t-mid,
+  .mascot-hummingbird.state-error .r-wing-t-far { transform:scaleY(.15) translateY(2px); transform-origin:15px 11px; transform-box:fill-box; animation:none; opacity:.3; }
+  .mascot-hummingbird.state-error .r-wing-b,
+  .mascot-hummingbird.state-error .r-wing-b-near,
+  .mascot-hummingbird.state-error .r-wing-b-mid,
+  .mascot-hummingbird.state-error .r-wing-b-far { transform:scaleY(.15) translateY(-2px); transform-origin:15px 19px; transform-box:fill-box; animation:none; opacity:.3; }
+  .mascot-hummingbird.state-error .r-beak,
+  .mascot-hummingbird.state-error .r-beak-outline,
+  .mascot-hummingbird.state-error .r-beak-tip { transform:rotate(10deg); transform-origin:24px 14px; transform-box:fill-box; animation:none; }
+  .mascot-hummingbird.state-error .r-eye { fill:#ef4444; transform:scale(1.4); transform-box:fill-box; transform-origin:center; animation: h-err-blink .3s steps(2) infinite; }
+  .mascot-hummingbird.state-error .r-eye-w { fill:#7f1d1d; }
+  .mascot-hummingbird.state-error .r-gorget,
+  .mascot-hummingbird.state-error .r-gorget-hi { opacity:.3; animation:none; }
+  @keyframes h-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes h-err-blink { 50% { opacity:.3; } }
+
+  /* ---- CELEBRATING ---- tornado spin + gorget rainbow + body bob ---- */
+  .mascot-hummingbird.state-celebrating .mascot-body { animation: h-celeb-bob .8s ease-in-out; transform-origin:center; }
+  .mascot-hummingbird.state-celebrating .r-wing-t,
+  .mascot-hummingbird.state-celebrating .r-wing-t-near,
+  .mascot-hummingbird.state-celebrating .r-wing-t-mid,
+  .mascot-hummingbird.state-celebrating .r-wing-t-far { animation: h-celeb-tornado .15s linear infinite; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-celebrating .r-wing-b,
+  .mascot-hummingbird.state-celebrating .r-wing-b-near,
+  .mascot-hummingbird.state-celebrating .r-wing-b-mid,
+  .mascot-hummingbird.state-celebrating .r-wing-b-far { animation: h-celeb-tornado .15s linear infinite reverse; transform-origin:15px 15px; transform-box:fill-box; }
+  .mascot-hummingbird.state-celebrating .r-gorget    { animation: h-celeb-rainbow .4s linear infinite; }
+  .mascot-hummingbird.state-celebrating .r-gorget-hi { animation: h-celeb-rainbow .4s linear .1s infinite; }
+  .mascot-hummingbird.state-celebrating .r-trail     { animation: h-idle-trail .35s linear infinite; opacity:1; }
+  @keyframes h-celeb-bob     { 0% { transform:translateY(0); } 30% { transform:translateY(-3px) scale(1.08); } 60% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes h-celeb-tornado { 0% { transform:scaleY(.2) rotate(0deg); } 50% { transform:scaleY(1.6) rotate(180deg); } 100% { transform:scaleY(.2) rotate(360deg); } }
+  @keyframes h-celeb-rainbow { 0% { fill:#f472b6; } 25% { fill:#fcd34d; } 50% { fill:#54e6a8; } 75% { fill:#22d3ee; } 100% { fill:#f472b6; } }
+
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  SCRIBE · SCRIBE RAVEN — 10-state animation machine
+   *
+   *  Scribe writes README, tutorials, changelogs. Signature: the quill
+   *  in its claw, the parchment scroll underneath, the ink that fades
+   *  in/out as it's used. Every state plays with the quill rhythm and
+   *  the eye — those are what reads as "documentation in progress".
+   *
+   *    idle         slow quill bob + scholarly head tilt + sporadic blink
+   *    listening    head turns up to operator, quill paused
+   *    thinking     head tilts up + beak slightly open + quill at the ready
+   *    typing       QUILL FRENZY (rapid steps), ink-pot reveals, blink fast
+   *    working      continuous quill stroke, script lines appear, scroll
+   *                 glows under the writing
+   *    reading      eye saccades across the scroll, head tilts down
+   *    success      quill flourish (sweeping arc), scroll gold-lit,
+   *                 feather burst
+   *    warning      quill droops, eye narrows, scroll dims
+   *    error        QUILL DROPS, ink splatters around, body shake, red eye
+   *    celebrating  quill twirls 360°, ink-drops fly out as confetti,
+   *                 feather plume puffs up
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  .mascot-raven .r-quill-shaft,
+  .mascot-raven .r-quill-shaft-sh,
+  .mascot-raven .r-quill-feather,
+  .mascot-raven .r-quill-feather-hi,
+  .mascot-raven .r-quill-feather-sh { animation: rv-idle-quill 3.4s ease-in-out infinite; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven .r-eye    { animation: rv-idle-blink 5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raven .r-tuft   { animation: rv-idle-tuft 6s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-raven .r-head   { animation: rv-idle-head 5s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-raven .r-ink-pot, .mascot-raven .r-ink-pot-hi { opacity:0; }
+  .mascot-raven .r-ink-drop { opacity:0; }
+  @keyframes rv-idle-quill { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(4deg); } }
+  @keyframes rv-idle-blink { 0%,90%,100% { transform:scaleY(1); } 93%,96% { transform:scaleY(.1); } }
+  @keyframes rv-idle-tuft  { 0%,86%,100% { transform:none; } 90%,94% { transform:rotate(-12deg); } }
+  @keyframes rv-idle-head  { 0%,80%,100% { transform:rotate(0); } 88%,92% { transform:rotate(-4deg); } }
+
+  /* ---- LISTENING ---- head turns up to operator, quill paused ---- */
+  .mascot-raven.state-listening .r-head { transform:rotate(-8deg); transform-origin:center; transform-box:fill-box; animation:none; }
+  .mascot-raven.state-listening .r-head-hi { transform:rotate(-8deg); transform-origin:center; transform-box:fill-box; }
+  .mascot-raven.state-listening .r-tuft { animation: rv-listen-tuft 1.4s ease-in-out infinite; transform-origin:bottom; transform-box:fill-box; }
+  .mascot-raven.state-listening .r-quill-shaft,
+  .mascot-raven.state-listening .r-quill-shaft-sh,
+  .mascot-raven.state-listening .r-quill-feather,
+  .mascot-raven.state-listening .r-quill-feather-hi,
+  .mascot-raven.state-listening .r-quill-feather-sh { animation:none; transform:rotate(0); }
+  @keyframes rv-listen-tuft { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.4) translateY(-1px); } }
+
+  /* ---- THINKING ---- head up, beak slightly open, quill at ready ---- */
+  .mascot-raven.state-thinking .r-head { animation: rv-think-head 1.6s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-raven.state-thinking .r-quill-shaft,
+  .mascot-raven.state-thinking .r-quill-shaft-sh,
+  .mascot-raven.state-thinking .r-quill-feather,
+  .mascot-raven.state-thinking .r-quill-feather-hi,
+  .mascot-raven.state-thinking .r-quill-feather-sh { animation: rv-think-quill 1.6s ease-in-out infinite; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven.state-thinking .r-eye { animation: rv-think-eye 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes rv-think-head  { 0%,100% { transform:rotate(-4deg); } 50% { transform:rotate(-8deg) translateY(-.5px); } }
+  @keyframes rv-think-quill { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(-4deg); } }
+  @keyframes rv-think-eye   { 0%,100% { transform:scale(1); } 50% { transform:scale(1.2); } }
+
+  /* ---- TYPING ---- QUILL FRENZY + ink pot fades in + rapid blink ---- */
+  .mascot-raven.state-typing .r-quill-shaft,
+  .mascot-raven.state-typing .r-quill-shaft-sh,
+  .mascot-raven.state-typing .r-quill-feather,
+  .mascot-raven.state-typing .r-quill-feather-hi,
+  .mascot-raven.state-typing .r-quill-feather-sh { animation: rv-type-frenzy .2s steps(2) infinite; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven.state-typing .r-ink-pot, .mascot-raven.state-typing .r-ink-pot-hi { opacity:1 !important; }
+  .mascot-raven.state-typing .r-eye { animation: rv-idle-blink 1.4s steps(2) infinite; }
+  @keyframes rv-type-frenzy { 0% { transform:rotate(-10deg); } 50% { transform:rotate(15deg); } }
+
+  /* ---- WORKING ---- continuous quill stroke + script lines + ink pot ---- */
+  .mascot-raven.state-working .r-quill-shaft,
+  .mascot-raven.state-working .r-quill-shaft-sh,
+  .mascot-raven.state-working .r-quill-feather,
+  .mascot-raven.state-working .r-quill-feather-hi,
+  .mascot-raven.state-working .r-quill-feather-sh { animation: rv-work-write .8s ease-in-out infinite; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven.state-working .r-ink-pot, .mascot-raven.state-working .r-ink-pot-hi { opacity:1 !important; }
+  .mascot-raven.state-working .r-line { animation: rv-work-line 1.6s linear infinite; opacity:1; }
+  .mascot-raven.state-working .r-scroll-edge { animation: rv-work-glow 1.6s ease-in-out infinite; }
+  @keyframes rv-work-write { 0%,100% { transform:rotate(-12deg) translateY(0); } 50% { transform:rotate(18deg) translateY(-1px); } }
+  @keyframes rv-work-line  { 0%,100% { opacity:.5; } 50% { opacity:1; transform:scaleX(1.05); } }
+  @keyframes rv-work-glow  { 0%,100% { fill:#d4a574; } 50% { fill:#fcd34d; } }
+
+  /* ---- READING ---- eye saccades across the scroll, head down ---- */
+  .mascot-raven.state-reading .r-head { transform:rotate(8deg) translateY(.5px); transform-origin:center; transform-box:fill-box; animation:none; }
+  .mascot-raven.state-reading .r-head-hi { transform:rotate(8deg) translateY(.5px); transform-origin:center; transform-box:fill-box; }
+  .mascot-raven.state-reading .r-eye { animation: rv-read-saccade 1.2s steps(3) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raven.state-reading .r-eye-w { animation: rv-read-saccade 1.2s steps(3) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raven.state-reading .r-quill-shaft,
+  .mascot-raven.state-reading .r-quill-shaft-sh,
+  .mascot-raven.state-reading .r-quill-feather,
+  .mascot-raven.state-reading .r-quill-feather-hi,
+  .mascot-raven.state-reading .r-quill-feather-sh { animation:none; transform:rotate(-5deg); transform-origin:17px 24px; transform-box:fill-box; }
+  @keyframes rv-read-saccade { 0% { transform:translateX(-1px); } 33% { transform:translateX(0); } 66% { transform:translateX(1px); } 100% { transform:translateX(-1px); } }
+
+  /* ---- SUCCESS ---- quill flourish (sweeping arc) + scroll gold + feather burst ---- */
+  .mascot-raven.state-success .mascot-body { animation: rv-success-pop .8s ease-out; transform-origin:center; }
+  .mascot-raven.state-success .r-quill-shaft,
+  .mascot-raven.state-success .r-quill-shaft-sh,
+  .mascot-raven.state-success .r-quill-feather,
+  .mascot-raven.state-success .r-quill-feather-hi,
+  .mascot-raven.state-success .r-quill-feather-sh { animation: rv-success-flourish .8s ease-out; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven.state-success .r-scroll, .mascot-raven.state-success .r-scroll-edge { animation: rv-success-scroll .8s ease-out; }
+  .mascot-raven.state-success .r-eye-w { fill:#54e6a8; }
+  @keyframes rv-success-pop      { 0% { transform:scale(1); } 30% { transform:scale(1.08); } 60% { transform:scale(.97); } 100% { transform:scale(1); } }
+  @keyframes rv-success-flourish { 0% { transform:rotate(0); } 30% { transform:rotate(-35deg); } 60% { transform:rotate(20deg); } 100% { transform:rotate(0); } }
+  @keyframes rv-success-scroll   { 0%,100% { fill:#fef3c7; } 50% { fill:#fcd34d; } }
+
+  /* ---- WARNING ---- quill droops, eye narrows, scroll dims ---- */
+  .mascot-raven.state-warning .r-quill-shaft,
+  .mascot-raven.state-warning .r-quill-shaft-sh,
+  .mascot-raven.state-warning .r-quill-feather,
+  .mascot-raven.state-warning .r-quill-feather-hi,
+  .mascot-raven.state-warning .r-quill-feather-sh { transform:rotate(35deg); transform-origin:17px 24px; transform-box:fill-box; animation:none; }
+  .mascot-raven.state-warning .r-eye { transform:scaleY(.5); transform-box:fill-box; transform-origin:center; animation:none; }
+  .mascot-raven.state-warning .r-eye-w { fill:#fb923c; }
+  .mascot-raven.state-warning .r-scroll, .mascot-raven.state-warning .r-scroll-edge { opacity:.5; }
+
+  /* ---- ERROR ---- quill DROPS + ink splatters + body shake + red eye ---- */
+  .mascot-raven.state-error .mascot-body { animation: rv-err-shake .18s ease-in-out infinite; transform-origin:center; }
+  .mascot-raven.state-error .r-quill-shaft,
+  .mascot-raven.state-error .r-quill-shaft-sh,
+  .mascot-raven.state-error .r-quill-feather,
+  .mascot-raven.state-error .r-quill-feather-hi,
+  .mascot-raven.state-error .r-quill-feather-sh { transform:rotate(75deg) translate(-3px,2px); transform-origin:17px 24px; transform-box:fill-box; animation:none; }
+  .mascot-raven.state-error .r-ink-drop { opacity:1 !important; animation: rv-err-drop .4s ease-in infinite; }
+  .mascot-raven.state-error .r-ink-drop:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-raven.state-error .r-ink-drop:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-raven.state-error .r-eye-w { fill:#ef4444; }
+  .mascot-raven.state-error .r-eye { animation: rv-idle-blink .3s steps(2) infinite; }
+  @keyframes rv-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes rv-err-drop  { 0% { opacity:1; transform:translateY(-1px); } 100% { opacity:0; transform:translateY(2px); } }
+
+  /* ---- CELEBRATING ---- quill twirls 360 + ink-drops as confetti + plume puff ---- */
+  .mascot-raven.state-celebrating .mascot-body { animation: rv-celeb-bob .8s ease-in-out; transform-origin:center; }
+  .mascot-raven.state-celebrating .r-quill-shaft,
+  .mascot-raven.state-celebrating .r-quill-shaft-sh,
+  .mascot-raven.state-celebrating .r-quill-feather,
+  .mascot-raven.state-celebrating .r-quill-feather-hi,
+  .mascot-raven.state-celebrating .r-quill-feather-sh { animation: rv-celeb-twirl .5s linear infinite; transform-origin:17px 24px; transform-box:fill-box; }
+  .mascot-raven.state-celebrating .r-ink-drop { opacity:1 !important; animation: rv-celeb-drop .55s ease-out infinite; }
+  .mascot-raven.state-celebrating .r-ink-drop:nth-of-type(2) { animation-delay:.18s; }
+  .mascot-raven.state-celebrating .r-ink-drop:nth-of-type(3) { animation-delay:.36s; }
+  .mascot-raven.state-celebrating .r-tuft { animation: rv-celeb-tuft .35s ease-in-out infinite; transform-origin:bottom; transform-box:fill-box; }
+  @keyframes rv-celeb-bob   { 0% { transform:translateY(0); } 30% { transform:translateY(-2px) scale(1.06); } 60% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes rv-celeb-twirl { 0% { transform:rotate(0); } 100% { transform:rotate(360deg); } }
+  @keyframes rv-celeb-drop  { 0% { fill:#1e293b; opacity:1; transform:translateY(0); } 50% { fill:#fcd34d; } 100% { fill:#f472b6; opacity:0; transform:translateY(-3px); } }
+  @keyframes rv-celeb-tuft  { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.5) translateY(-1px); } }
+
+  /* ---- LEDGER · RACCOON (cost & tokens) ---- full 10-state machine
+     Parts: tail/stripes, body+chest, head, ears, bandit mask, eyes, nose,
+     hands (left at side, right holding coin), coin (4 layers) + hidden coin2/coin3,
+     receipt strip, bar-fill (evo 4+), tick numbers. Naming: lg-<state>-<part>. */
+
+  /* ── shared transform origins ── */
+  .mascot-raccoon .r-coin, .mascot-raccoon .r-coin-hi,
+  .mascot-raccoon .r-coin-sym, .mascot-raccoon .r-coin-sh,
+  .mascot-raccoon .r-coin2, .mascot-raccoon .r-coin2-hi, .mascot-raccoon .r-coin3,
+  .mascot-raccoon .r-eye-w, .mascot-raccoon .r-eye-pupil, .mascot-raccoon .r-nose,
+  .mascot-raccoon .r-tick, .mascot-raccoon .r-receipt, .mascot-raccoon .r-receipt-line,
+  .mascot-raccoon .r-ear, .mascot-raccoon .r-ear-outline, .mascot-raccoon .r-ear-in,
+  .mascot-raccoon .r-hand-r, .mascot-raccoon .r-bar-fill, .mascot-raccoon .r-tail,
+  .mascot-raccoon .r-head, .mascot-raccoon .r-head-outline, .mascot-raccoon .r-head-hi
+  { transform-box:fill-box; }
+  .mascot-raccoon .r-coin, .mascot-raccoon .r-coin-hi,
+  .mascot-raccoon .r-coin-sym, .mascot-raccoon .r-coin-sh,
+  .mascot-raccoon .r-coin2, .mascot-raccoon .r-coin2-hi, .mascot-raccoon .r-coin3,
+  .mascot-raccoon .r-eye-w, .mascot-raccoon .r-eye-pupil, .mascot-raccoon .r-nose,
+  .mascot-raccoon .r-tick, .mascot-raccoon .r-ear, .mascot-raccoon .r-ear-outline,
+  .mascot-raccoon .r-ear-in, .mascot-raccoon .r-hand-r
+  { transform-origin:center; }
+  .mascot-raccoon .r-tail, .mascot-raccoon .r-tail-outline { transform-origin:left center; }
+  .mascot-raccoon .r-bar-fill { transform-origin:left; }
+  .mascot-raccoon .r-head, .mascot-raccoon .r-head-outline, .mascot-raccoon .r-head-hi { transform-origin:13px 14px; }
+
+  /* ── IDLE — slow nose twitch, tail sways gently, occasional coin glint ── */
+  .mascot-raccoon .r-nose       { animation: lg-nose 5s ease-in-out infinite; }
+  .mascot-raccoon .r-tail       { animation: lg-tail-idle 5.5s ease-in-out infinite; }
+  .mascot-raccoon .r-coin-hi    { animation: lg-coin-glint 3.4s ease-in-out infinite; }
+  @keyframes lg-nose       { 0%,90%,100% { transform:translateY(0); } 95% { transform:translateY(-.4px); } }
+  @keyframes lg-tail-idle  { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(4deg); } }
+  @keyframes lg-coin-glint { 0%,80%,100% { opacity:1; } 90% { opacity:.4; } }
+
+  /* ── LISTENING — ears perk, eyes widen, head tilts toward sound ── */
+  .mascot-raccoon.state-listening .r-ear,
+  .mascot-raccoon.state-listening .r-ear-outline,
+  .mascot-raccoon.state-listening .r-ear-in { animation: lg-ear-perk 1.5s ease-in-out infinite; }
+  .mascot-raccoon.state-listening .r-eye-w  { animation: lg-eye-wide 1.5s ease-in-out infinite; }
+  .mascot-raccoon.state-listening .r-head,
+  .mascot-raccoon.state-listening .r-head-outline,
+  .mascot-raccoon.state-listening .r-head-hi { animation: lg-head-tilt 2.4s ease-in-out infinite; }
+  @keyframes lg-ear-perk  { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px) scaleY(1.15); } }
+  @keyframes lg-eye-wide  { 0%,100% { transform:scale(1); } 50% { transform:scale(1.25); } }
+  @keyframes lg-head-tilt { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-4deg); } }
+
+  /* ── THINKING — tail swooshes calculating, tick numbers pulse ── */
+  .mascot-raccoon.state-thinking .r-tail { animation: lg-tail-think 1.8s ease-in-out infinite; }
+  .mascot-raccoon.state-thinking .r-tick { animation: lg-tick-think 1.5s ease-in-out infinite; opacity:1; }
+  .mascot-raccoon.state-thinking .r-tick:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-raccoon.state-thinking .r-tick:nth-of-type(3) { animation-delay:.6s; }
+  .mascot-raccoon.state-thinking .r-eye-pupil { animation: lg-eyes-up 2.2s ease-in-out infinite; }
+  @keyframes lg-tail-think { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(7deg); } }
+  @keyframes lg-tick-think { 0%,100% { opacity:.3; transform:translateY(0) scale(.8); } 50% { opacity:1; transform:translateY(-1px) scale(1.15); } }
+  @keyframes lg-eyes-up    { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.6px); } }
+
+  /* ── TYPING — coin flip rapid (steps), receipt scrolls up, ticks cycle ── */
+  .mascot-raccoon.state-typing .r-coin,
+  .mascot-raccoon.state-typing .r-coin-hi,
+  .mascot-raccoon.state-typing .r-coin-sym,
+  .mascot-raccoon.state-typing .r-coin-sh { animation: lg-coin-flip .55s steps(4,end) infinite; }
+  .mascot-raccoon.state-typing .r-receipt { animation: lg-receipt-show .9s ease-out forwards; }
+  .mascot-raccoon.state-typing .r-receipt-line { animation: lg-receipt-line 1.2s steps(3) infinite; }
+  .mascot-raccoon.state-typing .r-tick    { animation: lg-tick-cycle 1.2s steps(3) infinite; opacity:1; }
+  .mascot-raccoon.state-typing .r-tick:nth-of-type(2) { animation-delay:.4s; }
+  .mascot-raccoon.state-typing .r-tick:nth-of-type(3) { animation-delay:.8s; }
+  @keyframes lg-coin-flip     { 0%,100% { transform:scaleX(1); } 25% { transform:scaleX(.4); } 50% { transform:scaleX(.05); } 75% { transform:scaleX(.4); } }
+  @keyframes lg-receipt-show  { from { opacity:0; transform:translateY(2px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes lg-receipt-line  { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+  @keyframes lg-tick-cycle    { 0%,100% { opacity:1; } 33% { opacity:.2; } 66% { opacity:1; } }
+
+  /* ── WORKING — coin spins continuously, bar fills, receipt + ticks visible ── */
+  .mascot-raccoon.state-working .r-coin,
+  .mascot-raccoon.state-working .r-coin-hi,
+  .mascot-raccoon.state-working .r-coin-sym,
+  .mascot-raccoon.state-working .r-coin-sh { animation: lg-coin-spin 1.1s ease-in-out infinite; }
+  .mascot-raccoon.state-working .r-bar-fill { animation: lg-bar-fill 2.4s ease-in-out infinite; }
+  .mascot-raccoon.state-working .r-receipt,
+  .mascot-raccoon.state-working .r-receipt-line { opacity:1; }
+  .mascot-raccoon.state-working .r-receipt-line { animation: lg-receipt-line .7s steps(3) infinite; }
+  .mascot-raccoon.state-working .r-tick { animation: lg-tick-cycle .8s steps(3) infinite; opacity:1; }
+  .mascot-raccoon.state-working .r-tick:nth-of-type(2) { animation-delay:.27s; }
+  .mascot-raccoon.state-working .r-tick:nth-of-type(3) { animation-delay:.53s; }
+  .mascot-raccoon.state-working .r-hand-r { animation: lg-hand-work .6s ease-in-out infinite; }
+  @keyframes lg-coin-spin { 0%,100% { transform:scaleX(1); } 50% { transform:scaleX(.1); filter:brightness(1.4); } }
+  @keyframes lg-bar-fill  { 0% { transform:scaleX(.2); } 60% { transform:scaleX(1); } 100% { transform:scaleX(.2); } }
+  @keyframes lg-hand-work { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.5px); } }
+
+  /* ── READING — eyes scan side-to-side, ears tilted, tail still ── */
+  .mascot-raccoon.state-reading .r-eye-pupil { animation: lg-scan 2.4s ease-in-out infinite; }
+  .mascot-raccoon.state-reading .r-ear,
+  .mascot-raccoon.state-reading .r-ear-outline { transform:rotate(-8deg); }
+  .mascot-raccoon.state-reading .r-tail { animation:none; transform:rotate(-2deg); }
+  @keyframes lg-scan { 0%,100% { transform:translateX(-.6px); } 50% { transform:translateX(.6px); } }
+
+  /* ── SUCCESS — coin bursts gold, coin2/coin3 reveal, eyes squint happy ── */
+  .mascot-raccoon.state-success .r-coin,
+  .mascot-raccoon.state-success .r-coin-hi { animation: lg-coin-pop .6s ease-out 1; filter:drop-shadow(0 0 3px #fcd34d); }
+  .mascot-raccoon.state-success .r-coin2,
+  .mascot-raccoon.state-success .r-coin2-hi { animation: lg-coin-reveal .8s ease-out 1 forwards; }
+  .mascot-raccoon.state-success .r-coin3   { animation: lg-coin-reveal .8s ease-out .15s 1 forwards; }
+  .mascot-raccoon.state-success .r-eye-w   { animation: lg-eye-happy .55s ease-out 1 forwards; }
+  @keyframes lg-coin-pop    { 0% { transform:scale(1); } 50% { transform:scale(1.4); } 100% { transform:scale(1); } }
+  @keyframes lg-coin-reveal { 0% { opacity:0; transform:translateY(3px) scale(.5); } 100% { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes lg-eye-happy   { 0% { transform:scaleY(1); } 100% { transform:scaleY(.45); } }
+
+  /* ── WARNING — coin droops, ticks turn yellow-flicker, ears half-flat ── */
+  .mascot-raccoon.state-warning .r-coin,
+  .mascot-raccoon.state-warning .r-coin-hi,
+  .mascot-raccoon.state-warning .r-coin-sym,
+  .mascot-raccoon.state-warning .r-coin-sh { animation: lg-coin-droop 1.4s ease-in-out infinite; }
+  .mascot-raccoon.state-warning .r-tick    { animation: lg-warn-blink .5s ease-in-out infinite; opacity:1; fill:#f59e0b; }
+  .mascot-raccoon.state-warning .r-bar-fill { fill:#f59e0b; animation: lg-bar-shake .3s ease-in-out infinite; }
+  .mascot-raccoon.state-warning .r-ear,
+  .mascot-raccoon.state-warning .r-ear-outline { transform:translateY(1px) rotate(-6deg); }
+  @keyframes lg-coin-droop { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(1px) rotate(-8deg); } }
+  @keyframes lg-warn-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  @keyframes lg-bar-shake  { 0%,100% { transform:scaleX(.4) translateX(0); } 50% { transform:scaleX(.4) translateX(.5px); } }
+
+  /* ── ERROR — coin red, bar empty/red, ears flat, eyes shrink ── */
+  .mascot-raccoon.state-error .r-coin       { fill:#ef4444 !important; }
+  .mascot-raccoon.state-error .r-coin-hi    { fill:#fca5a5 !important; }
+  .mascot-raccoon.state-error .r-coin-sym   { fill:#7f1d1d !important; }
+  .mascot-raccoon.state-error .r-coin-sh    { fill:#7f1d1d !important; }
+  .mascot-raccoon.state-error .r-bar-fill   { fill:#ef4444 !important; transform:scaleX(.08); animation:none; }
+  .mascot-raccoon.state-error .r-tick       { opacity:1; fill:#ef4444 !important; animation: lg-err-flash .35s ease-in-out infinite; }
+  .mascot-raccoon.state-error .r-ear,
+  .mascot-raccoon.state-error .r-ear-outline { transform:translateY(2px) rotate(-18deg); }
+  .mascot-raccoon.state-error .r-eye-pupil  { transform:scale(.6); }
+  @keyframes lg-err-flash { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+
+  /* ── CELEBRATING — coin shower (coin2 + coin3 bouncing), tail wags hard ── */
+  .mascot-raccoon.state-celebrating .r-coin2,
+  .mascot-raccoon.state-celebrating .r-coin2-hi { opacity:1; animation: lg-coin-shower .65s ease-in-out infinite; }
+  .mascot-raccoon.state-celebrating .r-coin3    { opacity:1; animation: lg-coin-shower .65s ease-in-out .2s infinite; }
+  .mascot-raccoon.state-celebrating .r-tail     { animation: lg-tail-wag .35s ease-in-out infinite; }
+  .mascot-raccoon.state-celebrating .r-coin,
+  .mascot-raccoon.state-celebrating .r-coin-hi  { animation: lg-coin-spin .5s ease-in-out infinite; filter:drop-shadow(0 0 3px #fcd34d); }
+  .mascot-raccoon.state-celebrating .r-eye-w    { transform:scaleY(.45); }
+  @keyframes lg-coin-shower { 0%,100% { transform:translateY(0); opacity:1; } 50% { transform:translateY(-3px) scale(1.15); opacity:.85; } }
+  @keyframes lg-tail-wag    { 0%,100% { transform:rotate(-12deg); } 50% { transform:rotate(14deg); } }
+
+  /* ---- RAVEN · DARK RAVEN (debug) ---- full 10-state machine
+     Parts: body/wing/tail/head silhouette, brow ridge, beak + glint,
+     red eye + halo glow, wing feathers + primary tips, glitch lines (evo),
+     binary traces (evo 3), stack frame text (evo 4), breath puff (hidden).
+     Naming: dr-<state>-<part>. */
+
+  /* ── shared transform origins ── */
+  .mascot-darkRaven .r-eye, .mascot-darkRaven .r-eye-w, .mascot-darkRaven .r-eye-glow,
+  .mascot-darkRaven .r-brow, .mascot-darkRaven .r-breath, .mascot-darkRaven .r-beak,
+  .mascot-darkRaven .r-beak-hi, .mascot-darkRaven .r-beak-outline,
+  .mascot-darkRaven .r-tail, .mascot-darkRaven .r-tail-outline, .mascot-darkRaven .r-tail-hi,
+  .mascot-darkRaven .r-wing, .mascot-darkRaven .r-wing-feather, .mascot-darkRaven .r-wing-tip,
+  .mascot-darkRaven .r-glitch, .mascot-darkRaven .r-trace,
+  .mascot-darkRaven .r-stack, .mascot-darkRaven .r-stack-text,
+  .mascot-darkRaven .r-head, .mascot-darkRaven .r-head-outline
+  { transform-box:fill-box; }
+  .mascot-darkRaven .r-eye, .mascot-darkRaven .r-eye-w, .mascot-darkRaven .r-eye-glow,
+  .mascot-darkRaven .r-breath, .mascot-darkRaven .r-brow, .mascot-darkRaven .r-beak-hi,
+  .mascot-darkRaven .r-wing-tip { transform-origin:center; }
+  .mascot-darkRaven .r-wing { transform-origin:12px 13px; }
+  .mascot-darkRaven .r-tail, .mascot-darkRaven .r-tail-outline { transform-origin:right center; }
+  .mascot-darkRaven .r-head, .mascot-darkRaven .r-head-outline { transform-origin:20px 14px; }
+
+  /* ── IDLE — eye slow pulse, glitch barely flickers, tail still ── */
+  .mascot-darkRaven .r-eye, .mascot-darkRaven .r-eye-w { animation: dr-eye-idle 2.2s ease-in-out infinite; }
+  .mascot-darkRaven .r-eye-glow { animation: dr-glow-idle 2.2s ease-in-out infinite; }
+  .mascot-darkRaven .r-glitch   { animation: dr-glitch-idle 2.6s steps(2) infinite; opacity:.5; }
+  @keyframes dr-eye-idle  { 0%,100% { opacity:.75; } 50% { opacity:1; } }
+  @keyframes dr-glow-idle { 0%,100% { opacity:.18; transform:scale(1); } 50% { opacity:.55; transform:scale(1.35); } }
+  @keyframes dr-glitch-idle { 0%,90%,100% { transform:translateX(0); opacity:.4; } 95% { transform:translateX(1px); opacity:.85; } }
+
+  /* ── LISTENING — head cocks toward source, brow lifts, eye widens ── */
+  .mascot-darkRaven.state-listening .r-head,
+  .mascot-darkRaven.state-listening .r-head-outline { animation: dr-head-cock 2s ease-in-out infinite; }
+  .mascot-darkRaven.state-listening .r-eye-w { animation: dr-eye-wide 1.8s ease-in-out infinite; }
+  .mascot-darkRaven.state-listening .r-brow  { animation: dr-brow-up 1.8s ease-in-out infinite; }
+  @keyframes dr-head-cock { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-5deg); } }
+  @keyframes dr-eye-wide  { 0%,100% { transform:scale(1); } 50% { transform:scale(1.3); } }
+  @keyframes dr-brow-up   { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.6px); } }
+
+  /* ── THINKING — glitch lines pulse rhythmic, eye scans, trace slow ── */
+  .mascot-darkRaven.state-thinking .r-glitch { animation: dr-glitch-think 1.4s ease-in-out infinite; opacity:1; }
+  .mascot-darkRaven.state-thinking .r-eye    { animation: dr-eye-scan 2.4s ease-in-out infinite; }
+  .mascot-darkRaven.state-thinking .r-trace  { animation: dr-trace-slow 1.6s ease-in-out infinite; }
+  .mascot-darkRaven.state-thinking .r-trace:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-darkRaven.state-thinking .r-trace:nth-of-type(3) { animation-delay:.6s; }
+  .mascot-darkRaven.state-thinking .r-trace:nth-of-type(4) { animation-delay:.9s; }
+  @keyframes dr-glitch-think { 0%,100% { transform:translateX(0); opacity:.4; } 50% { transform:translateX(1.5px); opacity:1; } }
+  @keyframes dr-eye-scan     { 0%,100% { transform:translateX(-.4px); } 50% { transform:translateX(.4px); } }
+  @keyframes dr-trace-slow   { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+
+  /* ── TYPING — stack-text scrolls (steps), glitch fast, trace cycle ── */
+  .mascot-darkRaven.state-typing .r-stack-text { animation: dr-stack-scroll .5s steps(4) infinite; }
+  .mascot-darkRaven.state-typing .r-glitch     { animation: dr-glitch-fast .35s steps(2) infinite; opacity:1; }
+  .mascot-darkRaven.state-typing .r-trace      { animation: dr-trace-cycle .4s steps(2) infinite; }
+  .mascot-darkRaven.state-typing .r-trace:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-darkRaven.state-typing .r-trace:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-darkRaven.state-typing .r-trace:nth-of-type(4) { animation-delay:.3s; }
+  .mascot-darkRaven.state-typing .r-beak-hi    { animation: dr-beak-tap .25s ease-in-out infinite; }
+  @keyframes dr-stack-scroll { 0% { transform:translateX(0); } 100% { transform:translateX(-2px); } }
+  @keyframes dr-glitch-fast  { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(2px); } }
+  @keyframes dr-trace-cycle  { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  @keyframes dr-beak-tap     { 0%,100% { transform:translateY(0); } 50% { transform:translateY(.4px); } }
+
+  /* ── WORKING — full hacker mode: glitch runs, traces cycle, wing twitch ── */
+  .mascot-darkRaven.state-working .r-glitch { animation: dr-glitch-run .6s steps(3) infinite; opacity:1; }
+  .mascot-darkRaven.state-working .r-trace  { animation: dr-trace-cycle .3s steps(2) infinite; opacity:1; }
+  .mascot-darkRaven.state-working .r-trace:nth-of-type(2) { animation-delay:.08s; }
+  .mascot-darkRaven.state-working .r-trace:nth-of-type(3) { animation-delay:.16s; }
+  .mascot-darkRaven.state-working .r-trace:nth-of-type(4) { animation-delay:.24s; }
+  .mascot-darkRaven.state-working .r-wing,
+  .mascot-darkRaven.state-working .r-wing-tip { animation: dr-wing-twitch .9s ease-in-out infinite; }
+  .mascot-darkRaven.state-working .r-eye-glow { animation: dr-glow-fast 1s ease-in-out infinite; }
+  @keyframes dr-glitch-run  { 0% { transform:translateX(-2px); opacity:.6; } 33% { transform:translateX(0); opacity:1; } 66% { transform:translateX(2px); opacity:.8; } 100% { transform:translateX(-2px); opacity:.6; } }
+  @keyframes dr-wing-twitch { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-3deg); } }
+  @keyframes dr-glow-fast   { 0%,100% { opacity:.2; transform:scale(1); } 50% { opacity:.7; transform:scale(1.5); } }
+
+  /* ── READING — eye locked, brow lowered, glitch slow + dim ── */
+  .mascot-darkRaven.state-reading .r-eye, .mascot-darkRaven.state-reading .r-eye-w { animation:none; opacity:1; }
+  .mascot-darkRaven.state-reading .r-brow { transform:translateY(.5px); }
+  .mascot-darkRaven.state-reading .r-glitch { animation: dr-glitch-idle 3s steps(2) infinite; opacity:.3; }
+  .mascot-darkRaven.state-reading .r-head,
+  .mascot-darkRaven.state-reading .r-head-outline { transform:rotate(3deg); }
+
+  /* ── SUCCESS — eye flashes GREEN, brow lifts, wing pumps once ── */
+  .mascot-darkRaven.state-success .r-eye    { fill:#bbf7d0 !important; animation: dr-eye-flash .55s ease-out 1; }
+  .mascot-darkRaven.state-success .r-eye-w  { fill:#22c55e !important; }
+  .mascot-darkRaven.state-success .r-eye-glow { fill:#22c55e !important; animation: dr-glow-pop .55s ease-out 1; }
+  .mascot-darkRaven.state-success .r-brow   { transform:translateY(-1px); }
+  .mascot-darkRaven.state-success .r-wing,
+  .mascot-darkRaven.state-success .r-wing-tip { animation: dr-wing-pump .5s ease-out 1; }
+  .mascot-darkRaven.state-success .r-glitch { animation:none; opacity:0; }
+  @keyframes dr-eye-flash { 0% { transform:scale(.7); } 50% { transform:scale(1.6); } 100% { transform:scale(1); } }
+  @keyframes dr-glow-pop  { 0% { opacity:.2; transform:scale(.8); } 50% { opacity:.85; transform:scale(1.8); } 100% { opacity:.4; transform:scale(1.3); } }
+  @keyframes dr-wing-pump { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-10deg); } }
+
+  /* ── WARNING — eye amber, glitch alternating amber/red, brow furrows ── */
+  .mascot-darkRaven.state-warning .r-eye   { fill:#fde68a !important; animation: dr-eye-idle .5s ease-in-out infinite; }
+  .mascot-darkRaven.state-warning .r-eye-w { fill:#f59e0b !important; }
+  .mascot-darkRaven.state-warning .r-eye-glow { fill:#f59e0b !important; animation: dr-glow-idle .5s ease-in-out infinite; }
+  .mascot-darkRaven.state-warning .r-glitch { animation: dr-warn-glitch .35s steps(2) infinite; opacity:1; fill:#f59e0b; }
+  .mascot-darkRaven.state-warning .r-brow  { transform:translateY(.5px) scaleY(1.2); }
+  @keyframes dr-warn-glitch { 0%,100% { transform:translateX(0); fill:#f59e0b; } 50% { transform:translateX(2px); fill:#ef4444; } }
+
+  /* ── ERROR — eye SOLID red w/ huge glow, breath puff appears, body shake ── */
+  .mascot-darkRaven.state-error .r-eye,
+  .mascot-darkRaven.state-error .r-eye-w { animation: dr-err-pulse .25s ease-in-out infinite; }
+  .mascot-darkRaven.state-error .r-eye-glow { animation: dr-err-halo .4s ease-in-out infinite; }
+  .mascot-darkRaven.state-error .r-glitch { animation: dr-glitch-fast .2s steps(2) infinite; opacity:1; }
+  .mascot-darkRaven.state-error .r-breath { animation: dr-breath-hiss .55s ease-out infinite; }
+  .mascot-darkRaven.state-error .r-breath:nth-of-type(2) { animation-delay:.18s; }
+  .mascot-darkRaven.state-error .r-brow { transform:translateY(1px) scaleY(1.3); }
+  @keyframes dr-err-pulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.4); opacity:.7; } }
+  @keyframes dr-err-halo  { 0%,100% { opacity:.6; transform:scale(1.2); } 50% { opacity:1; transform:scale(2.1); } }
+  @keyframes dr-breath-hiss { 0% { opacity:0; transform:translateX(0); } 30% { opacity:.9; } 100% { opacity:0; transform:translateX(3px); } }
+
+  /* ── CELEBRATING — wings flap, eye color-cycles, traces dance ── */
+  .mascot-darkRaven.state-celebrating .r-wing,
+  .mascot-darkRaven.state-celebrating .r-wing-tip { animation: dr-wing-flap .35s ease-in-out infinite; }
+  .mascot-darkRaven.state-celebrating .r-eye    { animation: dr-eye-cycle .9s steps(3) infinite; }
+  .mascot-darkRaven.state-celebrating .r-eye-w  { animation: dr-eye-wcycle .9s steps(3) infinite; }
+  .mascot-darkRaven.state-celebrating .r-eye-glow { animation: dr-glow-cycle .9s steps(3) infinite; opacity:.7; }
+  .mascot-darkRaven.state-celebrating .r-trace  { animation: dr-trace-dance .4s steps(2) infinite; opacity:1; }
+  .mascot-darkRaven.state-celebrating .r-trace:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-darkRaven.state-celebrating .r-trace:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-darkRaven.state-celebrating .r-trace:nth-of-type(4) { animation-delay:.3s; }
+  .mascot-darkRaven.state-celebrating .r-breath { animation: dr-breath-hiss .7s ease-out infinite; opacity:1; fill:#bbf7d0 !important; }
+  @keyframes dr-wing-flap   { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-14deg); } }
+  @keyframes dr-eye-cycle   { 0% { fill:#bbf7d0; } 33% { fill:#fde68a; } 66% { fill:#fca5a5; } 100% { fill:#bbf7d0; } }
+  @keyframes dr-eye-wcycle  { 0% { fill:#22c55e; } 33% { fill:#f59e0b; } 66% { fill:#ef4444; } 100% { fill:#22c55e; } }
+  @keyframes dr-glow-cycle  { 0% { fill:#22c55e; transform:scale(1.5); } 33% { fill:#f59e0b; transform:scale(1.2); } 66% { fill:#ef4444; transform:scale(1.8); } 100% { fill:#22c55e; transform:scale(1.5); } }
+  @keyframes dr-trace-dance { 0%,100% { opacity:1; transform:translateY(0); } 50% { opacity:.3; transform:translateY(-1px); } }
 
   /* ---- FIREFLY ---- lantern strongly modulates, sparks float */
   .mascot-firefly .r-lantern-glow { animation: ff-glow 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }

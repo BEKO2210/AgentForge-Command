@@ -549,57 +549,101 @@ const SPRITES = {
   },
 
   /* ── VEGA — Neon Hummingbird ──────────────────────────────────────── *
-   * Ramp: #064e3b / #10b981 / #34d399 / #a7f3d0   green back            *
-   *       #be185d / #f472b6 / #fbcfe8              pink chest           *
-   * Streamlined body, long needle beak, wings touching the shoulder.    */
+   * Ramp: #064e3b / #10b981 / #34d399 / #a7f3d0     green back/head     *
+   *       #6ee7b7 / #a7f3d0                          belly (lighter)    *
+   *       #be185d / #f472b6 / #fbcfe8                gorget (throat)    *
+   *       #92400e / #fcd34d / #fde68a                beak (gold needle) *
+   *
+   * Anatomy that makes a hummingbird READ as a hummingbird:
+   *   - LONG NEEDLE BEAK (7px — wider than the head)
+   *   - Iridescent GORGET (pink throat patch right below the head)
+   *   - Wing motion-blur stack (4 opacity layers per side, fading at the
+   *     edges) so even on a static screenshot you see "this thing is
+   *     hovering at impossible speed"
+   *   - Forked tail with clear V-shape and an outer-tip feather flare
+   *   - Streamlined teardrop body (pointed at the tail end)
+   *   - Big visible eye with a white sclera so the head reads from afar
+   *
+   * Facing right. Trail behind on the left, beak streaking forward on
+   * the right.                                                            */
   hummingbird: {
     label: "neon hummingbird",
     base: [
-      // motion trail
-      { c: "trail",  x: 1, y: 14, w: 1, h: 1, f: "#34d399", o: 0.6 },
-      { c: "trail",  x: 3, y: 14, w: 2, h: 1, f: "#34d399", o: 0.5 },
-      { c: "trail",  x: 6, y: 14, w: 2, h: 1, f: "#34d399", o: 0.4 },
-      // body outline (green back + pink chest)
-      { c: "body-outline", x: 11, y: 10, w: 10, h: 1, f: "#064e3b" },
-      { c: "body-outline", x: 11, y: 18, w: 10, h: 1, f: "#064e3b" },
-      { c: "body-outline", x: 10, y: 11, w: 1, h: 7, f: "#064e3b" },
-      { c: "body-outline", x: 21, y: 11, w: 1, h: 7, f: "#064e3b" },
-      // back (green)
-      { c: "back", x: 11, y: 11, w: 10, h: 4, f: "#10b981" },
-      { c: "back-hi", x: 11, y: 11, w: 9, h: 1, f: "#34d399" },
-      // chest (pink)
-      { c: "chest", x: 11, y: 15, w: 10, h: 3, f: "#f472b6" },
-      { c: "chest-hi", x: 12, y: 15, w: 6, h: 1, f: "#fbcfe8" },
-      // head
-      { c: "head-outline", x: 17, y: 9, w: 6, h: 1, f: "#064e3b" },
-      { c: "head-outline", x: 17, y: 14, w: 6, h: 1, f: "#064e3b" },
-      { c: "head-outline", x: 23, y: 10, w: 1, h: 4, f: "#064e3b" },
-      { c: "head", x: 17, y: 10, w: 6, h: 4, f: "#10b981" },
-      { c: "head-hi", x: 17, y: 10, w: 5, h: 1, f: "#34d399" },
-      // eye
-      { c: "eye-w", x: 19, y: 11, w: 1, h: 1, f: "#fff" },
-      { c: "eye", x: 19, y: 11, w: 1, h: 1, f: "#0f172a" },
-      // long needle beak
-      { c: "beak-outline", x: 22, y: 10, w: 9, h: 1, f: "#92400e" },
-      { c: "beak-outline", x: 22, y: 12, w: 9, h: 1, f: "#92400e" },
-      { c: "beak",         x: 22, y: 11, w: 9, h: 1, f: "#fcd34d" },
-      // wings (top + bottom) anchored to body
-      { c: "wing-t-outline", x: 9, y: 9, w: 11, h: 1, f: "#064e3b" },
-      { c: "wing-t", x: 10, y: 9, w: 9, h: 2, f: "#6ee7b7" },
-      { c: "wing-t", x: 13, y: 8, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
-      { c: "wing-b-outline", x: 9, y: 19, w: 11, h: 1, f: "#064e3b" },
-      { c: "wing-b", x: 10, y: 19, w: 9, h: 2, f: "#6ee7b7" },
-      { c: "wing-b", x: 13, y: 21, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
-      // forked tail
-      { c: "tail", x: 6, y: 13, w: 4, h: 1, f: "#10b981" },
-      { c: "tail", x: 6, y: 16, w: 4, h: 1, f: "#10b981" },
-      { c: "tail", x: 6, y: 15, w: 1, h: 1, f: "#064e3b" },
+      // ── MOTION TRAIL (fades off the left edge) ──
+      { c: "trail", x: 0, y: 14, w: 1, h: 1, f: "#34d399", o: 0.30 },
+      { c: "trail", x: 1, y: 14, w: 1, h: 1, f: "#34d399", o: 0.45 },
+      { c: "trail", x: 2, y: 14, w: 1, h: 1, f: "#34d399", o: 0.65 },
+
+      // ── FORKED TAIL (clearly V-shaped, fork groove at y=14-15) ──
+      // Upper fork
+      { c: "tail-outline", x: 3, y: 12, w: 6, h: 1, f: "#064e3b" },
+      { c: "tail-outline", x: 2, y: 13, w: 1, h: 1, f: "#064e3b" },   // outer tip
+      { c: "tail",         x: 3, y: 13, w: 6, h: 1, f: "#10b981" },
+      { c: "tail-hi",      x: 3, y: 13, w: 5, h: 1, f: "#34d399" },
+      // Lower fork
+      { c: "tail-outline", x: 3, y: 16, w: 6, h: 1, f: "#064e3b" },
+      { c: "tail-outline", x: 2, y: 16, w: 1, h: 1, f: "#064e3b" },   // outer tip
+      { c: "tail",         x: 3, y: 16, w: 6, h: 1, f: "#10b981" },
+      { c: "tail-hi",      x: 3, y: 16, w: 5, h: 1, f: "#a7f3d0" },
+
+      // ── BODY (streamlined teardrop, pointed at tail, full at head) ──
+      // Outline first
+      { c: "body-outline", x:  9, y: 12, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x:  9, y: 17, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x:  8, y: 13, w: 1, h: 4, f: "#064e3b" },
+      // Back (top half, dark emerald)
+      { c: "back",    x:  9, y: 13, w: 10, h: 2, f: "#10b981" },
+      { c: "back-hi", x:  9, y: 13, w:  9, h: 1, f: "#34d399" },
+      // Belly (bottom half, lighter teal — distinct from back)
+      { c: "belly",    x:  9, y: 15, w: 10, h: 2, f: "#6ee7b7" },
+      { c: "belly-hi", x: 10, y: 15, w:  7, h: 1, f: "#a7f3d0" },
+
+      // ── GORGET (iridescent pink throat patch — SIGNATURE) ──
+      { c: "gorget",    x: 15, y: 15, w: 4, h: 2, f: "#f472b6" },
+      { c: "gorget-hi", x: 16, y: 15, w: 3, h: 1, f: "#fbcfe8" },
+      { c: "gorget-sh", x: 15, y: 16, w: 1, h: 1, f: "#be185d" },
+
+      // ── HEAD (round, distinctly separate from body) ──
+      { c: "head-outline", x: 18, y: 11, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 18, y: 16, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 24, y: 12, w: 1, h: 4, f: "#064e3b" },
+      { c: "head",    x: 19, y: 12, w: 5, h: 4, f: "#10b981" },
+      { c: "head-hi", x: 19, y: 12, w: 4, h: 1, f: "#34d399" },
+
+      // ── EYE (2px tall + white sclera + glint — reads at any size) ──
+      { c: "eye-w",     x: 20, y: 13, w: 2, h: 2, f: "#fff" },
+      { c: "eye",       x: 21, y: 13, w: 1, h: 2, f: "#0f172a" },
+      { c: "eye-glint", x: 20, y: 13, w: 1, h: 1, f: "#fff" },
+
+      // ── LONG NEEDLE BEAK (7px — clearly longer than head width) ──
+      { c: "beak-outline", x: 24, y: 13, w: 7, h: 1, f: "#92400e" },   // upper edge
+      { c: "beak-outline", x: 24, y: 15, w: 7, h: 1, f: "#92400e" },   // lower edge
+      { c: "beak",         x: 24, y: 14, w: 7, h: 1, f: "#fcd34d" },   // gold needle
+      { c: "beak-tip",     x: 30, y: 14, w: 1, h: 1, f: "#fde68a" },   // brighter tip
+      { c: "beak-glow",    x: 31, y: 14, w: 1, h: 1, f: "currentColor", o: 0 }, // visible only in working
+
+      // ── WINGS — TOP MOTION-BLUR STACK ──
+      // 4 layers fading outward, so the screenshot reads "hovering blur"
+      { c: "wing-t-far",  x: 11, y:  6, w:  8, h: 1, f: "#6ee7b7", o: 0.30 },
+      { c: "wing-t-mid",  x: 10, y:  7, w: 10, h: 1, f: "#6ee7b7", o: 0.50 },
+      { c: "wing-t",      x:  9, y:  8, w: 12, h: 2, f: "#6ee7b7", o: 0.75 },
+      { c: "wing-t-near", x: 10, y: 10, w: 10, h: 1, f: "#6ee7b7", o: 0.90 },
+
+      // ── WINGS — BOTTOM (mirror) ──
+      { c: "wing-b-near", x: 10, y: 18, w: 10, h: 1, f: "#6ee7b7", o: 0.90 },
+      { c: "wing-b",      x:  9, y: 19, w: 12, h: 2, f: "#6ee7b7", o: 0.75 },
+      { c: "wing-b-mid",  x: 10, y: 21, w: 10, h: 1, f: "#6ee7b7", o: 0.50 },
+      { c: "wing-b-far",  x: 11, y: 22, w:  8, h: 1, f: "#6ee7b7", o: 0.30 },
+
+      // ── SPEED LINES (revealed only in working state, ahead of the beak) ──
+      { c: "speed", x: 28, y: 12, w: 3, h: 1, f: "#6ee7b7", o: 0 },
+      { c: "speed", x: 27, y: 16, w: 3, h: 1, f: "#6ee7b7", o: 0 },
     ],
     evo: [
-      [ { c: "trail2", x: 1, y: 13, w: 1, h: 1, f: "currentColor", o: 0.7 } ],
-      [ { c: "shimmer", x: 14, y: 16, w: 1, h: 1, f: "currentColor" } ],
-      [ { c: "beak-tip", x: 30, y: 11, w: 1, h: 1, f: "currentColor" } ],
-      [ { c: "orbit", x: 4, y: 5, w: 26, h: 22, f: "currentColor", o: 0.1 } ],
+      [ { c: "trail2", x: 0, y: 13, w: 1, h: 1, f: "currentColor", o: 0.5 } ],
+      [ { c: "shimmer", x: 14, y: 13, w: 1, h: 1, f: "currentColor" } ],
+      [ { c: "beak-tip-glow", x: 30, y: 13, w: 1, h: 3, f: "currentColor", o: 0.5 } ],
+      [ { c: "orbit", x: 4, y: 5, w: 24, h: 22, f: "currentColor", o: 0.1 } ],
     ],
   },
 
@@ -626,9 +670,10 @@ const SPRITES = {
       // top-left feather highlight (subtle)
       { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#334155" },
       { c: "body-hi", x: 8, y: 13, w: 1, h: 4, f: "#334155" },
-      // wing (folded, darker)
+      // wing (folded, darker) + wing-tip separated for fluttering
       { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#020617" },
       { c: "wing-hi", x: 9, y: 13, w: 4, h: 1, f: "#334155" },
+      { c: "wing-tip", x: 9, y: 22, w: 4, h: 1, f: "#334155" },
       // head
       { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#020617" },
       { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#020617" },
@@ -636,6 +681,9 @@ const SPRITES = {
       { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#020617" },
       { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0f172a" },
       { c: "head-hi", x: 17, y: 7, w: 5, h: 1, f: "#334155" },
+      // small scholarly feather tuft above the head
+      { c: "tuft", x: 19, y: 5, w: 2, h: 1, f: "#0f172a" },
+      { c: "tuft", x: 20, y: 4, w: 1, h: 1, f: "#0f172a" },
       // beak (yellow, tapered)
       { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#92400e" },
       { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#92400e" },
@@ -650,16 +698,38 @@ const SPRITES = {
       // legs
       { c: "leg", x: 12, y: 25, w: 2, h: 2, f: "#fcd34d" },
       { c: "leg", x: 18, y: 25, w: 2, h: 2, f: "#fcd34d" },
+      // ── QUILL (the signature scribe prop, now in base) ──
+      // Held in the right claw — runs diagonal up to the beak's writing
+      // position. Three layers: shaft (gold), under-shaft (burnt), feather
+      // plume at the top with a brighter highlight.
+      { c: "quill-shaft",   x: 16, y: 18, w: 1, h: 6, f: "#fcd34d" },
+      { c: "quill-shaft",   x: 17, y: 17, w: 1, h: 1, f: "#fcd34d" },
+      { c: "quill-shaft-sh",x: 17, y: 18, w: 1, h: 6, f: "#92400e" },
+      { c: "quill-feather", x: 15, y: 14, w: 3, h: 4, f: "#fde68a" },
+      { c: "quill-feather", x: 14, y: 15, w: 1, h: 2, f: "#fde68a" },
+      { c: "quill-feather-hi", x: 15, y: 14, w: 2, h: 1, f: "#fff" },
+      { c: "quill-feather-sh", x: 16, y: 17, w: 2, h: 1, f: "#fcd34d" },
+      // ── INK POT on the scroll (hidden by default, fades in for writing states) ──
+      { c: "ink-pot",     x: 23, y: 24, w: 3, h: 2, f: "#1e293b", o: 0 },
+      { c: "ink-pot-hi",  x: 23, y: 24, w: 3, h: 1, f: "#475569", o: 0 },
+      // ── INK DROPS (hidden by default, animate in for error/celebrating) ──
+      { c: "ink-drop", x: 17, y: 24, w: 1, h: 1, f: "#1e293b", o: 0 },
+      { c: "ink-drop", x: 15, y: 23, w: 1, h: 1, f: "#1e293b", o: 0 },
+      { c: "ink-drop", x: 13, y: 22, w: 1, h: 1, f: "#1e293b", o: 0 },
     ],
     evo: [
-      [ { c: "quill-shaft",   x: 18, y: 16, w: 1, h: 8, f: "#fcd34d" },
-        { c: "quill-shaft",   x: 19, y: 16, w: 1, h: 8, f: "#92400e" },
-        { c: "quill-feather", x: 16, y: 13, w: 5, h: 3, f: "#fcd34d" },
-        { c: "quill-feather", x: 16, y: 13, w: 4, h: 1, f: "#fde68a" } ],
+      // lvl 2 — ink dot on the scroll (written character)
       [ { c: "ink", x: 16, y: 27, w: 2, h: 1, f: "#1e293b" } ],
+      // lvl 3 — script lines on the scroll
       [ { c: "line", x: 6,  y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 },
         { c: "line", x: 19, y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 } ],
-      [ { c: "feather-tuft", x: 14, y: 6, w: 1, h: 3, f: "#fcd34d" } ],
+      // lvl 4 — back tail feathers under the body
+      [ { c: "tail-feather", x: 10, y: 24, w: 1, h: 2, f: "#020617" },
+        { c: "tail-feather", x: 12, y: 24, w: 1, h: 2, f: "#020617" },
+        { c: "tail-feather", x: 14, y: 24, w: 1, h: 2, f: "#020617" } ],
+      // lvl 5 — second feather tuft + aura
+      [ { c: "feather-tuft", x: 22, y: 5, w: 1, h: 2, f: "#fcd34d" },
+        { c: "aura", x: 4, y: 4, w: 24, h: 22, f: "currentColor", o: 0.1 } ],
     ],
   },
 
@@ -719,20 +789,45 @@ const SPRITES = {
       { c: "eye-pupil", x: 17, y: 11, w: 1, h: 1, f: "#000" },
       // nose
       { c: "nose", x: 12, y: 14, w: 2, h: 1, f: "#0f172a" },
-      // hands
-      { c: "hand", x: 6, y: 16, w: 2, h: 2, f: "#475569" },
-      { c: "hand", x: 22, y: 16, w: 2, h: 2, f: "#475569" },
+      // hands — left at the side, right brought up to chest holding the coin
+      { c: "hand",  x: 6,  y: 16, w: 2, h: 2, f: "#475569" },
+      { c: "hand-r",x: 19, y: 17, w: 2, h: 2, f: "#475569" },
+      // ── COIN (the signature prop, held in right hand) ──
+      { c: "coin",     x: 19, y: 14, w: 4, h: 3, f: "#fcd34d" },
+      { c: "coin-hi",  x: 19, y: 14, w: 4, h: 1, f: "#fde68a" },
+      { c: "coin-sym", x: 20, y: 15, w: 2, h: 1, f: "#92400e" },
+      { c: "coin-sh",  x: 19, y: 16, w: 4, h: 1, f: "#b45309" },
+      // ── EXTRA COIN (top-right, hidden by default — only in success/celebrating) ──
+      { c: "coin2",     x: 26, y: 5, w: 3, h: 3, f: "#fcd34d", o: 0 },
+      { c: "coin2-hi",  x: 26, y: 5, w: 3, h: 1, f: "#fde68a", o: 0 },
+      { c: "coin3",     x: 24, y: 8, w: 2, h: 2, f: "#fcd34d", o: 0 },
+      // ── RECEIPT (paper strip under the body, hidden until typing/working) ──
+      { c: "receipt",      x: 8,  y: 30, w: 16, h: 1, f: "#f1f5f9", o: 0 },
+      { c: "receipt",      x: 9,  y: 29, w: 14, h: 1, f: "#f1f5f9", o: 0 },
+      { c: "receipt-line", x: 10, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      { c: "receipt-line", x: 14, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      { c: "receipt-line", x: 18, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      // ── BUDGET BAR at the very bottom (always visible at evo lvl 4+) ──
+      // base sprite shows just an outline; CSS fills it for working states
+      { c: "bar-bg",   x: 2, y: 30, w: 0, h: 0, f: "transparent" },     // anchor only
+      // ── TICK NUMBERS (next to head, hidden until thinking/working) ──
+      { c: "tick", x: 25, y:  9, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      { c: "tick", x: 27, y: 11, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      { c: "tick", x: 29, y:  9, w: 1, h: 1, f: "#fcd34d", o: 0 },
     ],
     evo: [
-      [ { c: "coin", x: 22, y: 14, w: 3, h: 3, f: "#fcd34d" },
-        { c: "coin-hi", x: 22, y: 14, w: 3, h: 1, f: "#fde68a" },
-        { c: "coin-sym", x: 23, y: 15, w: 1, h: 1, f: "#92400e" } ],
-      [ { c: "coin2", x: 26, y: 6, w: 2, h: 2, f: "currentColor" } ],
-      [ { c: "bar-bg",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
+      // lvl 2 — small floating "+" coin top corner (extra)
+      [ { c: "coin-stack", x: 26, y: 23, w: 3, h: 1, f: "#fcd34d" } ],
+      // lvl 3 — second stacked coin
+      [ { c: "coin-stack", x: 26, y: 21, w: 3, h: 1, f: "#fcd34d" },
+        { c: "coin-stack-sh", x: 26, y: 22, w: 3, h: 1, f: "#92400e" } ],
+      // lvl 4 — budget bar
+      [ { c: "bar-bg-real",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
         { c: "bar-fill", x: 2,  y: 30, w: 14, h: 1, f: "#fcd34d" } ],
-      [ { c: "tick", x: 25, y: 10, w: 1, h: 1, f: "currentColor" },
-        { c: "tick", x: 27, y: 12, w: 1, h: 1, f: "currentColor" },
-        { c: "tick", x: 29, y: 10, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 5 — extra ledger spectacles outline around the eyes
+      [ { c: "spectacles", x: 7,  y: 9, w: 6, h: 4, f: "#fcd34d", o: 0.5 },
+        { c: "spectacles", x: 15, y: 9, w: 6, h: 4, f: "#fcd34d", o: 0.5 },
+        { c: "spectacles", x: 13, y: 11, w: 2, h: 1, f: "#fcd34d", o: 0.5 } ],
     ],
   },
 
@@ -750,24 +845,44 @@ const SPRITES = {
       { c: "body", x: 8, y: 12, w: 14, h: 13, f: "#0a0a0a" },
       // subtle highlight (very dark slate)
       { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#1f2937" },
+      // ── TAIL — feathered tail tuft sticking out at the back-bottom-left ──
+      { c: "tail-outline", x: 3,  y: 22, w: 1, h: 3, f: "#000" },
+      { c: "tail-outline", x: 4,  y: 21, w: 4, h: 1, f: "#000" },
+      { c: "tail-outline", x: 4,  y: 25, w: 4, h: 1, f: "#000" },
+      { c: "tail", x: 4, y: 22, w: 4, h: 3, f: "#0a0a0a" },
+      { c: "tail-hi", x: 4, y: 22, w: 2, h: 1, f: "#1f2937" },
       // wing
       { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#000" },
+      // ── WING FEATHER TEXTURE — horizontal slate bands ──
+      { c: "wing-feather", x: 10, y: 16, w: 5, h: 1, f: "#1f2937" },
+      { c: "wing-feather", x: 10, y: 19, w: 5, h: 1, f: "#1f2937" },
+      // ── WING PRIMARY-FEATHER TIPS — three pointed flight feathers ──
+      { c: "wing-tip", x: 10, y: 22, w: 1, h: 2, f: "#1f2937" },
+      { c: "wing-tip", x: 12, y: 22, w: 1, h: 2, f: "#1f2937" },
+      { c: "wing-tip", x: 14, y: 22, w: 1, h: 2, f: "#1f2937" },
       // head
       { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#000" },
       { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#000" },
       { c: "head-outline", x: 16, y: 7, w: 1, h: 7, f: "#000" },
       { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#000" },
       { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0a0a0a" },
+      // ── BROW RIDGE — menacing scowl above the eye ──
+      { c: "brow", x: 20, y: 8, w: 5, h: 1, f: "#1f2937" },
       // sharp beak (dark red, drips slightly)
       { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#450a0a" },
       { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#450a0a" },
       { c: "beak", x: 25, y: 10, w: 6, h: 1, f: "#7f1d1d" },
       { c: "beak", x: 25, y: 11, w: 5, h: 1, f: "#7f1d1d" },
       { c: "beak", x: 25, y: 12, w: 4, h: 1, f: "#7f1d1d" },
+      // ── BEAK HIGHLIGHT — sharp edge glint along the top ──
+      { c: "beak-hi", x: 26, y: 10, w: 3, h: 1, f: "#9f1239" },
       // ERROR-RED eye with glow halo
       { c: "eye-glow", x: 21, y: 9, w: 4, h: 4, f: "#ef4444", o: 0.3 },
       { c: "eye-w", x: 22, y: 10, w: 2, h: 2, f: "#ef4444" },
       { c: "eye", x: 22, y: 10, w: 1, h: 1, f: "#fca5a5" },
+      // ── BREATH PUFF (hidden — appears in error / celebrating) ──
+      { c: "breath", x: 30, y: 11, w: 2, h: 1, f: "#ef4444", o: 0 },
+      { c: "breath", x: 30, y: 13, w: 2, h: 1, f: "#ef4444", o: 0 },
       // legs
       { c: "leg", x: 12, y: 25, w: 2, h: 3, f: "#7f1d1d" },
       { c: "leg", x: 18, y: 25, w: 2, h: 3, f: "#7f1d1d" },
