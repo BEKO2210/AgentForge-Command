@@ -49,9 +49,10 @@ single file, advisory only, disable with FORGE_PULSE=0.
   cd gui && npm install && cd ..
   node gui/server.js          # → http://localhost:4173/
 
-MIT-licensed, binds to 127.0.0.1, no telemetry. 88 bash tests + 5 Rust
-tests on CI. Honest expectation: this is a developer cockpit, not a magic
-autopilot. Atlas plans; the operator approves.
+MIT-licensed, binds to 127.0.0.1, no telemetry. 147 checks on CI (87 bash +
+40 arena unit + 20 server integration) plus 5 Rust unit tests. Honest
+expectation: this is a developer cockpit, not a magic autopilot. Atlas
+plans; the operator approves.
 
 Happy to answer questions about the auto-enter heuristics, why Rust ended
 up at exactly one seam and nowhere else, how the mascots stay cheap, and

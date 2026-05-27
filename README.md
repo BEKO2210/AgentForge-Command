@@ -89,7 +89,7 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 > [!NOTE]
 > The `.team/` file-based protocol that started this project is preserved —
 > the board, the per-lane logs, the atomic `mkdir` locks, the green gate,
-> the MCP server and the 88-check test suite all stay in place. AgentForge
+> the MCP server and the bash test suite all stay in place. AgentForge
 > specialists each map onto a lane (`lead`, `backend`, `frontend`, `quality`)
 > via `gui/agents.json` and write into that lane's log. The original
 > 4-terminal flow now lives directly in the cockpit as well — Atlas is the
@@ -337,9 +337,11 @@ the way a polyglot stack should grow.
 
 ## Quality and security
 
-- **Tests** — `bash tests/run.sh` runs **88** bash checks against the real
-  coordination scripts. `cargo test --release` in `tools/forge-pulse` adds 5
-  Rust unit tests.
+- **Tests** — `bash tests/run.sh` runs **147** checks (87 bash against the
+  coordination scripts + 40 arena unit tests for the cockpit modules + 20
+  server integration tests that boot the real `gui/server.js` over HTTP +
+  WebSocket). `cargo test --release` in `tools/forge-pulse` adds 5 Rust
+  unit tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + tests)
   and `cargo clippy --release -- -D warnings` are both clean.
 - **Concurrency safety** — locks are atomic `mkdir` directories with stale

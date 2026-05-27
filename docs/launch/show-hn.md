@@ -20,11 +20,12 @@ role, super-skill and an animated mascot, all driven from one browser tab.
 
 The 4-agent coordination kit that started the project is still in there. The
 `.team/` board, the atomic `mkdir` locks, the per-agent append-only logs, the
-green gate, the MCP server, the 88-check Bash test suite — all unchanged and
-all still the substrate. The new cockpit sits on top:
+green gate, the MCP server, the 87-check Bash test suite — all still the
+substrate. The new cockpit sits on top:
 
-- Twelve animated SVG mascots with idle/thinking/working/success/warning
-  states and 5 evolution levels. Pure CSS, no library.
+- Twelve animated SVG mascots with a full 10-state machine
+  (idle/listening/thinking/typing/working/reading/success/warning/error/
+  celebrating) and 5 evolution levels. Pure CSS, no library.
 - Per-PTY auto-enter watchdog: arm an agent, the server presses Enter on
   clear permission prompts ((y/n), "press enter", "approve?", "allow this
   tool to run", …). Single fire, 1.5s cooldown. Off by default.
