@@ -26,14 +26,38 @@ export function createStore(initial = {}) {
   return { get, set, update, subscribe, snapshot };
 }
 
-/** Helpers for evolution + activity state shared by UI + broadcast. */
-export const ACTIVITY_STATES = ["idle", "thinking", "working", "success", "warning"];
+/** Activity states each agent can be in. The CSS state machine in
+ *  styles.css has a `.state-<name>` rule for every entry here, so adding
+ *  one here means the mascot needs a matching `.state-<name>` block.
+ *
+ *  The phases roughly map to a real workflow:
+ *    idle         dormant, waiting for input
+ *    listening    receiving a briefing from Atlas or an operator broadcast
+ *    thinking     planning / analysing (before the work starts)
+ *    typing       LLM stream is producing text in real time
+ *    working      executing a tool / running a PTY command
+ *    reading      consuming files, transcripts, logs (input-heavy)
+ *    reporting    sending an @atlas report after a sub-task done
+ *    success      one-shot pop when a task lands
+ *    warning      gate hesitates / soft attention needed
+ *    error        real failure
+ *    celebrating  one-shot for mascot evolution + milestones */
+export const ACTIVITY_STATES = [
+  "idle", "listening", "thinking", "typing", "working",
+  "reading", "reporting", "success", "warning", "error", "celebrating",
+];
 export const STATUS_LABELS = {
-  idle: "standby",
-  thinking: "analysing",
-  working: "executing",
-  success: "delivered",
-  warning: "attention",
+  idle:        "standby",
+  listening:   "receiving",
+  thinking:    "analysing",
+  typing:      "streaming",
+  working:     "executing",
+  reading:     "scanning",
+  reporting:   "reporting",
+  success:     "delivered",
+  warning:     "attention",
+  error:       "failed",
+  celebrating: "evolved",
 };
 
 /** Quick random helpers — UI mock only, never real telemetry. */

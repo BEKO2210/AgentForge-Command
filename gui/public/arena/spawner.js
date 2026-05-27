@@ -114,7 +114,20 @@ export function createSpawnEngine({ store, persisted = {} }) {
     if (a.evolutionLevel >= 5) return;
     a.evolutionLevel++;
     emit("evolve", `${a.name} mascot evolved to level ${a.evolutionLevel}`, id);
+    // Trigger the celebrating one-shot, then return to the prior state.
+    const prev = a.animationState;
+    a.animationState = "celebrating";
+    a.status = "celebrating";
     publish();
+    setTimeout(() => {
+      const cur = registry.get(id); if (!cur) return;
+      // Only revert if nothing else changed our state in the meantime.
+      if (cur.animationState === "celebrating") {
+        cur.animationState = prev === "celebrating" ? "idle" : prev;
+        cur.status = cur.animationState;
+        publish();
+      }
+    }, 1400);
   }
 
   function toggleAutoEnter(id) {

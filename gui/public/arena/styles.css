@@ -955,20 +955,129 @@ kbd {
   .mascot .mascot-body { animation: m-breathe 4.8s ease-in-out infinite; transform-origin:50% 60%; }
   @keyframes m-breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.4px); } }
 
-  /* ---- TURTLE ---- head pops in/out, radar dot blinks */
-  .mascot-turtle .r-head     { animation: t-head 5.5s ease-in-out infinite; transform-origin:5px 16px; }
-  .mascot-turtle .r-neck     { animation: t-head 5.5s ease-in-out infinite; transform-origin:5px 17px; }
-  .mascot-turtle .r-eye      { animation: t-blink 5.5s steps(2) infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-turtle .r-radar    { animation: t-radar 1.8s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-turtle .r-shell-led{ animation: t-led 1.2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-turtle .r-shell-led + .r-shell-led { animation-delay:.6s; }
-  .mascot-turtle .r-antenna-tip { animation: t-led 1.4s ease-in-out infinite; }
-  .mascot-turtle.state-warning .r-head, .mascot-turtle.state-warning .r-neck { animation: t-hide 1.8s ease-in-out infinite; }
-  @keyframes t-head  { 0%,86%,100% { transform:translateX(0); } 90%,94% { transform:translateX(-1px); } }
-  @keyframes t-hide  { 0%,100% { transform:translateX(0); } 50% { transform:translateX(2px); opacity:.6; } }
-  @keyframes t-blink { 0%,90%,100% { transform:scaleY(1); } 92%,95% { transform:scaleY(.1); } }
-  @keyframes t-radar { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.4); } }
-  @keyframes t-led   { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  ATLAS PRIME · CYBER TURTLE
+   *  10 distinct state animations — one per agent workflow phase.
+   *  Naming convention: every keyframe starts with `t-` so the turtle's
+   *  animation block doesn't clash with other species.
+   *
+   *  STATES (default → triggered):
+   *    idle         baseline radar pulse + sporadic blink + antenna heartbeat
+   *    listening    head pokes out + antenna pulses fast (signal incoming)
+   *    thinking     radar rotates faster + LEDs cycle in sequence
+   *    typing       LEDs flicker in typewriter rhythm, body micro-bobs
+   *    working      everything active simultaneously — radar spins, lights on
+   *    reading      head fully extended, eyes saccade left↔right
+   *    success      one-shot pop + green halo + LEDs flash
+   *    warning      amber tint + head retreats slightly + slow warn blink
+   *    error        red flash + head fully retreats + body shakes
+   *    celebrating  one-shot rainbow LED cycle + scale bounce
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  .mascot-turtle .r-head        { animation: t-idle-head 5.5s ease-in-out infinite; transform-origin:5px 16px; }
+  .mascot-turtle .r-neck        { animation: t-idle-head 5.5s ease-in-out infinite; transform-origin:5px 17px; }
+  .mascot-turtle .r-eye         { animation: t-idle-blink 5.5s steps(2) infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-radar       { animation: t-idle-radar 2.4s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-shell-led   { animation: t-idle-led 2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-shell-led + .r-shell-led { animation-delay:1s; }
+  .mascot-turtle .r-antenna-tip { animation: t-idle-tip 2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  @keyframes t-idle-head  { 0%,88%,100% { transform:translateX(0); } 92%,96% { transform:translateX(-1px); } }
+  @keyframes t-idle-blink { 0%,90%,100% { transform:scaleY(1); } 92%,95% { transform:scaleY(.1); } }
+  @keyframes t-idle-radar { 0%,100% { opacity:.45; transform:scale(.8); } 50% { opacity:.95; transform:scale(1.4); } }
+  @keyframes t-idle-led   { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+  @keyframes t-idle-tip   { 0%,100% { opacity:.45; transform:scale(.9); } 50% { opacity:1; transform:scale(1.15); } }
+
+  /* ---- LISTENING ---- head pokes out, antenna pulses fast (signal in) */
+  .mascot-turtle.state-listening .r-head,
+  .mascot-turtle.state-listening .r-neck { animation: t-listen-head 1.6s ease-in-out infinite; }
+  .mascot-turtle.state-listening .r-eye  { animation: none; transform:scaleY(1); }
+  .mascot-turtle.state-listening .r-antenna-tip { animation: t-listen-tip .55s ease-out infinite; }
+  .mascot-turtle.state-listening .r-radar { animation: t-idle-radar 1.8s ease-in-out infinite; }
+  @keyframes t-listen-head { 0%,100% { transform:translateX(0); } 50% { transform:translateX(-2px); } }
+  @keyframes t-listen-tip  { 0% { opacity:.4; transform:scale(.7); } 70% { opacity:1; transform:scale(1.5); } 100% { opacity:0; transform:scale(1.8); } }
+
+  /* ---- THINKING ---- radar rotates faster, LEDs cycle in sequence */
+  .mascot-turtle.state-thinking .r-radar     { animation: t-think-radar 1.1s linear infinite; }
+  .mascot-turtle.state-thinking .r-shell-led { animation: t-think-led 0.9s ease-in-out infinite; }
+  .mascot-turtle.state-thinking .r-shell-led + .r-shell-led { animation-delay:.3s; }
+  .mascot-turtle.state-thinking .r-head      { animation: t-think-head 1.4s ease-in-out infinite; }
+  @keyframes t-think-radar { 0%,100% { opacity:.6; transform:scale(.9) rotate(0); } 50% { opacity:1; transform:scale(1.5) rotate(180deg); } }
+  @keyframes t-think-led   { 0%,100% { opacity:.2; } 50% { opacity:1; } }
+  @keyframes t-think-head  { 0%,100% { transform:translate(0,0); } 50% { transform:translate(-1px,-.5px); } }
+
+  /* ---- TYPING ---- LEDs flicker in typewriter rhythm, body bobs */
+  .mascot-turtle.state-typing .r-shell-led {
+    animation: t-type-led .35s steps(2) infinite;
+  }
+  .mascot-turtle.state-typing .r-shell-led + .r-shell-led { animation-delay:.18s; }
+  .mascot-turtle.state-typing .r-antenna-tip { animation: t-type-tip .25s steps(2) infinite; }
+  .mascot-turtle.state-typing .r-shell { animation: t-type-bob .35s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  @keyframes t-type-led { 50% { opacity:.2; } }
+  @keyframes t-type-tip { 50% { opacity:.3; } }
+  @keyframes t-type-bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.4px); } }
+
+  /* ---- WORKING ---- everything active simultaneously */
+  .mascot-turtle.state-working .r-radar      { animation: t-work-radar .8s linear infinite; }
+  .mascot-turtle.state-working .r-shell-led  { animation: t-work-led .6s ease-in-out infinite; }
+  .mascot-turtle.state-working .r-shell-led + .r-shell-led { animation-delay:.2s; }
+  .mascot-turtle.state-working .r-antenna-tip{ animation: t-work-led .6s ease-in-out infinite; animation-delay:.4s; }
+  .mascot-turtle.state-working .r-head       { animation: t-work-head 1.2s ease-in-out infinite; }
+  .mascot-turtle.state-working .r-tail       { animation: t-work-tail 1s ease-in-out infinite; transform-origin:left center; transform-box:fill-box; }
+  @keyframes t-work-radar { 0% { transform:scale(1.1) rotate(0); opacity:1; } 100% { transform:scale(1.1) rotate(360deg); opacity:1; } }
+  @keyframes t-work-led   { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+  @keyframes t-work-head  { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(-2px); } }
+  @keyframes t-work-tail  { 0%,100% { transform:rotate(-2deg); } 50% { transform:rotate(4deg); } }
+
+  /* ---- READING ---- head fully extended, eyes saccade */
+  .mascot-turtle.state-reading .r-head,
+  .mascot-turtle.state-reading .r-neck { animation: t-read-head 2.2s ease-in-out infinite; }
+  .mascot-turtle.state-reading .r-eye  { animation: t-read-eye 1.2s ease-in-out infinite; }
+  .mascot-turtle.state-reading .r-radar      { opacity:.3; animation:none; }
+  .mascot-turtle.state-reading .r-shell-led  { opacity:.2; animation:none; }
+  @keyframes t-read-head { 0%,100% { transform:translateX(-2px); } 50% { transform:translateX(-2.5px); } }
+  @keyframes t-read-eye  { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+
+  /* ---- SUCCESS ---- one-shot pop + green halo + LEDs flash */
+  .mascot-turtle.state-success .mascot-body { animation: t-success-pop .7s ease-out; transform-origin:center; }
+  .mascot-turtle.state-success .r-shell-led { animation: t-success-led .25s ease-out 3; }
+  .mascot-turtle.state-success .r-antenna-tip { animation: t-success-tip .7s ease-out; }
+  .mascot-turtle.state-success .r-shell-spec { animation: t-success-spec .7s ease-out; }
+  @keyframes t-success-pop  { 0% { transform:scale(1); } 30% { transform:scale(1.12); } 60% { transform:scale(.96); } 100% { transform:scale(1); } }
+  @keyframes t-success-led  { 0%,100% { opacity:.3; fill:currentColor; } 50% { opacity:1; fill:#54e6a8; } }
+  @keyframes t-success-tip  { 0% { opacity:.5; fill:currentColor; } 50% { opacity:1; fill:#54e6a8; transform:scale(1.6); } 100% { opacity:.5; fill:currentColor; transform:scale(1); } }
+  @keyframes t-success-spec { 0%,100% { fill:#b6f0bd; } 50% { fill:#54e6a8; opacity:.9; } }
+
+  /* ---- WARNING ---- amber tint + head retreats + slow warn blink */
+  .mascot-turtle.state-warning .r-shell      { fill:#7a6a2a; }
+  .mascot-turtle.state-warning .r-shell-hi   { fill:#f5b94a; }
+  .mascot-turtle.state-warning .r-head,
+  .mascot-turtle.state-warning .r-neck       { animation: t-warn-head 1.6s ease-in-out infinite; }
+  .mascot-turtle.state-warning .r-antenna-tip{ animation: t-warn-tip 1s steps(2) infinite; fill:#f5b94a; }
+  .mascot-turtle.state-warning .r-shell-led  { fill:#f5b94a; animation: t-warn-tip 1s steps(2) infinite; }
+  @keyframes t-warn-head { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1.5px); opacity:.85; } }
+  @keyframes t-warn-tip  { 50% { opacity:.2; } }
+
+  /* ---- ERROR ---- red flash + head fully retreats + body shake */
+  .mascot-turtle.state-error .mascot-body  { animation: t-err-shake .18s ease-in-out infinite; }
+  .mascot-turtle.state-error .r-shell      { fill:#7f1d1d; }
+  .mascot-turtle.state-error .r-shell-hi   { fill:#dc2626; }
+  .mascot-turtle.state-error .r-head,
+  .mascot-turtle.state-error .r-neck       { transform:translateX(3px); opacity:.5; animation:none; }
+  .mascot-turtle.state-error .r-shell-led  { fill:#ef4444; animation: t-err-blink .25s steps(2) infinite; }
+  .mascot-turtle.state-error .r-antenna-tip{ fill:#ef4444; animation: t-err-blink .25s steps(2) infinite; }
+  @keyframes t-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes t-err-blink { 50% { opacity:.2; } }
+
+  /* ---- CELEBRATING ---- rainbow LED cycle + big scale bounce */
+  .mascot-turtle.state-celebrating .mascot-body { animation: t-celeb-bounce .8s ease-out; transform-origin:center; }
+  .mascot-turtle.state-celebrating .r-shell-led { animation: t-celeb-led .5s ease-in-out infinite; }
+  .mascot-turtle.state-celebrating .r-shell-led + .r-shell-led { animation-delay:.25s; }
+  .mascot-turtle.state-celebrating .r-antenna-tip { animation: t-celeb-led .5s ease-in-out infinite; animation-delay:.4s; }
+  .mascot-turtle.state-celebrating .r-shell { animation: t-celeb-shell 1.2s ease-in-out; transform-origin:center; }
+  @keyframes t-celeb-bounce { 0% { transform:scale(1); } 30% { transform:scale(1.25); } 60% { transform:scale(.92); } 100% { transform:scale(1); } }
+  @keyframes t-celeb-led    { 0% { fill:#22d3ee; } 25% { fill:#54e6a8; } 50% { fill:#fcd34d; } 75% { fill:#f472b6; } 100% { fill:#22d3ee; } }
+  @keyframes t-celeb-shell  { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-3deg); } 75% { transform:rotate(3deg); } }
 
   /* ---- OWL ---- pupils blink + track, scan line drifts */
   .mascot-owl .r-eye-pupil { animation: o-track 4.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
