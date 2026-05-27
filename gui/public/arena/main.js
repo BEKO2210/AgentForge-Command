@@ -154,15 +154,15 @@ function render() {
     if (broadcastMode === "atlas") {
       broadcastInput.placeholder = hasLlm
         ? "Talk to Atlas — he briefs the swarm…"
-        : "Set ANTHROPIC_API_KEY on the server to brief Atlas. Press / to focus this bar.";
-      broadcastInput.disabled = !hasLlm;
+        : "Talk to Atlas (direct PTY · no API key). Press / to focus this bar.";
+      broadcastInput.disabled = false;
     } else {
       broadcastInput.placeholder = "Broadcast a raw command to every running specialist…";
       broadcastInput.disabled = false;
     }
     if (broadcastMeta) {
       broadcastMeta.textContent = broadcastMode === "atlas"
-        ? (hasLlm ? `⏎ DISPATCH · ATLAS@${conn.llmModel || "claude"} · / FOCUS` : "⏎ DISABLED · NO API KEY · / FOCUS")
+        ? (hasLlm ? `⏎ DISPATCH · ATLAS@${conn.llmModel || "claude"} · / FOCUS` : "⏎ DIRECT TO ATLAS PTY · / FOCUS")
         : "⏎ BROADCAST TO ALL · / FOCUS";
     }
     if (broadcastModeBtn) {
@@ -292,13 +292,26 @@ if (broadcastModeBtn) {
 }
 
 function sendAtlasBrief(msg) {
+  if (!arenaSocket || arenaSocket.readyState !== 1) return;
   const conn = store.get("connection") || {};
-  if (!conn.llmEnabled || !arenaSocket || arenaSocket.readyState !== 1) {
-    engine.appendLine(LEAD_ID, "[arena] cannot brief — set ANTHROPIC_API_KEY on the server.");
-    engine.setAnimationState(LEAD_ID, "warning");
-    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1800);
+  const lead = (store.get("agents") || []).find((a) => a.id === LEAD_ID);
+
+  // No LLM bridge? Talk to Atlas's real claude-CLI PTY directly. First message
+  // launches the PTY with the operator's text as the mission (so the role
+  // briefing is pasted with {{GOAL}} substituted); subsequent messages are
+  // typed straight into the running terminal.
+  if (!conn.llmEnabled) {
+    if (lead && lead.ptyRunning) {
+      arenaSocket.send(JSON.stringify({ t: "input", id: LEAD_ID, d: msg + "\r" }));
+    } else {
+      arenaSocket.send(JSON.stringify({ t: "start-pty", id: LEAD_ID, goal: msg }));
+      engine.appendLine(LEAD_ID, "[arena] launching Atlas PTY with mission…");
+    }
+    engine.appendLine(LEAD_ID, `operator > ${msg}`);
+    engine.setAnimationState(LEAD_ID, "listening");
     return;
   }
+
   const roster = (store.get("agents") || []).map((a) => ({
     id: a.id, name: a.name, role: a.role, superSkill: a.superSkill,
   }));

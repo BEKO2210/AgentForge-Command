@@ -498,7 +498,10 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end("forbidden"); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end("not found"); }
-    res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "text/plain" });
+    res.writeHead(200, {
+      "Content-Type": TYPES[path.extname(file)] || "text/plain",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    });
     res.end(data);
   });
 });

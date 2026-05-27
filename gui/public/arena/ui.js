@@ -94,9 +94,9 @@ export function renderLeadPanel(root, lead, swarmSize, timeline, conn) {
           <h2>${lead.name} <small>${escapeHTML(lead.title)}</small></h2>
           <p class="lead-briefing">${escapeHTML(lead.briefing)}</p>
           <div class="lead-row">
-            <span class="pill ${llmEnabled ? "good" : "warn"}">
-              <span class="dot ${llmEnabled ? "good" : "warn"}"></span>
-              Atlas ${llmEnabled ? `live · ${escapeHTML(conn.llmModel || "claude")}` : "offline · no API key"}
+            <span class="pill ${llmEnabled ? "good" : ""}">
+              <span class="dot ${llmEnabled ? "good" : ""}"></span>
+              Atlas ${llmEnabled ? `live · ${escapeHTML(conn.llmModel || "claude")}` : "direct PTY · no API key"}
             </span>
             <span class="pill"><span class="dot"></span>${STATUS_LABELS[lead.animationState] || lead.animationState}</span>
             <span class="pill"><span class="dot good"></span>${swarmSize} specialists</span>
@@ -107,7 +107,7 @@ export function renderLeadPanel(root, lead, swarmSize, timeline, conn) {
       <div class="lead-transcript" aria-live="polite" aria-label="Atlas transcript">
         ${recentAtlas.length
           ? recentAtlas.map((l) => `<div class="t-line">${escapeHTML(l)}</div>`).join("")
-          : `<div class="t-line empty">Atlas is standing by. Type below — or set <code>ANTHROPIC_API_KEY</code> on the server for live briefings.</div>`
+          : `<div class="t-line empty">Atlas is standing by. Type below to talk to his real claude-CLI session — first message launches the PTY with your mission.</div>`
         }
       </div>
       <div class="mission-stream" aria-live="polite" aria-label="Atlas mission stream">
