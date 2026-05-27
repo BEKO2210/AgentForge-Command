@@ -278,11 +278,11 @@ const SPRITES = {
       { c: "leg", x: 16, y: 27, w: 2, h: 1, f: "#8a2a08" },
       { c: "leg", x: 20, y: 24, w: 2, h: 3, f: "#c2410c" },
       { c: "leg", x: 20, y: 27, w: 2, h: 1, f: "#8a2a08" },
-      // tail — stepped from body up + back to a white tip
-      { c: "tail",    x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
-      { c: "tail",    x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
-      { c: "tail",    x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
-      { c: "tail-hi", x: 22, y: 14, w: 2, h: 1, f: "#ff8a4d" },
+      // tail — split into three segments so the tip can flick independently
+      { c: "tail",     x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
+      { c: "tail",     x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
+      { c: "tail-mid", x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
+      { c: "tail-hi",  x: 22, y: 14, w: 2, h: 1, f: "#ff8a4d" },
       { c: "tail-tip", x: 27, y: 20, w: 3, h: 3, f: "#fff" },
       { c: "tail-tip", x: 27, y: 23, w: 3, h: 1, f: "#ffd7a8" },
       // head shape — sharp pointed snout to the left
@@ -291,6 +291,9 @@ const SPRITES = {
       { c: "head-outline", x: 3, y: 13, w: 1, h: 3, f: "#8a2a08" },
       { c: "head-outline", x: 14, y: 11, w: 1, h: 7, f: "#8a2a08" },
       { c: "head-hi", x: 5, y: 11, w: 6, h: 1, f: "#ff8a4d" },
+      // cheek tufts — small spike on each side of the head (foxes have these)
+      { c: "cheek", x: 13, y: 16, w: 1, h: 2, f: "#fff" },
+      { c: "cheek", x: 14, y: 17, w: 1, h: 1, f: "#fff" },
       // ears (outline + inside)
       { c: "ear-outline", x: 4,  y: 7, w: 1, h: 5, f: "#8a2a08" },
       { c: "ear-outline", x: 7,  y: 7, w: 1, h: 5, f: "#8a2a08" },
@@ -303,14 +306,21 @@ const SPRITES = {
       // muzzle (white)
       { c: "muzzle", x: 3, y: 14, w: 4, h: 2, f: "#fff" },
       { c: "muzzle", x: 4, y: 13, w: 3, h: 1, f: "#fff" },
+      // whiskers — three thin lines on each side
+      { c: "whisker", x: 0, y: 13, w: 1, h: 1, f: "#0f172a", o: 0.6 },
+      { c: "whisker", x: 0, y: 16, w: 1, h: 1, f: "#0f172a", o: 0.6 },
       // nose (black with one highlight pixel)
       { c: "nose",    x: 1, y: 14, w: 2, h: 2, f: "#0f172a" },
       { c: "nose-hi", x: 1, y: 14, w: 1, h: 1, f: "#475569" },
-      // eyes (each: black + white glint)
+      // small pink tongue tip (visible only in celebrating state)
+      { c: "tongue", x: 3, y: 16, w: 2, h: 1, f: "#f472b6", o: 0 },
+      // eyes (each: black + white glint), with separate lids for slow-close
       { c: "eye",       x: 8,  y: 13, w: 1, h: 2, f: "#0f172a" },
       { c: "eye-glint", x: 8,  y: 13, w: 1, h: 1, f: "#fcd34d" },
       { c: "eye",       x: 12, y: 13, w: 1, h: 2, f: "#0f172a" },
       { c: "eye-glint", x: 12, y: 13, w: 1, h: 1, f: "#fcd34d" },
+      { c: "eye-lid",   x: 8,  y: 12, w: 1, h: 1, f: "#e85a1c" },
+      { c: "eye-lid",   x: 12, y: 12, w: 1, h: 1, f: "#e85a1c" },
     ],
     evo: [
       [ { c: "tail-glow", x: 22, y: 13, w: 8, h: 1, f: "currentColor", o: 0.7 } ],
