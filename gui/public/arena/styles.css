@@ -1303,17 +1303,135 @@ kbd {
   @keyframes f-celeb-shim   { 0% { transform:scale(.6); fill:currentColor; } 33% { fill:#f472b6; transform:scale(1.6); } 66% { fill:#fcd34d; transform:scale(1.3); } 100% { transform:scale(.6); fill:currentColor; } }
   @keyframes f-celeb-glow   { 0% { opacity:.5; } 50% { opacity:1; } 100% { opacity:.5; } }
 
-  /* ---- MOLE ---- claws hammer, sparks pop */
-  .mascot-mole .r-claw       { animation: mo-hammer 1.2s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box; }
-  .mascot-mole .r-claw-tip   { animation: mo-hammer 1.2s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box; }
-  .mascot-mole .r-snout      { animation: mo-snout 3.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-mole .r-spark      { animation: mo-spark 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-mole .r-spark:nth-of-type(2) { animation-delay:.3s; }
-  .mascot-mole .r-spark:nth-of-type(3) { animation-delay:.6s; }
-  .mascot-mole.state-working .r-claw, .mascot-mole.state-working .r-claw-tip { animation-duration:.5s; }
-  @keyframes mo-hammer { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(8deg); } }
-  @keyframes mo-snout  { 0%,82%,100% { transform:none; } 86%,90% { transform:translateX(-1px); } }
-  @keyframes mo-spark  { 0%,100% { opacity:.2; transform:scale(.5); } 50% { opacity:1; transform:scale(1.6); } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  FORGE · FORGE MOLE — 10-state animation machine
+   *
+   *  Forge is the build / release engineer. Heavy industrial vocabulary:
+   *  hammering, sparks, anvil work. The hidden anvil + brow pixels in
+   *  the sprite turn on only when the state asks for them.
+   *
+   *    idle         slow snout twitch + occasional claw flex
+   *    listening    snout points up + nostrils flare + claws still
+   *    thinking     three fingers drum in sequence (impatient builder)
+   *    typing       rapid hammer-tap rhythm on claws (steps(2))
+   *    working      FULL hammer swing + anvil reveals + sparks fly
+   *    reading      snout sniffs the file (translateX rhythm)
+   *    success      gold sparks burst + body fist-pump + brow lift
+   *    warning      brow furrows down, claws lower
+   *    error        anvil cracks open (offset shake), brow furrow, body shake
+   *    celebrating  sparks rain + fingers all hammer up + body jump
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  .mascot-mole .r-finger-1, .mascot-mole .r-finger-2, .mascot-mole .r-finger-3,
+  .mascot-mole .r-claw, .mascot-mole .r-claw-tip {
+    animation: mo-idle-claw 3s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box;
+  }
+  .mascot-mole .r-snout, .mascot-mole .r-snout-hi { animation: mo-idle-snout 3.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole .r-spark { animation: mo-idle-spark 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole .r-spark:nth-of-type(2) { animation-delay:.5s; }
+  .mascot-mole .r-spark:nth-of-type(3) { animation-delay:1s; }
+  @keyframes mo-idle-claw  { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(3deg); } }
+  @keyframes mo-idle-snout { 0%,82%,100% { transform:none; } 86%,90% { transform:translateX(-1px); } }
+  @keyframes mo-idle-spark { 0%,100% { opacity:.15; transform:scale(.5); } 50% { opacity:.7; transform:scale(1.2); } }
+
+  /* ---- LISTENING ---- snout points up, nostrils flare, claws still */
+  .mascot-mole.state-listening .r-snout, .mascot-mole.state-listening .r-snout-hi {
+    animation: mo-listen-snout 1.4s ease-in-out infinite;
+  }
+  .mascot-mole.state-listening .r-nostril { animation: mo-listen-flare 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole.state-listening .r-claw, .mascot-mole.state-listening .r-claw-tip,
+  .mascot-mole.state-listening .r-finger-1, .mascot-mole.state-listening .r-finger-2, .mascot-mole.state-listening .r-finger-3 {
+    animation: none; transform:rotate(0);
+  }
+  @keyframes mo-listen-snout { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px); } }
+  @keyframes mo-listen-flare { 0%,100% { transform:scale(1); } 50% { transform:scale(1.5); } }
+
+  /* ---- THINKING ---- three fingers drum in sequence */
+  .mascot-mole.state-thinking .r-finger-1 { animation: mo-think-drum .9s ease-in-out infinite; transform-origin:23px 22px; transform-box:fill-box; }
+  .mascot-mole.state-thinking .r-finger-2 { animation: mo-think-drum .9s ease-in-out .3s infinite; transform-origin:26px 22px; transform-box:fill-box; }
+  .mascot-mole.state-thinking .r-finger-3 { animation: mo-think-drum .9s ease-in-out .6s infinite; transform-origin:29px 22px; transform-box:fill-box; }
+  .mascot-mole.state-thinking .r-claw, .mascot-mole.state-thinking .r-claw-tip { animation: none; transform:rotate(0); }
+  .mascot-mole.state-thinking .r-brow { opacity:.5; transform:translateY(-.5px); }
+  @keyframes mo-think-drum { 0%,100% { transform:rotate(0) translateY(0); } 50% { transform:rotate(0) translateY(-1px); } }
+
+  /* ---- TYPING ---- rapid hammer-tap rhythm */
+  .mascot-mole.state-typing .r-claw, .mascot-mole.state-typing .r-claw-tip,
+  .mascot-mole.state-typing .r-finger-1, .mascot-mole.state-typing .r-finger-2, .mascot-mole.state-typing .r-finger-3 {
+    animation: mo-type-tap .25s steps(2) infinite; transform-origin:24px 22px; transform-box:fill-box;
+  }
+  .mascot-mole.state-typing .r-spark { animation: mo-idle-spark .5s ease-in-out infinite; }
+  @keyframes mo-type-tap { 0% { transform:rotate(-6deg); } 50% { transform:rotate(6deg); } }
+
+  /* ---- WORKING ---- FULL hammer swing + anvil reveals + sparks */
+  .mascot-mole.state-working .r-claw, .mascot-mole.state-working .r-claw-tip,
+  .mascot-mole.state-working .r-finger-1, .mascot-mole.state-working .r-finger-2, .mascot-mole.state-working .r-finger-3 {
+    animation: mo-work-hammer .55s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box;
+  }
+  .mascot-mole.state-working .r-anvil-base,
+  .mascot-mole.state-working .r-anvil-top,
+  .mascot-mole.state-working .r-anvil-hi { opacity:1 !important; }
+  .mascot-mole.state-working .r-anvil-top { animation: mo-work-anvil .55s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole.state-working .r-spark { animation: mo-work-spark .35s ease-in-out infinite; opacity:1 !important; }
+  .mascot-mole.state-working .r-spark:nth-of-type(2) { animation-delay:.12s; }
+  .mascot-mole.state-working .r-spark:nth-of-type(3) { animation-delay:.24s; }
+  .mascot-mole.state-working .mascot-body { animation: mo-work-thud .55s ease-in-out infinite; transform-origin:center; }
+  @keyframes mo-work-hammer { 0%,100% { transform:rotate(-22deg); } 50% { transform:rotate(15deg); } }
+  @keyframes mo-work-anvil  { 0%,100% { transform:translateY(0); } 60% { transform:translateY(.5px); } }
+  @keyframes mo-work-spark  { 0% { opacity:0; transform:scale(.3) translateY(0); } 30% { opacity:1; } 100% { opacity:0; transform:scale(1.5) translateY(-2px); } }
+  @keyframes mo-work-thud   { 0%,100% { transform:translateY(0); } 60% { transform:translateY(.5px); } }
+
+  /* ---- READING ---- snout sniffs the file rhythmically */
+  .mascot-mole.state-reading .r-snout, .mascot-mole.state-reading .r-snout-hi {
+    animation: mo-read-sniff .7s ease-in-out infinite;
+  }
+  .mascot-mole.state-reading .r-nostril { animation: mo-listen-flare .7s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole.state-reading .r-claw, .mascot-mole.state-reading .r-claw-tip,
+  .mascot-mole.state-reading .r-finger-1, .mascot-mole.state-reading .r-finger-2, .mascot-mole.state-reading .r-finger-3 {
+    animation: none; transform:rotate(0);
+  }
+  @keyframes mo-read-sniff { 0%,100% { transform:translateX(0); } 50% { transform:translateX(-1.5px); } }
+
+  /* ---- SUCCESS ---- gold sparks burst + body fist-pump + brow lift */
+  .mascot-mole.state-success .mascot-body { animation: mo-success-pump .7s ease-out; transform-origin:center; }
+  .mascot-mole.state-success .r-claw, .mascot-mole.state-success .r-claw-tip,
+  .mascot-mole.state-success .r-finger-1, .mascot-mole.state-success .r-finger-2, .mascot-mole.state-success .r-finger-3 {
+    animation: mo-success-fist .7s ease-out; transform-origin:24px 22px; transform-box:fill-box;
+  }
+  .mascot-mole.state-success .r-spark { animation: mo-success-spark .7s ease-out; opacity:1 !important; }
+  @keyframes mo-success-pump  { 0% { transform:translateY(0); } 40% { transform:translateY(-2px) scale(1.05); } 70% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes mo-success-fist  { 0% { transform:rotate(0); } 40% { transform:rotate(-35deg) translateY(-2px); } 100% { transform:rotate(0); } }
+  @keyframes mo-success-spark { 0% { fill:currentColor; opacity:0; transform:scale(.3); } 40% { fill:#fcd34d; opacity:1; transform:scale(2); } 100% { fill:currentColor; opacity:0; transform:scale(.3); } }
+
+  /* ---- WARNING ---- brow furrows down, claws lower */
+  .mascot-mole.state-warning .r-brow { opacity:1; transform:translateY(0); }
+  .mascot-mole.state-warning .r-claw, .mascot-mole.state-warning .r-claw-tip,
+  .mascot-mole.state-warning .r-finger-1, .mascot-mole.state-warning .r-finger-2, .mascot-mole.state-warning .r-finger-3 {
+    transform:rotate(15deg); animation:none; transform-origin:24px 22px; transform-box:fill-box;
+  }
+  .mascot-mole.state-warning .r-snout, .mascot-mole.state-warning .r-snout-hi { fill:#fb923c; }
+  .mascot-mole.state-warning .r-spark { opacity:0 !important; }
+
+  /* ---- ERROR ---- body shake + brow + anvil "cracked" tilt + red claw */
+  .mascot-mole.state-error .mascot-body { animation: mo-err-shake .15s ease-in-out infinite; transform-origin:center; }
+  .mascot-mole.state-error .r-brow { opacity:1; fill:#ef4444; }
+  .mascot-mole.state-error .r-claw, .mascot-mole.state-error .r-claw-hi,
+  .mascot-mole.state-error .r-finger-1, .mascot-mole.state-error .r-finger-2, .mascot-mole.state-error .r-finger-3 { fill:#7f1d1d; }
+  .mascot-mole.state-error .r-spark { opacity:0 !important; }
+  .mascot-mole.state-error .r-snout { fill:#ef4444; }
+  @keyframes mo-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+
+  /* ---- CELEBRATING ---- sparks rain + all fingers hammer up + body jump */
+  .mascot-mole.state-celebrating .mascot-body { animation: mo-celeb-jump .9s ease-in-out; transform-origin:center; }
+  .mascot-mole.state-celebrating .r-finger-1 { animation: mo-celeb-cheer .3s ease-in-out infinite; transform-origin:23px 22px; transform-box:fill-box; }
+  .mascot-mole.state-celebrating .r-finger-2 { animation: mo-celeb-cheer .3s ease-in-out .1s infinite; transform-origin:26px 22px; transform-box:fill-box; }
+  .mascot-mole.state-celebrating .r-finger-3 { animation: mo-celeb-cheer .3s ease-in-out .2s infinite; transform-origin:29px 22px; transform-box:fill-box; }
+  .mascot-mole.state-celebrating .r-spark { animation: mo-celeb-rain .5s ease-in-out infinite; opacity:1 !important; }
+  .mascot-mole.state-celebrating .r-spark:nth-of-type(2) { animation-delay:.15s; }
+  .mascot-mole.state-celebrating .r-spark:nth-of-type(3) { animation-delay:.3s; }
+  @keyframes mo-celeb-jump  { 0% { transform:translateY(0); } 30% { transform:translateY(-3px) scale(1.08); } 60% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes mo-celeb-cheer { 0%,100% { transform:rotate(0) translateY(0); } 50% { transform:rotate(-30deg) translateY(-2px); } }
+  @keyframes mo-celeb-rain  { 0% { fill:currentColor; transform:translateY(-1px) scale(.5); opacity:.5; } 50% { fill:#fcd34d; transform:translateY(0) scale(1.6); opacity:1; } 100% { fill:currentColor; transform:translateY(1px) scale(.3); opacity:.4; } }
 
   /* ---- CHAMELEON ---- skin spots cycle colour, eye rotates */
   .mascot-chameleon .r-spot      { animation: c-cycle 4.5s linear infinite; }

@@ -366,19 +366,26 @@ const SPRITES = {
       { c: "eye", x: 7, y: 14, w: 3, h: 1, f: "#3d2818" },
       // whiskers
       { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.8 },
-      // GIANT shovel claws (4-tone metal ramp)
+      // GIANT shovel claws (4-tone metal ramp), now split per finger so
+      // each one can strike at a slightly offset rhythm.
       { c: "claw-sh", x: 23, y: 18, w: 8, h: 1, f: "#475569" },     // top edge shadow
       { c: "claw",    x: 23, y: 19, w: 8, h: 3, f: "#cbd5e1" },     // main blade
       { c: "claw-hi", x: 23, y: 19, w: 8, h: 1, f: "#f1f5f9" },     // top highlight
       { c: "claw-sh", x: 23, y: 22, w: 8, h: 1, f: "#64748b" },     // under-edge
-      // claw fingers
-      { c: "claw",    x: 23, y: 22, w: 1, h: 2, f: "#cbd5e1" },
-      { c: "claw",    x: 26, y: 22, w: 1, h: 2, f: "#cbd5e1" },
-      { c: "claw",    x: 29, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      // claw fingers — three separate classes for individual strike
+      { c: "finger-1",    x: 23, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "finger-2",    x: 26, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "finger-3",    x: 29, y: 22, w: 1, h: 2, f: "#cbd5e1" },
       { c: "claw-tip", x: 30, y: 19, w: 1, h: 3, f: "#f1f5f9" },
+      // brow pixel (above eye) — animates to express focus/anger
+      { c: "brow", x: 6, y: 13, w: 4, h: 1, f: "#3d2818", o: 0 },
       // small back feet
       { c: "foot", x:  6, y: 26, w: 3, h: 1, f: "#3d2818" },
       { c: "foot", x: 22, y: 26, w: 3, h: 1, f: "#3d2818" },
+      // hidden working-state anvil (revealed in CSS when state-working)
+      { c: "anvil-base", x: 18, y: 25, w: 6, h: 1, f: "#475569", o: 0 },
+      { c: "anvil-top",  x: 19, y: 23, w: 4, h: 2, f: "#64748b", o: 0 },
+      { c: "anvil-hi",   x: 19, y: 23, w: 4, h: 1, f: "#94a3b8", o: 0 },
     ],
     evo: [
       [ { c: "spark", x: 28, y: 16, w: 1, h: 1, f: "currentColor" } ],
