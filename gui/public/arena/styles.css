@@ -832,6 +832,45 @@ kbd {
 .ledger-recent .rb-tokens { color:var(--muted); font-size:11.5px; }
 .ledger-recent .rb-goal { color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+.ledger-forecast {
+  margin-top:8px; padding-top:8px; border-top:1px dashed var(--border2);
+}
+.ledger-forecast .label {
+  font:700 9.5px var(--mono); letter-spacing:.9px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:6px;
+}
+.ledger-forecast .trend-arrow {
+  font:700 13px var(--mono); padding:0 4px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:4px;
+}
+.ledger-forecast.trend-rising  .trend-arrow { color:var(--warn); }
+.ledger-forecast.trend-falling .trend-arrow { color:var(--good); }
+.ledger-forecast.trend-steady  .trend-arrow { color:var(--muted); }
+.ledger-forecast .forecast-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;
+}
+.ledger-forecast .fc {
+  border:1px solid var(--border2); border-radius:8px; padding:8px 10px;
+  background:rgba(0,0,0,.18);
+}
+.ledger-forecast .fc-k {
+  font:700 9.5px var(--mono); letter-spacing:.7px; text-transform:uppercase;
+  color:var(--muted);
+}
+.ledger-forecast .fc-v {
+  font:700 16px var(--mono); color:var(--fg); margin-top:2px; line-height:1.1;
+}
+.ledger-forecast .fc-v small {
+  font:600 10px var(--mono); color:var(--muted); margin-left:2px;
+}
+.ledger-forecast.trend-rising  .fc { border-color:color-mix(in srgb, var(--warn) 35%, var(--border2)); }
+.ledger-forecast.trend-falling .fc { border-color:color-mix(in srgb, var(--good) 35%, var(--border2)); }
+.ledger-forecast.empty { color:var(--muted); }
+@media (max-width: 640px) {
+  .ledger-grid, .ledger-forecast .forecast-grid { grid-template-columns:1fr 1fr; }
+}
+
 /* ----- Spawn-Builder modal ----- */
 .modal-backdrop {
   position:fixed; inset:0; background:rgba(2,4,9,.7);

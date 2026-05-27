@@ -12,6 +12,14 @@ const escapeHTML = (s) =>
     ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
 const pct = (v) => Math.round((Number(v) || 0) * 100);
+const trendArrow = (t) => t === "rising" ? "↑" : t === "falling" ? "↓" : "→";
+function fmtDuration(sec) {
+  if (sec === null || sec === undefined || !isFinite(sec)) return "—";
+  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 3600) return `${Math.round(sec / 60)}m`;
+  if (sec < 86400) return `${(sec / 3600).toFixed(1)}h`;
+  return `${(sec / 86400).toFixed(1)}d`;
+}
 const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 const fmtTime = (ts) => {
   const d = new Date(ts);
@@ -30,10 +38,14 @@ export function renderHeroStats(root, { agents, timeline, conn, spend }) {
   const cost = (spend && spend.totalUsd) || 0;
   const budget = (spend && spend.budgetUsd) || 0;
   const overBudget = !!(spend && spend.overBudget);
-  const burnLabel = budget > 0
-    ? `$${cost.toFixed(4)} / $${budget.toFixed(2)}`
-    : `$${cost.toFixed(4)} spent`;
+  const fc = (spend && spend.forecast) || {};
+  let burnLabel;
+  if (overBudget) burnLabel = `over $${budget.toFixed(2)} budget`;
+  else if (fc.burnPerMin > 0) burnLabel = `${trendArrow(fc.trend)} $${fc.burnPerMin.toFixed(3)}/min`;
+  else if (budget > 0) burnLabel = `$${cost.toFixed(4)} / $${budget.toFixed(2)}`;
+  else burnLabel = `$${cost.toFixed(4)} spent`;
   const burnClass = overBudget ? "delta bad"
+    : (fc.trend === "rising" && budget > 0 && cost / budget > 0.5) ? "delta warn"
     : (budget > 0 && cost / budget > 0.7) ? "delta warn"
     : "delta";
   root.innerHTML = `
@@ -470,6 +482,39 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
 
 /* ----- Spawn-Builder modal --------------------------------------------- */
 
+function renderForecast(fc, spend) {
+  // No forecast yet — keep the card honest with a short note rather than
+  // a fake projection from a single sample.
+  if (!fc || !fc.samples) {
+    return `<div class="ledger-forecast empty">
+      <div class="label">Forecast</div>
+      <p class="dim small">Need at least 2 briefings to project burn rate.</p>
+    </div>`;
+  }
+  if (fc.samples < 2) {
+    return `<div class="ledger-forecast empty">
+      <div class="label">Forecast</div>
+      <p class="dim small">1 sample so far · avg $${(fc.avgCost || 0).toFixed(4)} per brief. Run another brief to project.</p>
+    </div>`;
+  }
+  const trend = fc.trend || "steady";
+  const burnPerMin = fc.burnPerMin || 0;
+  const nextHour   = fc.nextHourUsd || 0;
+  const tToBudget  = fc.timeToBudgetSec;
+  return `
+    <div class="ledger-forecast trend-${trend}">
+      <div class="label">Forecast <span class="trend-arrow">${trendArrow(trend)}</span> ${trend}</div>
+      <div class="forecast-grid">
+        <div class="fc"><div class="fc-k">Burn</div><div class="fc-v">$${burnPerMin.toFixed(3)}<small>/min</small></div></div>
+        <div class="fc"><div class="fc-k">Next hour</div><div class="fc-v">$${nextHour.toFixed(2)}</div></div>
+        <div class="fc"><div class="fc-k">Avg / brief</div><div class="fc-v">$${(fc.avgCost || 0).toFixed(4)}</div></div>
+        <div class="fc"><div class="fc-k">Time to budget</div><div class="fc-v">${fmtDuration(tToBudget)}</div></div>
+      </div>
+      <p class="dim small">Window: last ${fc.samples} briefs over ${fmtDuration(fc.windowSec)}.</p>
+    </div>
+  `;
+}
+
 function renderLedgerPanel(spend) {
   if (!spend || typeof spend.totalUsd !== "number") {
     return `<section class="ledger-card">
@@ -504,6 +549,7 @@ function renderLedgerPanel(spend) {
             : `${pctUsed.toFixed(1)}% of budget consumed across ${spend.briefCount || 0} brief${spend.briefCount === 1 ? "" : "s"}.`}
         </p>` : `
         <p class="dim small">No budget guardrail — set <code>AGENTFORGE_BUDGET_USD</code> to cap spend.</p>`}
+      ${renderForecast(spend.forecast || {}, spend)}
       ${recent.length ? `
         <div class="ledger-recent">
           <div class="label">Recent briefings</div>
