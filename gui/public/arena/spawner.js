@@ -1,107 +1,73 @@
-// Atlas Prime's spawn engine.
+// Atlas's specialist registry and live state.
 //
-// Phase 1 — Atlas analyses the repo signals it sees in /agents and /state.
-// Phase 2 — applies SPAWN_RULES to decide which specialists to instantiate.
-// Phase 3 — emits a chronological spawn timeline the UI binds to.
-//
-// The engine is fully deterministic for a given input. Atlas may spawn extra
-// agents via spawnAgent(id) at runtime; the registry is not closed.
+// The registry holds every specialist's identity (name, role, mascot, …)
+// plus its current state (status, terminal lines coming from a real PTY,
+// evolution level). Nothing is simulated — terminal lines arrive only when
+// the operator launches the real PTY for that specialist; before that the
+// card stays honestly idle.
 
-import { SEED_AGENTS, BRIEFINGS, SEED_LINES, SPAWN_RULES, LEAD_ID } from "./data.js";
+import { SEED_AGENTS, BRIEFINGS, PRIORS, LEAD_ID } from "./data.js";
 
 const NOW = () => Date.now();
 
-export function createSpawnEngine({ store, signals, persisted = {} }) {
-  const savedEvolution   = persisted.evolution   || {};
-  const savedAutoEnter   = new Set(persisted.autoEnter || []);
-  const savedCustom      = Array.isArray(persisted.customAgents) ? persisted.customAgents : [];
+export function createSpawnEngine({ store, persisted = {} }) {
+  const savedEvolution = persisted.evolution   || {};
+  const savedAutoEnter = new Set(persisted.autoEnter || []);
+  const savedCustom    = Array.isArray(persisted.customAgents) ? persisted.customAgents : [];
 
   /** @type {Map<string, any>} */
   const registry = new Map(
-    [...SEED_AGENTS, ...savedCustom].map((a) => [a.id, makeAgent(a, false)])
+    [...SEED_AGENTS, ...savedCustom].map((a) => [a.id, makeAgent(a)])
   );
-  /** @type {Array<{ts:number, kind:string, agentId?:string, label:string, rule?:string}>} */
+  /** Chronological timeline of meaningful events — boots, spawns, evolution,
+   *  auto-enter toggles, atlas briefings, specialist reports. */
   const timeline = [];
 
-  function makeAgent(spec, justSpawned) {
+  function makeAgent(spec) {
+    const priors = PRIORS[spec.id] || {};
     return {
       ...spec,
-      status: justSpawned ? "thinking" : "idle",
-      animationState: justSpawned ? "thinking" : "idle",
+      status: "idle",
+      animationState: "idle",
       briefing: spec.briefing || BRIEFINGS[spec.id] || `${spec.name || spec.id} briefing pending from Atlas.`,
-      currentTask: justSpawned ? "Awaiting initial briefing." : "Standing by.",
+      currentTask: "Standing by — launch the real session to begin.",
       lastAction: "—",
       evolutionLevel: savedEvolution[spec.id] || 1,
-      spawnedAt: justSpawned ? NOW() : NOW() - 1000,
-      terminalLines: [...(SEED_LINES[spec.id] || [
-        `${spec.id} ▸ online`,
-        `${spec.id} ▸ awaiting orders from atlas`,
-      ])],
+      spawnedAt: NOW(),
+      terminalLines: [], // empty until a real PTY drives this card
       autoEnter: savedAutoEnter.has(spec.id),
       autoEnterCount: 0,
+      ptyRunning: false,
       seed: spec.seed !== false,
       capabilities: spec.capabilities || ["briefing", "report"],
       mascot: spec.mascot || "fox",
       mascotSpecies: spec.mascotSpecies || spec.mascot || "Mascot",
       mascotLabel:   spec.mascotLabel   || "specialist mascot",
+      lane: spec.lane || "lead",
       color: spec.color || "#5b8cff",
       accentColor: spec.accentColor || spec.color || "#5b8cff",
-      risk: spec.risk ?? 0.18,
-      confidence: spec.confidence ?? 0.82,
-      qualityScore: spec.qualityScore ?? 0.86,
-      health: { fps: 60, errors: 0, lastBeat: NOW() },
+      risk:         spec.risk         ?? priors.risk         ?? 0.18,
+      confidence:   spec.confidence   ?? priors.confidence   ?? 0.82,
+      qualityScore: spec.qualityScore ?? priors.qualityScore ?? 0.86,
     };
   }
 
-  function emit(kind, label, agentId, rule) {
-    timeline.unshift({ ts: NOW(), kind, label, agentId, rule });
+  function emit(kind, label, agentId) {
+    timeline.unshift({ ts: NOW(), kind, label, agentId });
     if (timeline.length > 200) timeline.length = 200;
     if (store) store.set("timeline", [...timeline]);
   }
 
-  /** Initial bootstrap — Atlas pages itself in, then runs the rules. */
   function bootstrap() {
-    emit("boot", "ATLAS PRIME initialised", LEAD_ID);
-    emit("scan", "Scanning repository signals…");
-
-    const fired = new Set();
-    for (const rule of SPAWN_RULES) {
-      const hit = rule.triggers.some((t) => signals.includes(t.toLowerCase()));
-      if (!hit) continue;
-      emit("rule", `Rule '${rule.label}' matched`, undefined, rule.id);
-      for (const id of rule.agents) {
-        if (fired.has(id)) continue;
-        fired.add(id);
-        const a = registry.get(id);
-        if (!a) continue;
-        a.spawnedAt = NOW();
-        a.animationState = "thinking";
-        a.status = "thinking";
-        emit("spawn", `Spawned ${a.name} — ${a.title}`, id, rule.id);
-      }
-    }
-
-    // Always spawn the rest of the seed roster so the demo is full at boot.
-    for (const a of registry.values()) {
-      if (a.id === LEAD_ID) continue;
-      if (fired.has(a.id)) continue;
-      a.spawnedAt = NOW();
-      emit("spawn", `Spawned ${a.name} — on standby`, a.id);
-    }
-
+    emit("boot", "ATLAS PRIME standing by", LEAD_ID);
+    emit("scan", "Awaiting operator briefing — Atlas is ready to dispatch.");
     publish();
   }
 
   function publish() {
     store.set("agents", Array.from(registry.values()));
   }
-
-  function publishAgent(id) {
-    publish();
-  }
-
-  function get(id) { return registry.get(id); }
-
+  function get(id)    { return registry.get(id); }
   function update(id, patch) {
     const a = registry.get(id); if (!a) return;
     Object.assign(a, patch);
@@ -113,12 +79,33 @@ export function createSpawnEngine({ store, signals, persisted = {} }) {
     a.terminalLines = [...a.terminalLines.slice(-60), line];
     a.lastAction = line;
     publish();
+    // Specialist → Atlas reporting. Every non-Atlas line is also threaded
+    // into Atlas's mission stream as a compact report so Atlas always knows
+    // what the swarm is doing.
+    if (id !== LEAD_ID) {
+      emit("report", `${a.name} ▸ ${line.slice(0, 100)}`, id);
+    }
   }
 
   function setAnimationState(id, state) {
     const a = registry.get(id); if (!a) return;
     a.animationState = state;
     a.status = state;
+    publish();
+  }
+
+  function setPtyRunning(id, running) {
+    const a = registry.get(id); if (!a) return;
+    a.ptyRunning = !!running;
+    if (running) {
+      a.animationState = "thinking";
+      a.status = "thinking";
+      emit("pty-up", `${a.name} live PTY started`, id);
+    } else {
+      a.animationState = "idle";
+      a.status = "idle";
+      emit("pty-down", `${a.name} PTY exited`, id);
+    }
     publish();
   }
 
@@ -141,12 +128,11 @@ export function createSpawnEngine({ store, signals, persisted = {} }) {
     publish();
   }
 
-  /** Spawn an additional agent beyond the seed roster. */
-  function spawnAgent(spec, reason = "manual") {
+  function spawnAgent(spec, reason = "operator") {
     if (registry.has(spec.id)) return get(spec.id);
-    const agent = makeAgent({ ...spec, seed: false, spawnedBy: LEAD_ID }, true);
+    const agent = makeAgent({ ...spec, seed: false, spawnedBy: LEAD_ID });
     registry.set(spec.id, agent);
-    emit("spawn", `Atlas spawned ${agent.name} — ${reason}`, agent.id);
+    emit("spawn", `Atlas registered ${agent.name} (${reason})`, agent.id);
     publish();
     return agent;
   }
@@ -160,7 +146,7 @@ export function createSpawnEngine({ store, signals, persisted = {} }) {
         color: a.color, accentColor: a.accentColor,
         capabilities: a.capabilities, seed: false, spawnedBy: a.spawnedBy,
         risk: a.risk, confidence: a.confidence, qualityScore: a.qualityScore,
-        briefing: a.briefing,
+        briefing: a.briefing, lane: a.lane || "lead",
       }));
   }
 
@@ -171,28 +157,10 @@ export function createSpawnEngine({ store, signals, persisted = {} }) {
   }
 
   return {
-    bootstrap, publish, publishAgent,
-    get, update, appendLine, setAnimationState,
+    bootstrap, publish,
+    get, update, appendLine, setAnimationState, setPtyRunning,
     evolve, toggleAutoEnter, spawnAgent,
     customAgentSpecs, evolutionMap,
-    registry, timeline,
+    registry, timeline, emit,
   };
-}
-
-/** Heuristically derive signal tokens from /state and /agents responses. */
-export function deriveSignals({ guiAgents, teamState }) {
-  const tokens = new Set();
-  const push = (s) => tokens.add(String(s).toLowerCase());
-
-  if (Array.isArray(guiAgents)) for (const a of guiAgents) push(a.id);
-  if (teamState && Array.isArray(teamState.roles)) for (const r of teamState.roles) push(r.id);
-  if (teamState && Array.isArray(teamState.tasks)) {
-    for (const t of teamState.tasks) {
-      push(t.owner); push(t.state); for (const w of (t.task || "").split(/\W+/)) if (w) push(w);
-    }
-  }
-  // Project-shape hints — these are constants that always exist in this repo
-  // so the rule engine always lights up sensible specialists.
-  ["gui/", "tests/", "docs/", "README", ".github/", "Makefile", "log/", "events"].forEach(push);
-  return Array.from(tokens);
 }

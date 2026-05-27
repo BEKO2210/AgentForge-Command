@@ -21,13 +21,9 @@
       <span class="sub">· LOCAL · <span class="ok">ATLAS PRIME</span> · MISSION CONTROL ·</span>
     </div>
     <span class="conn off" id="conn-dot" aria-live="polite"
-          data-tip="WebSocket connection state">
+          data-tip="WebSocket + LLM bridge state">
       <span class="dot"></span><span class="txt">offline</span>
     </span>
-    <nav class="nav-tabs" aria-label="Surfaces">
-      <a href="/" class="active" aria-current="page">ARENA</a>
-      <a href="/console" title="Legacy 4-agent terminal console">CONSOLE</a>
-    </nav>
   </header>
 
   <section class="hero" aria-label="Mission overview">
@@ -75,11 +71,13 @@
 
   <footer class="broadcast" aria-label="Atlas broadcast bar" role="contentinfo">
     <div class="broadcast-inner">
-      <span class="broadcast-prompt" aria-hidden="true">broadcast &gt;</span>
-      <label class="sr-only" for="broadcast-input">Broadcast briefing to every agent</label>
+      <button id="broadcast-mode" class="broadcast-mode"
+              data-tip="Toggle between ATLAS (talk to Atlas — he dispatches) and SWARM (raw broadcast to every running specialist)">ATLAS</button>
+      <span class="broadcast-prompt" aria-hidden="true">&gt;</span>
+      <label class="sr-only" for="broadcast-input">Brief Atlas, or broadcast directly to the swarm</label>
       <input id="broadcast-input" type="text" autocomplete="off" spellcheck="false"
-             placeholder="brief the swarm — Enter dispatches to every agent…" />
-      <span class="meta" aria-hidden="true">⏎ DISPATCH · / FOCUS · ESC CLOSE</span>
+             placeholder="Talk to Atlas — he briefs the swarm…" />
+      <span class="meta" id="broadcast-meta" aria-hidden="true">⏎ DISPATCH · / FOCUS</span>
     </div>
   </footer>
 

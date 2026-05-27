@@ -47,18 +47,26 @@ try {
 
 const REPO_DIR = process.env.REPO_DIR || process.cwd();
 const PORT = Number(process.env.PORT) || 4173;
-const AUTOSTART = process.env.AUTOSTART !== "0";
+// AUTOSTART now takes three values:
+//   "off" (default) — no specialist auto-runs; the operator launches from the UI
+//   "lead"          — auto-spawn only Atlas
+//   "all"           — auto-spawn every specialist (12 concurrent Claude sessions!)
+// Old boolean values are translated: "0" → "off", "1" / unset → "off" too,
+// since the new default is dormant. Set it explicitly if you want auto-spawn.
+const _autoRaw = (process.env.AUTOSTART || "").toLowerCase();
+const AUTOSTART = _autoRaw === "all" ? "all" : _autoRaw === "lead" ? "lead" : "off";
 const ARENA_FILE = path.join(REPO_DIR, ".team", "arena.json");
 
 const config = JSON.parse(fs.readFileSync(path.join(HERE, "agents.json"), "utf8"));
-const specialists = Array.isArray(config.specialists) ? config.specialists : [];
-const allDefs = [...config.agents, ...specialists];
-const ptyIndex = new Map(allDefs.map((d) => [d.id, d]));
+// One swarm, one list. ATLAS PRIME is the lead; everyone else reports to
+// Atlas. `specialists` from older configs is honoured as a fallback.
+const swarm = Array.isArray(config.agents) && config.agents.length
+  ? config.agents
+  : (Array.isArray(config.specialists) ? config.specialists : []);
+const LEAD = swarm.find((a) => a.lead) || swarm.find((a) => a.id === "atlas") || swarm[0];
+const ptyIndex = new Map(swarm.map((d) => [d.id, d]));
 if (process.env.TEST_CMD) {
-  for (const a of allDefs) {
-    a.cmd = process.env.TEST_CMD;
-    a.args = [];
-  }
+  for (const a of swarm) { a.cmd = process.env.TEST_CMD; a.args = []; }
 }
 
 const agents = new Map(); // id -> { def, term, buf, alive, tail }
@@ -227,9 +235,11 @@ const server = http.createServer((req, res) => {
   // REST surfaces ----------------------------------------------------------
   if (url === "/api/agents" || url === "/agents") {
     res.writeHead(200, { "Content-Type": "application/json" });
+    // Never leak raw role prompts over HTTP — they're operator-authored
+    // briefings, not public metadata.
     return res.end(JSON.stringify({
-      agents: config.agents,
-      specialists: specialists.map(({ prompt, ...rest }) => rest), // omit raw prompt over HTTP
+      swarm: swarm.map(({ prompt, ...rest }) => rest),
+      leadId: LEAD ? LEAD.id : null,
       repoDir: REPO_DIR,
     }));
   }
@@ -244,8 +254,8 @@ const server = http.createServer((req, res) => {
       evolution: arenaState.evolution,
       customAgents: arenaState.customAgents,
       atlasMission: arenaState.atlasMission,
-      ptyAgents: config.agents.map((a) => a.id),
-      specialists: specialists.map((s) => s.id),
+      ptyAgents: swarm.map((a) => a.id),
+      leadId: LEAD ? LEAD.id : null,
       runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
       llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
@@ -253,12 +263,15 @@ const server = http.createServer((req, res) => {
   }
 
   // Pretty routes ----------------------------------------------------------
-  // /          → arena (the default surface)
-  // /console   → legacy 4-agent console
-  // /arena     → kept as an alias for backwards compatibility
+  // /          → mission control (the only surface)
+  // /arena     → alias for backwards compatibility
+  // /console   → redirects to / (the legacy 4-agent console is gone)
+  if (url === "/console" || url === "/console/") {
+    res.writeHead(302, { Location: "/" });
+    return res.end();
+  }
   let rel;
   if (url === "/") rel = "/arena.html";
-  else if (url === "/console" || url === "/console/") rel = "/console.html";
   else if (url === "/arena" || url === "/arena/") rel = "/arena.html";
   else rel = url;
 
@@ -285,6 +298,9 @@ server.on("upgrade", (req, sock, head) => {
   }
 });
 
+// Legacy /ws → kept as a thin compatibility shim. The arena WebSocket on
+// /arena is the canonical channel; nothing in the current UI uses this one
+// any more, but old tooling that hits the root WS gets the same PTY view.
 wss.on("connection", (ws) => {
   clients.add(ws);
   for (const [id, rec] of agents) {
@@ -299,8 +315,7 @@ wss.on("connection", (ws) => {
     else if (m.t === "resize" && rec) {
       try { rec.term.resize(Math.max(2, m.cols | 0), Math.max(2, m.rows | 0)); } catch {}
     } else if (m.t === "start") {
-      const def = ptyIndex.get(m.id);
-      if (def) startAgent(def);
+      const def = ptyIndex.get(m.id); if (def) startAgent(def);
     } else if (m.t === "stop" && rec) {
       try { rec.term.kill(); } catch {}
     }
@@ -433,10 +448,19 @@ arenaWss.on("connection", (ws) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`\n[forge] AgentForge Command up on http://localhost:${PORT}`);
-  console.log(`[forge] arena (default): http://localhost:${PORT}/`);
-  console.log(`[forge] legacy console:  http://localhost:${PORT}/console`);
+  console.log(`[forge] mission control: http://localhost:${PORT}/`);
   console.log(`[forge] working repo:    ${REPO_DIR}`);
+  console.log(`[forge] swarm:           ${swarm.map((s) => s.id).join(", ")}`);
+  console.log(`[forge] llm bridge:      ${process.env.ANTHROPIC_API_KEY ? "enabled" : "disabled (set ANTHROPIC_API_KEY)"}`);
   startForgePulse();
-  if (AUTOSTART) for (const def of config.agents) startAgent(def);
-  else console.log("[forge] AUTOSTART=0 — start each PTY from the UI or send {t:'start-pty',id}");
+  // No autostart by default — Atlas decides which specialists run, and the
+  // operator launches them from the cockpit. Set AUTOSTART=lead to auto-spawn
+  // only Atlas, or AUTOSTART=all to spawn every specialist (12 sessions).
+  if (AUTOSTART === "all") {
+    for (const def of swarm) startAgent(def);
+  } else if (AUTOSTART === "lead" && LEAD) {
+    startAgent(LEAD);
+  } else {
+    console.log("[forge] specialists are dormant — launch from the cockpit (set AUTOSTART=lead|all to change)");
+  }
 });
