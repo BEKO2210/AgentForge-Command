@@ -32,10 +32,17 @@ jobs:
 
       # The server-integration suite (tests/server-suite.mjs) spawns the
       # real gui server, which imports node-pty + ws from gui/node_modules.
-      # CI starts with a clean tree, so install gui deps before the gate.
+      # node-pty is a native module — we MUST run install scripts so the
+      # prebuilt binary lands on disk. (--ignore-scripts works for the
+      # audit job below, but not here: it leaves the .node file unbuilt
+      # and the runtime import throws.)
       - name: Install gui dependencies (for server integration suite)
         working-directory: gui
-        run: npm ci --ignore-scripts
+        run: npm ci
+
+      - name: Verify native modules loaded
+        working-directory: gui
+        run: node -e "import('node-pty').then(()=>console.log('node-pty ok')).catch(e=>{console.error('node-pty FAIL:',e.message);process.exit(1)})"
 
       - name: Run the green gate (bash -n + shellcheck + tests/run.sh)
         run: scripts/team-check.sh

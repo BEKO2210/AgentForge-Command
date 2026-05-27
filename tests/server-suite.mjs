@@ -32,18 +32,32 @@ async function it(name, fn) {
 
 /* ----- Server lifecycle ----- */
 
-import fs from "node:fs";
-
 // CI guard: the suite spawns the real gui server which requires node-pty +
-// ws in gui/node_modules. If they're missing we can't run the suite, but
-// we shouldn't fail silently either — skip explicitly with a clear note.
-const ptyInstalled = fs.existsSync(path.join(ROOT, "gui", "node_modules", "node-pty"))
-                  && fs.existsSync(path.join(ROOT, "gui", "node_modules", "ws"));
+// ws. Directory existence isn't enough — node-pty is a NATIVE module and
+// `npm ci --ignore-scripts` leaves the .node binary unbuilt. The only
+// honest check is "can we actually load it?". We do the same import from
+// inside gui/ so it resolves the right node_modules.
+async function loadGuiModule(name) {
+  const guiUrl = new URL("../gui/", import.meta.url);
+  const r = (await import("node:module")).createRequire(guiUrl);
+  const resolved = r.resolve(name); // throws if package isn't there
+  return import(resolved);
+}
+let ptyOk = true;
+let ptyError = "";
+try {
+  await loadGuiModule("node-pty");
+  await loadGuiModule("ws");
+} catch (e) {
+  ptyOk = false;
+  ptyError = String(e.message || e);
+}
 
 let server = null;
 async function startServer() {
-  if (!ptyInstalled) {
-    throw new Error("gui/node_modules missing — run `cd gui && npm install` (or `npm ci`) before this suite.");
+  if (!ptyOk) {
+    throw new Error("gui native deps unloadable: " + ptyError +
+                    "\n  fix: `cd gui && npm ci` (NOT --ignore-scripts — node-pty needs its build step)");
   }
   server = spawn("node", [path.join(ROOT, "gui/server.js")], {
     cwd: ROOT,
