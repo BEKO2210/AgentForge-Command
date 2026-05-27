@@ -321,7 +321,17 @@ run_node_suite() {
 }
 
 run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
-run_node_suite "server integration tests" "tests/server-suite.mjs"
+
+# The server-integration suite needs node-pty + ws in gui/node_modules.
+# On a fresh clone (and on CI without the install step) those are missing —
+# skip with a clear message instead of pretending the suite "failed".
+if [ -d "$SRC/gui/node_modules/node-pty" ] && [ -d "$SRC/gui/node_modules/ws" ]; then
+  run_node_suite "server integration tests" "tests/server-suite.mjs"
+else
+  echo
+  echo "== server integration tests =="
+  echo "  - skipped (run \`cd gui && npm ci\` first to enable)"
+fi
 
 echo
 echo "tests: $pass passed, $fail failed"
