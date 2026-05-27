@@ -101,15 +101,16 @@ const SPRITES = {
       { c: "shell-pattern", x: 16, y: 13, w: 3, h: 3, f: "#3f6c45" },
       { c: "shell-pattern", x: 13, y: 17, w: 3, h: 3, f: "#3f6c45" },
       { c: "shell-pattern", x: 18, y: 16, w: 3, h: 2, f: "#3f6c45" },
-      // tail
-      { c: "tail", x: 26, y: 17, w: 2, h: 2, f: "#5fa86d" },
-      { c: "tail", x: 28, y: 18, w: 1, h: 1, f: "#5fa86d" },
+      // tail — tapered triangle hanging off the back-right of the shell
+      { c: "tail", x: 25, y: 18, w: 3, h: 2, f: "#5fa86d" },
+      { c: "tail", x: 27, y: 19, w: 2, h: 1, f: "#5fa86d" },
       // head + neck
       { c: "neck", x: 3,  y: 16, w: 3, h: 3, f: "#5fa86d" },
       { c: "head", x: 1,  y: 14, w: 5, h: 5, f: "#5fa86d" },
-      // eyes (two black pixels)
-      { c: "eye",  x: 2,  y: 16, w: 1, h: 1, f: "#000" },
-      { c: "eye",  x: 4,  y: 16, w: 1, h: 1, f: "#000" },
+      // eyes (two black pixels) + tiny beak/mouth so the face reads
+      { c: "eye",   x: 2,  y: 15, w: 1, h: 1, f: "#000" },
+      { c: "eye",   x: 4,  y: 15, w: 1, h: 1, f: "#000" },
+      { c: "mouth", x: 0,  y: 17, w: 2, h: 1, f: "#3f6c45" },
     ],
     evo: [
       // lvl 2 — radar dot on shell
@@ -155,10 +156,12 @@ const SPRITES = {
       // beak
       { c: "beak", x: 15, y: 13, w: 2, h: 2, f: "#f59e0b" },
       { c: "beak", x: 16, y: 15, w: 1, h: 1, f: "#f59e0b" },
-      // talons
-      { c: "talon", x: 9,  y: 25, w: 2, h: 2, f: "#f59e0b" },
-      { c: "talon", x: 14, y: 25, w: 2, h: 2, f: "#f59e0b" },
-      { c: "talon", x: 19, y: 25, w: 2, h: 2, f: "#f59e0b" },
+      // talons — a single yellow bar with three claws beneath, so it
+      // reads as feet rather than three random pixels
+      { c: "talon", x: 9,  y: 25, w: 14, h: 1, f: "#f59e0b" },
+      { c: "talon", x: 10, y: 26, w: 2,  h: 1, f: "#f59e0b" },
+      { c: "talon", x: 15, y: 26, w: 2,  h: 1, f: "#f59e0b" },
+      { c: "talon", x: 20, y: 26, w: 2,  h: 1, f: "#f59e0b" },
     ],
     evo: [
       // lvl 2 — scan line under eyes
@@ -185,7 +188,7 @@ const SPRITES = {
       { c: "leg", x: 10, y: 24, w: 2, h: 4, f: "#c2410c" },
       { c: "leg", x: 16, y: 24, w: 2, h: 4, f: "#c2410c" },
       { c: "leg", x: 20, y: 24, w: 2, h: 4, f: "#c2410c" },
-      // tail (orange) with white tip
+      // tail (orange) with white tip — stepped curve up + back
       { c: "tail", x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
       { c: "tail", x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
       { c: "tail", x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
@@ -195,23 +198,25 @@ const SPRITES = {
       { c: "body", x: 9,  y: 15, w: 14, h: 1, f: "#e85a1c" },
       // belly (white)
       { c: "belly", x: 10, y: 21, w: 12, h: 3, f: "#fff" },
-      // head — triangular shape via stacked rects
-      { c: "head", x: 6,  y: 10, w: 8,  h: 7, f: "#e85a1c" },
-      { c: "head", x: 7,  y: 9,  w: 6,  h: 1, f: "#e85a1c" },
-      { c: "head", x: 4,  y: 13, w: 2,  h: 3, f: "#e85a1c" },   // muzzle taper
-      // ears (orange triangles)
-      { c: "ear",   x: 5,  y: 6, w: 3, h: 4, f: "#e85a1c" },
-      { c: "ear",   x: 12, y: 6, w: 3, h: 4, f: "#e85a1c" },
+      // head — wider, anchored to the body shoulder so it reads as a
+      // single creature rather than a floating mask
+      { c: "head", x: 5,  y: 11, w: 9,  h: 6, f: "#e85a1c" },
+      { c: "head", x: 6,  y: 10, w: 7,  h: 1, f: "#e85a1c" },
+      { c: "head", x: 7,  y: 17, w: 5,  h: 1, f: "#e85a1c" },     // jaw connection to body
+      { c: "head", x: 3,  y: 13, w: 3,  h: 3, f: "#e85a1c" },     // muzzle taper
+      // ears (orange triangles, taller for fox silhouette)
+      { c: "ear",   x: 4,  y: 7, w: 3, h: 4, f: "#e85a1c" },
+      { c: "ear",   x: 11, y: 7, w: 3, h: 4, f: "#e85a1c" },
       // inner ear (pink)
-      { c: "ear-in", x: 6,  y: 8, w: 1, h: 2, f: "#fda4af" },
-      { c: "ear-in", x: 13, y: 8, w: 1, h: 2, f: "#fda4af" },
+      { c: "ear-in", x: 5,  y: 9, w: 1, h: 2, f: "#fda4af" },
+      { c: "ear-in", x: 12, y: 9, w: 1, h: 2, f: "#fda4af" },
       // muzzle (white)
       { c: "muzzle", x: 3,  y: 14, w: 4, h: 2, f: "#fff" },
       // black nose tip
-      { c: "nose",   x: 2,  y: 14, w: 2, h: 2, f: "#111" },
-      // eyes
-      { c: "eye",    x: 8,  y: 12, w: 1, h: 1, f: "#111" },
-      { c: "eye",    x: 12, y: 12, w: 1, h: 1, f: "#111" },
+      { c: "nose",   x: 1,  y: 14, w: 2, h: 2, f: "#111" },
+      // eyes — slightly larger so they register at small sizes
+      { c: "eye",    x: 8,  y: 12, w: 1, h: 2, f: "#111" },
+      { c: "eye",    x: 12, y: 12, w: 1, h: 2, f: "#111" },
     ],
     evo: [
       // lvl 2 — tail glow stripe
@@ -239,10 +244,15 @@ const SPRITES = {
       { c: "body", x: 27, y: 14, w: 1,  h: 10, f: "#5a4030" },
       // belly highlight
       { c: "belly", x: 7,  y: 18, w: 18, h: 6, f: "#7a5a44" },
-      // snout (pink)
-      { c: "snout", x: 1,  y: 16, w: 4, h: 3, f: "#fb7185" },
-      // tiny eye slit
+      // snout — pink, tapered: wider at the face, pointier tip
+      { c: "snout", x: 2,  y: 15, w: 4, h: 4, f: "#fb7185" },
+      { c: "snout", x: 1,  y: 16, w: 1, h: 2, f: "#fb7185" },
+      // nostrils
+      { c: "nostril", x: 2,  y: 17, w: 1, h: 1, f: "#7f1d1d" },
+      { c: "nostril", x: 4,  y: 17, w: 1, h: 1, f: "#7f1d1d" },
+      // closed-eye slit — a touch larger so it actually reads
       { c: "eye",   x: 7,  y: 15, w: 2, h: 1, f: "#111" },
+      { c: "eye",   x: 8,  y: 14, w: 1, h: 1, f: "#111" },
       // whiskers
       { c: "whisker", x: 0, y: 14, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
       { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
@@ -300,13 +310,13 @@ const SPRITES = {
       { c: "toe", x: 16, y: 26, w: 1, h: 1, f: "#0369a1" },
       { c: "toe", x: 20, y: 26, w: 1, h: 1, f: "#0369a1" },
       { c: "toe", x: 22, y: 26, w: 1, h: 1, f: "#0369a1" },
-      // head (squarish)
-      { c: "head", x: 3,  y: 12, w: 6,  h: 7, f: "#0ea5e9" },
-      // turret eye (the big one on top)
-      { c: "eye-cone", x: 2,  y: 9,  w: 4, h: 4, f: "#0ea5e9" },
-      { c: "eye-ball", x: 2,  y: 9,  w: 4, h: 4, f: "#fef3c7" },
-      { c: "eye-iris", x: 3,  y: 10, w: 2, h: 2, f: "#111" },
-      { c: "eye-glint",x: 3,  y: 10, w: 1, h: 1, f: "#fff" },
+      // head (squarish) — slightly wider so the turret eye has a base
+      { c: "head", x: 3,  y: 12, w: 7,  h: 7, f: "#0ea5e9" },
+      // turret eye — small dark "tower" base then a domed eye-ball on top
+      { c: "eye-cone", x: 4,  y: 9,  w: 3, h: 2, f: "#0369a1" },   // turret base (dark)
+      { c: "eye-ball", x: 3,  y: 7,  w: 5, h: 4, f: "#fef3c7" },   // pale eye dome
+      { c: "eye-iris", x: 4,  y: 8,  w: 3, h: 2, f: "#111" },
+      { c: "eye-glint",x: 4,  y: 8,  w: 1, h: 1, f: "#fff" },
       // mouth + tongue stub
       { c: "mouth", x: 2,  y: 16, w: 4, h: 1, f: "#0369a1" },
       { c: "tongue",x: 1,  y: 16, w: 1, h: 1, f: "#f472b6" },
@@ -329,23 +339,26 @@ const SPRITES = {
   },
 
   /* ── ECHO — Signal Bat ────────────────────────────────────────────── *
-   * Triangular body, two big wings with finger bones, pointed ears,
-   * tiny fangs. Sonar rings at evo 2+.                                     */
+   * Triangular body, two big wings ATTACHED to the body via shoulder
+   * pixels (the previous version had the wings floating in mid-air with
+   * a 2px gap), finger bones, pointed ears, tiny fangs. Sonar at evo 2+. */
   bat: {
     label: "signal bat",
     base: [
-      // wings — left
-      { c: "wing-l", x: 1,  y: 12, w: 9, h: 7, f: "#312e81" },
-      { c: "wing-l", x: 3,  y: 11, w: 7, h: 1, f: "#312e81" },
-      // wing finger bones
+      // wings — left, now anchored at the body shoulder (x=11)
+      { c: "wing-l", x: 1,  y: 12, w: 11, h: 7, f: "#312e81" },
+      { c: "wing-l", x: 3,  y: 11, w: 9,  h: 1, f: "#312e81" },
+      { c: "wing-l", x: 5,  y: 19, w: 7,  h: 1, f: "#312e81" },  // wing trailing edge ties back into body
+      // wing finger bones — slightly lifted so they don't crowd the body
       { c: "wing-bone", x: 4, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      { c: "wing-bone", x: 6, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      // wings — right
-      { c: "wing-r", x: 22, y: 12, w: 9, h: 7, f: "#312e81" },
-      { c: "wing-r", x: 22, y: 11, w: 7, h: 1, f: "#312e81" },
-      { c: "wing-bone", x: 26, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      { c: "wing-bone", x: 28, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      // body (dark triangle)
+      { c: "wing-bone", x: 7, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      // wings — right, mirror of the left
+      { c: "wing-r", x: 20, y: 12, w: 11, h: 7, f: "#312e81" },
+      { c: "wing-r", x: 20, y: 11, w: 9,  h: 1, f: "#312e81" },
+      { c: "wing-r", x: 20, y: 19, w: 7,  h: 1, f: "#312e81" },
+      { c: "wing-bone", x: 24, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      { c: "wing-bone", x: 27, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      // body (dark triangle) — same as before
       { c: "body", x: 12, y: 10, w: 8,  h: 12, f: "#1e1b4b" },
       { c: "body", x: 13, y: 22, w: 6,  h: 2,  f: "#1e1b4b" },
       { c: "body", x: 14, y: 24, w: 4,  h: 1,  f: "#1e1b4b" },
@@ -354,10 +367,10 @@ const SPRITES = {
       { c: "ear", x: 18, y: 7,  w: 2, h: 3, f: "#1e1b4b" },
       { c: "ear-in", x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
       { c: "ear-in", x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
-      // eyes (red)
-      { c: "eye", x: 14, y: 13, w: 1, h: 1, f: "#fca5a5" },
-      { c: "eye", x: 17, y: 13, w: 1, h: 1, f: "#fca5a5" },
-      // tiny fangs
+      // eyes (red) — bumped to 1×2px so they actually read
+      { c: "eye", x: 14, y: 13, w: 1, h: 2, f: "#fca5a5" },
+      { c: "eye", x: 17, y: 13, w: 1, h: 2, f: "#fca5a5" },
+      // tiny fangs (white)
       { c: "fang", x: 14, y: 16, w: 1, h: 2, f: "#fff" },
       { c: "fang", x: 17, y: 16, w: 1, h: 2, f: "#fff" },
     ],
@@ -377,8 +390,8 @@ const SPRITES = {
   },
 
   /* ── VEGA — Neon Hummingbird ──────────────────────────────────────── *
-   * Tiny streamlined body, long needle beak, rapidly-flapping wings,
-   * forked tail. Motion trail rects at evo 2+.                             */
+   * Streamlined body, long needle beak. Wings now actually touch the
+   * body shoulder instead of hovering 3px above/below. Forked tail.        */
   hummingbird: {
     label: "neon hummingbird",
     base: [
@@ -395,12 +408,15 @@ const SPRITES = {
       { c: "eye",    x: 19, y: 11, w: 1, h: 1, f: "#111" },
       // long needle beak
       { c: "beak",   x: 22, y: 11, w: 8, h: 1, f: "#fcd34d" },
-      // wings (top + bottom, animated)
-      { c: "wing-t", x: 11, y: 8,  w: 8, h: 4, f: "#6ee7b7", o: 0.85 },
-      { c: "wing-b", x: 11, y: 17, w: 8, h: 4, f: "#6ee7b7", o: 0.85 },
+      // wings — wider + denser so they read as wings even mid-flap,
+      // anchored AT the body line (y=11 / y=18 instead of y=8 / y=17)
+      { c: "wing-t", x: 10, y: 10, w: 9, h: 3, f: "#6ee7b7" },
+      { c: "wing-t", x: 13, y: 9,  w: 5, h: 1, f: "#6ee7b7", o: 0.85 },
+      { c: "wing-b", x: 10, y: 18, w: 9, h: 3, f: "#6ee7b7" },
+      { c: "wing-b", x: 13, y: 21, w: 5, h: 1, f: "#6ee7b7", o: 0.85 },
       // forked tail
-      { c: "tail",   x: 7,  y: 15, w: 4, h: 1, f: "#10b981" },
-      { c: "tail",   x: 7,  y: 17, w: 4, h: 1, f: "#10b981" },
+      { c: "tail",   x: 7,  y: 14, w: 4, h: 1, f: "#10b981" },
+      { c: "tail",   x: 7,  y: 16, w: 4, h: 1, f: "#10b981" },
     ],
     evo: [
       // lvl 2 — extra trail particles
@@ -483,18 +499,21 @@ const SPRITES = {
       { c: "ear",        x: 17, y: 4,  w: 3, h: 3, f: "#94a3b8" },
       { c: "ear-in",     x: 7,  y: 5,  w: 1, h: 1, f: "#1e293b" },
       { c: "ear-in",     x: 18, y: 5,  w: 1, h: 1, f: "#1e293b" },
-      // BANDIT MASK
-      { c: "mask",       x: 6,  y: 9,  w: 14, h: 3, f: "#1e293b" },
+      // BANDIT MASK — one continuous black strip with a thin top/bottom
+      // edge so it really reads as worn over the eyes
+      { c: "mask",       x: 6,  y: 9,  w: 14, h: 4, f: "#0f172a" },
+      { c: "mask",       x: 5,  y: 10, w: 1,  h: 2, f: "#0f172a" },
+      { c: "mask",       x: 20, y: 10, w: 1,  h: 2, f: "#0f172a" },
       // eyes (white inside mask)
       { c: "eye",        x: 8,  y: 10, w: 2, h: 2, f: "#fff" },
       { c: "eye",        x: 16, y: 10, w: 2, h: 2, f: "#fff" },
       { c: "eye-pupil",  x: 9,  y: 11, w: 1, h: 1, f: "#000" },
       { c: "eye-pupil",  x: 17, y: 11, w: 1, h: 1, f: "#000" },
-      // nose
-      { c: "nose",       x: 12, y: 13, w: 2, h: 1, f: "#1e293b" },
-      // little hands
-      { c: "hand",       x: 5,  y: 18, w: 2, h: 2, f: "#475569" },
-      { c: "hand",       x: 21, y: 18, w: 2, h: 2, f: "#475569" },
+      // nose — small black diamond
+      { c: "nose",       x: 12, y: 14, w: 2, h: 1, f: "#0f172a" },
+      // hands — moved up and inward so they're clearly on the body
+      { c: "hand",       x: 6,  y: 16, w: 2, h: 2, f: "#475569" },
+      { c: "hand",       x: 22, y: 16, w: 2, h: 2, f: "#475569" },
     ],
     evo: [
       // lvl 2 — coin in hand
@@ -556,32 +575,36 @@ const SPRITES = {
   },
 
   /* ── LUMA — Firefly ───────────────────────────────────────────────── *
-   * Small insect body. Translucent wings. BIG glowing lantern on tail.    */
+   * Small insect — head + thorax + abdomen on one diagonal line, six
+   * legs, two translucent wings that ACTUALLY touch the thorax, and a
+   * big yellow lantern stuck to the back end.                              */
   firefly: {
     label: "firefly",
     base: [
-      // wings (translucent)
-      { c: "wing-l", x: 4,  y: 7,  w: 8, h: 5, f: "#fde047", o: 0.4 },
-      { c: "wing-r", x: 14, y: 7,  w: 8, h: 5, f: "#fde047", o: 0.4 },
-      // body segments
-      { c: "head",    x: 10, y: 14, w: 4, h: 3, f: "#713f12" },
-      { c: "thorax",  x: 12, y: 17, w: 5, h: 3, f: "#854d0e" },
-      { c: "abdomen", x: 13, y: 20, w: 6, h: 4, f: "#a16207" },
-      // antennae
-      { c: "antenna", x: 9,  y: 11, w: 1, h: 3, f: "#713f12" },
-      { c: "antenna", x: 14, y: 11, w: 1, h: 3, f: "#713f12" },
-      { c: "antenna-tip", x: 8,  y: 10, w: 1, h: 1, f: "#fde047" },
-      { c: "antenna-tip", x: 15, y: 10, w: 1, h: 1, f: "#fde047" },
-      // eyes
-      { c: "eye",     x: 11, y: 15, w: 1, h: 1, f: "#000" },
-      // legs (six small pixels)
-      { c: "leg", x: 11, y: 23, w: 1, h: 2, f: "#713f12" },
-      { c: "leg", x: 14, y: 23, w: 1, h: 2, f: "#713f12" },
-      { c: "leg", x: 17, y: 23, w: 1, h: 2, f: "#713f12" },
-      // LANTERN (the big glow)
-      { c: "lantern-glow", x: 17, y: 21, w: 8, h: 6, f: "#fde047", o: 0.4 },
-      { c: "lantern-mid",  x: 18, y: 22, w: 6, h: 4, f: "#fef08a" },
-      { c: "lantern-core", x: 19, y: 23, w: 4, h: 2, f: "#fff" },
+      // wings — left and right, anchored at the thorax (y=15 → y=20)
+      { c: "wing-l", x: 5,  y: 12, w: 8, h: 6, f: "#fde047", o: 0.45 },
+      { c: "wing-l", x: 7,  y: 11, w: 5, h: 1, f: "#fde047", o: 0.3  },
+      { c: "wing-r", x: 14, y: 12, w: 8, h: 6, f: "#fde047", o: 0.45 },
+      { c: "wing-r", x: 15, y: 11, w: 5, h: 1, f: "#fde047", o: 0.3  },
+      // body segments — read left-to-right: head, thorax, abdomen
+      { c: "head",    x: 9,  y: 14, w: 4, h: 4, f: "#713f12" },
+      { c: "thorax",  x: 13, y: 15, w: 4, h: 4, f: "#854d0e" },
+      { c: "abdomen", x: 17, y: 16, w: 5, h: 4, f: "#a16207" },
+      // antennae (forward, both pointing up-left)
+      { c: "antenna", x: 8,  y: 11, w: 1, h: 3, f: "#713f12" },
+      { c: "antenna", x: 11, y: 11, w: 1, h: 3, f: "#713f12" },
+      { c: "antenna-tip", x: 7,  y: 10, w: 1, h: 1, f: "#fde047" },
+      { c: "antenna-tip", x: 11, y: 10, w: 1, h: 1, f: "#fde047" },
+      // eye
+      { c: "eye",     x: 10, y: 15, w: 1, h: 1, f: "#000" },
+      // legs (three pairs of two pixels each, anchored to the thorax)
+      { c: "leg", x: 10, y: 18, w: 1, h: 3, f: "#713f12" },
+      { c: "leg", x: 13, y: 19, w: 1, h: 3, f: "#713f12" },
+      { c: "leg", x: 16, y: 20, w: 1, h: 3, f: "#713f12" },
+      // LANTERN — glow rings around a bright core, stuck to the abdomen
+      { c: "lantern-glow", x: 19, y: 17, w: 9, h: 7, f: "#fde047", o: 0.35 },
+      { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 5, f: "#fef08a" },
+      { c: "lantern-core", x: 22, y: 19, w: 4, h: 3, f: "#fff" },
     ],
     evo: [
       // lvl 2 — sparkle particles
@@ -616,9 +639,10 @@ const SPRITES = {
       { c: "leg",   x: 9,  y: 22, w: 2, h: 3, f: "#5b21b6" },
       { c: "leg",   x: 14, y: 22, w: 2, h: 3, f: "#5b21b6" },
       { c: "leg",   x: 19, y: 22, w: 2, h: 3, f: "#5b21b6" },
-      // wing
+      // wing — anchored along the back ridge (y=13/14 ties into body)
       { c: "wing",  x: 12, y: 8,  w: 8, h: 5, f: "#5b21b6" },
       { c: "wing",  x: 14, y: 7,  w: 4, h: 1, f: "#5b21b6" },
+      { c: "wing",  x: 14, y: 13, w: 6, h: 1, f: "#5b21b6" },  // wing-base ties to back
       { c: "wing-membrane", x: 13, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 16, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 19, y: 11, w: 1, h: 2, f: "#a78bfa" },
