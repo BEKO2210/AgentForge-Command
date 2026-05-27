@@ -908,13 +908,15 @@ const SPRITES = {
   firefly: {
     label: "firefly",
     base: [
-      // wings (translucent yellow)
+      // wings (translucent yellow) + central vein for clear insect shape
       { c: "wing-l", x: 5,  y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
       { c: "wing-l", x: 7,  y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
       { c: "wing-l-edge", x: 5,  y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      { c: "wing-l-vein", x: 5,  y: 14, w: 8, h: 1, f: "#a16207", o: 0.7 },
       { c: "wing-r", x: 14, y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
       { c: "wing-r", x: 15, y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
       { c: "wing-r-edge", x: 14, y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      { c: "wing-r-vein", x: 14, y: 14, w: 8, h: 1, f: "#a16207", o: 0.7 },
       // body segments (each with outline + highlight)
       { c: "head-outline", x: 8, y: 13, w: 6, h: 1, f: "#4a2906" },
       { c: "head-outline", x: 8, y: 18, w: 6, h: 1, f: "#4a2906" },
@@ -934,9 +936,10 @@ const SPRITES = {
       { c: "antenna", x: 11, y: 11, w: 1, h: 3, f: "#4a2906" },
       { c: "antenna-tip", x: 7, y: 10, w: 2, h: 1, f: "#fde047" },
       { c: "antenna-tip", x: 11, y: 10, w: 2, h: 1, f: "#fde047" },
-      // eye
+      // eye + small bright highlight (hidden until reading/listening)
       { c: "eye-w", x: 10, y: 15, w: 1, h: 1, f: "#fff" },
       { c: "eye",   x: 10, y: 15, w: 1, h: 1, f: "#000" },
+      { c: "eye-hi", x: 10, y: 15, w: 1, h: 1, f: "#fef9c3", o: 0 },
       // legs
       { c: "leg", x: 10, y: 18, w: 1, h: 3, f: "#4a2906" },
       { c: "leg", x: 13, y: 19, w: 1, h: 3, f: "#4a2906" },
@@ -947,6 +950,21 @@ const SPRITES = {
       { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 5, f: "#fef08a" },
       { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 1, f: "#fef9c3" },
       { c: "lantern-core", x: 22, y: 19, w: 4, h: 3, f: "#fff" },
+      // lantern rim — small dark separator where the bulb meets the abdomen
+      { c: "lantern-rim", x: 20, y: 18, w: 1, h: 5, f: "#4a2906", o: 0.5 },
+      // ── LANTERN RAYS (hidden — fan out for success / celebrating) ──
+      { c: "ray", x: 24, y: 13, w: 1, h: 3, f: "#fef08a", o: 0 },
+      { c: "ray", x: 29, y: 14, w: 2, h: 2, f: "#fef08a", o: 0 },
+      { c: "ray", x: 30, y: 19, w: 2, h: 1, f: "#fef08a", o: 0 },
+      { c: "ray", x: 29, y: 24, w: 2, h: 2, f: "#fef08a", o: 0 },
+      { c: "ray", x: 24, y: 25, w: 1, h: 3, f: "#fef08a", o: 0 },
+      // ── ASH PARTICLES (hidden — fall during error) ──
+      { c: "ash", x: 22, y: 26, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      { c: "ash", x: 25, y: 28, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      { c: "ash", x: 28, y: 27, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      // ── WARNING BANG "!" (hidden — appears in warning) ──
+      { c: "bang", x: 25, y: 13, w: 1, h: 3, f: "#f59e0b", o: 0 },
+      { c: "bang", x: 25, y: 17, w: 1, h: 1, f: "#f59e0b", o: 0 },
     ],
     evo: [
       [ { c: "spark s1", x: 2,  y: 4,  w: 1, h: 1, f: "currentColor" } ],
@@ -994,7 +1012,7 @@ const SPRITES = {
       { c: "leg-hi", x: 9,  y: 22, w: 1, h: 1, f: "#7c3aed" },
       { c: "leg-hi", x: 14, y: 22, w: 1, h: 1, f: "#7c3aed" },
       { c: "leg-hi", x: 19, y: 22, w: 1, h: 1, f: "#7c3aed" },
-      // wing (folded back, with membranes)
+      // wing (folded back, with membranes) + pointed bat-like tip
       { c: "wing-outline", x: 11, y: 7, w: 10, h: 1, f: "#3b0764" },
       { c: "wing-outline", x: 11, y: 13, w: 10, h: 1, f: "#3b0764" },
       { c: "wing", x: 12, y: 8, w: 8, h: 5, f: "#5b21b6" },
@@ -1003,6 +1021,11 @@ const SPRITES = {
       { c: "wing-membrane", x: 13, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 16, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 19, y: 11, w: 1, h: 2, f: "#a78bfa" },
+      // wing tip — extra triangle of plumage poking up over the shoulder
+      { c: "wing-tip", x: 20, y: 9, w: 2, h: 2, f: "#5b21b6" },
+      { c: "wing-tip-outline", x: 20, y: 8, w: 2, h: 1, f: "#3b0764" },
+      { c: "wing-tip-outline", x: 22, y: 9, w: 1, h: 2, f: "#3b0764" },
+      { c: "wing-tip-outline", x: 20, y: 11, w: 2, h: 1, f: "#3b0764" },
       // back spikes (gold)
       { c: "spike", x: 10, y: 11, w: 1, h: 3, f: "#fcd34d" },
       { c: "spike", x: 10, y: 11, w: 1, h: 1, f: "#fde68a" },
@@ -1024,9 +1047,24 @@ const SPRITES = {
       // eye (gold)
       { c: "eye-w", x: 3, y: 15, w: 2, h: 2, f: "#fcd34d" },
       { c: "eye",   x: 3, y: 15, w: 1, h: 1, f: "#000" },
+      // nostril (a single dark snout pixel for character)
+      { c: "nostril", x: 2, y: 14, w: 1, h: 1, f: "#3b0764" },
+      // belly scales (subtle horizontal striping for reptile texture)
+      { c: "belly-scale", x: 10, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
+      { c: "belly-scale", x: 14, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
+      { c: "belly-scale", x: 18, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
       // smoke breath
       { c: "breath", x: 0, y: 16, w: 2, h: 1, f: "currentColor", o: 0.6 },
       { c: "breath", x: 0, y: 15, w: 1, h: 1, f: "currentColor", o: 0.4 },
+      // ── MOUTH FIRE LAYERS (hidden — flare up in working / success / celebrating) ──
+      { c: "mouth-fire", x: 0, y: 16, w: 2, h: 1, f: "#f97316", o: 0 },
+      { c: "mouth-fire", x: 0, y: 15, w: 1, h: 2, f: "#fb923c", o: 0 },
+      { c: "mouth-fire", x: 0, y: 17, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      // ── SPARKLES (hidden — appear in success / celebrating) ──
+      { c: "sparkle", x: 24, y: 3, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 30, y: 5, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 28, y: 11, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 1,  y: 7, w: 1, h: 1, f: "#fff", o: 0 },
     ],
     evo: [
       [ { c: "star", x: 26, y: 4, w: 2, h: 2, f: "#fcd34d" } ],
