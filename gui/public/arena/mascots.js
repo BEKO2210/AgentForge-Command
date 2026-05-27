@@ -150,70 +150,103 @@ const SPRITES = {
   },
 
   /* ── SENTINEL — Guardian Owl ──────────────────────────────────────── *
-   * Ramp: #3b2418 / #6b4630 / #a07655 / #d9b58f                          *
-   * Heart-shaped face disc, huge yellow eyes (eye-bg yellow + black     *
-   * pupil + 1px white glint), small triangular beak, ear tufts, talons. */
+   * Ramp: #3b2418 / #6b4630 / #a07655 / #d9b58f   feather brown          *
+   *       #fcd34d / #fde68a                       eye yellow + glow      *
+   *       #f59e0b / #b45309                       beak + talons          *
+   *
+   * Improvements vs. the old sprite:
+   *   - Body silhouette rounded off (chamfered corners) so the bird
+   *     reads as a sphere, not a square block.
+   *   - Heart-shaped face disc — narrower at the top, wider mid-face,
+   *     pointed at the beak — instead of a flat rectangle.
+   *   - Eyes now have a separate `r-eye-lid` strip we can drop down for
+   *     real blink + slow-close animations.
+   *   - Pupils split off the eye-bg so they can track left↔right inside
+   *     the yellow sclera without warping the whole eye.
+   *   - Tiny scan-line ring around the head (visible only in scan / read
+   *     states) gives Sentinel its "security camera" personality. */
   owl: {
     label: "guardian owl",
     base: [
-      // outline (silhouette)
-      { c: "body-outline", x: 7, y: 25, w: 18, h: 1, f: "#3b2418" },
-      { c: "body-outline", x: 6, y: 11, w: 1, h: 14, f: "#3b2418" },
-      { c: "body-outline", x: 25, y: 11, w: 1, h: 14, f: "#3b2418" },
-      { c: "body-outline", x: 6, y: 6, w: 20, h: 1, f: "#3b2418" },
-      { c: "body-outline", x: 5, y: 7, w: 1, h: 5, f: "#3b2418" },
-      { c: "body-outline", x: 26, y: 7, w: 1, h: 5, f: "#3b2418" },
-      // body (base)
-      { c: "body", x: 7, y: 11, w: 18, h: 14, f: "#6b4630" },
-      // top-left highlight on the body
-      { c: "body-hi", x: 7, y: 11, w: 4, h: 1, f: "#a07655" },
-      { c: "body-hi", x: 7, y: 12, w: 1, h: 4, f: "#a07655" },
-      // bottom-right shadow on body
-      { c: "body-sh", x: 22, y: 18, w: 3, h: 7, f: "#3b2418" },
-      // chest disc (lighter)
-      { c: "chest", x: 9, y: 14, w: 14, h: 11, f: "#a07655" },
-      { c: "chest-hi", x: 9, y: 14, w: 3, h: 1, f: "#d9b58f" },
-      // chest feather hints
-      { c: "feather", x: 12, y: 18, w: 2, h: 1, f: "#6b4630" },
-      { c: "feather", x: 16, y: 18, w: 2, h: 1, f: "#6b4630" },
-      { c: "feather", x: 14, y: 20, w: 2, h: 1, f: "#6b4630" },
-      // head
-      { c: "head", x: 6, y: 7, w: 20, h: 7, f: "#6b4630" },
-      { c: "head", x: 8, y: 5, w: 16, h: 2, f: "#6b4630" },
-      { c: "head", x: 9, y: 4, w: 14, h: 1, f: "#6b4630" },
-      // head highlight (top-left)
-      { c: "head-hi", x: 7, y: 7, w: 5, h: 1, f: "#a07655" },
-      { c: "head-hi", x: 9, y: 5, w: 4, h: 1, f: "#a07655" },
-      // ear tufts
-      { c: "tuft",  x: 6, y: 3, w: 3, h: 2, f: "#3b2418" },
-      { c: "tuft",  x: 7, y: 2, w: 1, h: 1, f: "#3b2418" },
-      { c: "tuft",  x: 23, y: 3, w: 3, h: 2, f: "#3b2418" },
-      { c: "tuft",  x: 24, y: 2, w: 1, h: 1, f: "#3b2418" },
-      // face disc (cream/pale around the eyes)
-      { c: "face", x: 8, y: 8, w: 16, h: 5, f: "#d9b58f" },
-      // huge eyes (yellow with black pupil and white glint)
-      { c: "eye-bg",    x:  9, y:  8, w: 5, h: 5, f: "#fcd34d" },
-      { c: "eye-bg",    x: 18, y:  8, w: 5, h: 5, f: "#fcd34d" },
-      { c: "eye-pupil", x: 10, y:  9, w: 3, h: 3, f: "#0f172a" },
-      { c: "eye-pupil", x: 19, y:  9, w: 3, h: 3, f: "#0f172a" },
-      { c: "eye-glint", x: 11, y:  9, w: 1, h: 1, f: "#fff" },
-      { c: "eye-glint", x: 20, y:  9, w: 1, h: 1, f: "#fff" },
-      // beak
-      { c: "beak", x: 15, y: 13, w: 2, h: 2, f: "#f59e0b" },
-      { c: "beak", x: 16, y: 15, w: 1, h: 1, f: "#b45309" },
-      // talons — single bar + three claws
-      { c: "talon", x:  9, y: 25, w: 14, h: 1, f: "#f59e0b" },
-      { c: "talon", x: 10, y: 26, w:  2, h: 1, f: "#b45309" },
-      { c: "talon", x: 15, y: 26, w:  2, h: 1, f: "#b45309" },
-      { c: "talon", x: 20, y: 26, w:  2, h: 1, f: "#b45309" },
+      // outline silhouette — chamfered corners (no sharp 90° at top)
+      { c: "body-outline", x: 8,  y:  6, w: 16, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 7,  y:  7, w:  1, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 24, y:  7, w:  1, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 6,  y:  8, w:  1, h: 16, f: "#3b2418" },
+      { c: "body-outline", x: 25, y:  8, w:  1, h: 16, f: "#3b2418" },
+      { c: "body-outline", x: 7,  y: 24, w:  1, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 24, y: 24, w:  1, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 8,  y: 25, w: 16, h: 1, f: "#3b2418" },
+      // body (base) — fills inside the outline
+      { c: "body", x: 7, y:  7, w: 18, h:  1, f: "#6b4630" },
+      { c: "body", x: 7, y: 24, w: 18, h:  1, f: "#6b4630" },
+      { c: "body", x: 7, y:  8, w: 18, h: 16, f: "#6b4630" },
+      // top-left highlight + bottom-right shadow
+      { c: "body-hi", x:  8, y:  7, w: 5, h: 1, f: "#a07655" },
+      { c: "body-hi", x:  7, y:  8, w: 1, h: 5, f: "#a07655" },
+      { c: "body-sh", x: 22, y: 19, w: 3, h: 6, f: "#3b2418" },
+      { c: "body-sh", x: 19, y: 24, w: 5, h: 1, f: "#3b2418" },
+      // chest disc (lighter, pointed at the bottom for owl belly shape)
+      { c: "chest",    x:  9, y: 14, w: 14, h: 10, f: "#a07655" },
+      { c: "chest",    x: 11, y: 24, w: 10, h:  1, f: "#a07655" },
+      { c: "chest-hi", x:  9, y: 14, w:  4, h:  1, f: "#d9b58f" },
+      // chest feather hints (V-shaped)
+      { c: "feather", x: 11, y: 17, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 15, y: 17, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 19, y: 17, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 13, y: 20, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 17, y: 20, w: 2, h: 1, f: "#6b4630" },
+      // head highlight + shadow
+      { c: "head-hi", x: 8,  y:  7, w: 5, h: 1, f: "#a07655" },
+      { c: "head-hi", x: 7,  y:  8, w: 1, h: 3, f: "#a07655" },
+      // ear tufts — taller + pointier
+      { c: "tuft",  x: 6,  y: 4, w: 2, h: 3, f: "#3b2418" },
+      { c: "tuft",  x: 7,  y: 2, w: 1, h: 2, f: "#3b2418" },
+      { c: "tuft",  x: 24, y: 4, w: 2, h: 3, f: "#3b2418" },
+      { c: "tuft",  x: 24, y: 2, w: 1, h: 2, f: "#3b2418" },
+      // HEART-SHAPED face disc — narrower top, wider mid, pointed bottom
+      { c: "face", x: 10, y:  8, w: 12, h: 1, f: "#d9b58f" },
+      { c: "face", x:  9, y:  9, w: 14, h: 4, f: "#d9b58f" },
+      { c: "face", x: 10, y: 13, w: 12, h: 1, f: "#d9b58f" },
+      { c: "face", x: 12, y: 14, w:  8, h: 1, f: "#d9b58f" },
+      // face shadow — vertical groove down the middle (heart split)
+      { c: "face-groove", x: 15, y: 12, w: 2, h: 3, f: "#a07655", o: 0.6 },
+      // eyes — separate sclera, pupil, glint, AND a lid that drops for blink
+      { c: "eye-bg",    x:  9, y:  9, w: 5, h: 4, f: "#fcd34d" },
+      { c: "eye-bg",    x: 18, y:  9, w: 5, h: 4, f: "#fcd34d" },
+      { c: "eye-rim",   x:  9, y:  9, w: 5, h: 1, f: "#b45309" },
+      { c: "eye-rim",   x: 18, y:  9, w: 5, h: 1, f: "#b45309" },
+      { c: "eye-pupil", x: 11, y: 10, w: 2, h: 3, f: "#0f172a" },
+      { c: "eye-pupil", x: 19, y: 10, w: 2, h: 3, f: "#0f172a" },
+      { c: "eye-glint", x: 11, y: 10, w: 1, h: 1, f: "#fff" },
+      { c: "eye-glint", x: 19, y: 10, w: 1, h: 1, f: "#fff" },
+      // eye lids — drop these down in CSS for blink (default position: hidden up top)
+      { c: "eye-lid",   x:  9, y:  8, w: 5, h: 1, f: "#6b4630" },
+      { c: "eye-lid",   x: 18, y:  8, w: 5, h: 1, f: "#6b4630" },
+      // beak — wider base, pointed tip
+      { c: "beak",      x: 15, y: 13, w: 2, h: 2, f: "#f59e0b" },
+      { c: "beak",      x: 15, y: 15, w: 2, h: 1, f: "#f59e0b" },
+      { c: "beak",      x: 16, y: 16, w: 1, h: 1, f: "#b45309" },
+      // talons — single perch bar + three curved claws
+      { c: "talon", x:  8, y: 26, w: 16, h: 1, f: "#f59e0b" },
+      { c: "talon", x:  9, y: 27, w:  3, h: 1, f: "#b45309" },
+      { c: "talon", x: 14, y: 27, w:  4, h: 1, f: "#b45309" },
+      { c: "talon", x: 20, y: 27, w:  3, h: 1, f: "#b45309" },
     ],
     evo: [
-      [ { c: "scan", x: 6, y: 14, w: 20, h: 1, f: "currentColor", o: 0.7 } ],
-      [ { c: "feather", x: 13, y: 16, w: 1, h: 1, f: "#3b2418" },
-        { c: "feather", x: 18, y: 16, w: 1, h: 1, f: "#3b2418" } ],
+      // lvl 2 — scan ring around the head (camera-style)
+      [ { c: "scan-ring", x:  5, y: 13, w: 22, h: 1, f: "currentColor", o: 0.55 } ],
+      // lvl 3 — tail feather row at bottom
+      [ { c: "tail-feather", x: 10, y: 23, w: 1, h: 1, f: "#3b2418" },
+        { c: "tail-feather", x: 14, y: 23, w: 1, h: 1, f: "#3b2418" },
+        { c: "tail-feather", x: 18, y: 23, w: 1, h: 1, f: "#3b2418" },
+        { c: "tail-feather", x: 22, y: 23, w: 1, h: 1, f: "#3b2418" } ],
+      // lvl 4 — wing edges
       [ { c: "wing", x: 5,  y: 14, w: 2, h: 8, f: "#3b2418" },
-        { c: "wing", x: 25, y: 14, w: 2, h: 8, f: "#3b2418" } ],
-      [ { c: "aura", x: 3, y: 3, w: 26, h: 26, f: "currentColor", o: 0.12, } ],
+        { c: "wing", x: 25, y: 14, w: 2, h: 8, f: "#3b2418" },
+        { c: "wing-hi", x: 5, y: 14, w: 1, h: 4, f: "#6b4630" } ],
+      // lvl 5 — guardian aura (subtle halo)
+      [ { c: "aura", x: 3, y: 3, w: 26, h: 26, f: "currentColor", o: 0.12 } ],
     ],
   },
 
