@@ -1,25 +1,23 @@
-// AgentForge mascots — pixel-art primitives.
+// AgentForge mascots — disciplined pixel-art primitives.
 //
 // Every mascot is built from `<rect>` elements only — no paths, no curves.
-// Same approach Claude's own mascot animations use ([Codrops, May 2026]).
-// That choice has three concrete payoffs:
+// What changed in this revision: each species now has a deliberate 4-tone
+// COLOUR RAMP (shadow / base / mid / spec) plus accent colours, drawn with
+// a consistent top-left light source. Outlines use the shadow tone so the
+// silhouette reads cleanly even at small sizes. This is the discipline
+// premium pixel art uses — without it, flat fills look amateurish even
+// when the silhouette is correct.
 //
-// 1. **Recognisability.** A pixel silhouette reads as the animal almost
-//    immediately — turtles get shells, owls get giant eye pairs, foxes get
-//    sharp ear triangles. Where the previous line-art primitives had to be
-//    studied, the silhouette here is the whole point.
-// 2. **Animation cost.** Animating individual `<rect>`s with CSS transforms
-//    (translate / scaleY / rotate) costs nothing and reads as deliberate
-//    animation: wing flap = two rects scaleY 1 ↔ 0.4, blink = pupil scaleY
-//    1 ↔ 0.1, breath = body translateY ±1px.
-// 3. **Theme fit.** Pixel-art matches a terminal cockpit — anything painterly
-//    would fight the rest of the UI.
+// Convention per mascot:
+//   - shadow → 1px outline + bottom/right body edges + cast shadow strips
+//   - base   → main body fill
+//   - mid    → top/left highlights (light source is at upper-left)
+//   - spec   → 1-2 pixel specular sparks for shells/eyes/feathers
+//   - accent → species-specific colour (eye iris, beak, scarf, lantern…)
 //
-// SVG `viewBox` is 32×32 for every species. Evolution levels (1..5) add
-// ornament rects on top of the base — see SPRITES[*].evo[].
-//
-// Naming: each rect carries the class `r-<id>` where <id> is the body-part
-// it belongs to. CSS targets these classes for per-part animation.
+// CSS classes on each rect (.r-eye, .r-wing-l, …) are preserved from the
+// previous revision so the animation rules in styles.css keep working
+// without changes.
 
 const RECTS = (rects) =>
   rects.map((r) => {
@@ -31,9 +29,9 @@ const RECTS = (rects) =>
 /**
  * Render a mascot.
  * @param {object} opt
- * @param {string} opt.mascot   - turtle, owl, fox, mole, chameleon, bat,
- *                                 hummingbird, raven, raccoon, darkRaven,
- *                                 firefly, dragon
+ * @param {string} opt.mascot   - turtle | owl | fox | mole | chameleon | bat |
+ *                                hummingbird | raven | raccoon | darkRaven |
+ *                                firefly | dragon
  * @param {number} [opt.level]  - 1..5 evolution level
  * @param {string} [opt.color]  - accent colour used by the halo + sparks
  * @param {string} [opt.state]  - idle | thinking | working | success | warning
@@ -44,8 +42,6 @@ export function renderMascot({ mascot, level = 1, color = "#5b8cff", state = "id
   const lvl = Math.max(1, Math.min(5, level | 0));
   const spec = SPRITES[mascot] || SPRITES.turtle;
   const base = RECTS(spec.base);
-  // Evolution layers stack additively — at level 3 the level-1, -2, -3
-  // ornaments are all on. Each layer is rendered above the base body.
   let evo = "";
   for (let i = 0; i < lvl - 1 && spec.evo && spec.evo[i]; i++) {
     evo += RECTS(spec.evo[i]);
@@ -67,270 +63,359 @@ export function renderMascot({ mascot, level = 1, color = "#5b8cff", state = "id
 /* ----------------------------------------------------------------------- *
  *  Sprite library
  *
- *  Each species is a base body + up to 4 evolution layers. All coordinates
- *  fit in a 32×32 grid. The first level is the bare silhouette; layers add
- *  accessories, glow, and identity markers.
+ *  Each entry declares its colour ramp inline at the top of the comment so
+ *  it's easy to see which palette it lives in. Within the rect list, the
+ *  order is: outline → base body → highlights → details → accessories.
+ *  Reading the file you should be able to picture the mascot before you
+ *  even render it.
  * ----------------------------------------------------------------------- */
 
 const SPRITES = {
 
   /* ── ATLAS — Cyber Turtle ─────────────────────────────────────────── *
-   * Iconic green shell (with hex pattern), small head with two pixel
-   * eyes, four stubby legs, short tail. Antenna at evolution 5.            */
+   * Ramp: #1f3a25 / #3f7a4a / #6dc176 / #b6f0bd   shell green
+   *       #5fa86d / #7bbd8a                        skin (head/neck/tail)
+   * Iconic green dome shell with a top-left highlight band, hex tile
+   * pattern in the shadow tone, small head poking out left. Antenna
+   * gold tip at evo 5.                                                  */
   turtle: {
     label: "cyber turtle",
     base: [
-      // shadow strip
-      { c: "shadow", x: 6,  y: 25, w: 20, h: 1,  f: "#000", o: 0.35 },
-      // four legs
-      { c: "leg",  x: 6,  y: 21, w: 3, h: 4, f: "#3f6c45" },
-      { c: "leg",  x: 23, y: 21, w: 3, h: 4, f: "#3f6c45" },
-      { c: "leg",  x: 9,  y: 22, w: 3, h: 3, f: "#3f6c45" },
-      { c: "leg",  x: 20, y: 22, w: 3, h: 3, f: "#3f6c45" },
-      // shell shadow / underside
-      { c: "shell-base", x: 5, y: 14, w: 22, h: 8, f: "#2a4530" },
-      // shell main dome
-      { c: "shell", x: 6,  y: 11, w: 20, h: 10, f: "#4a8a55" },
-      { c: "shell", x: 7,  y: 10, w: 18, h: 1,  f: "#4a8a55" },
-      { c: "shell", x: 8,  y: 9,  w: 16, h: 1,  f: "#4a8a55" },
-      // shell highlight
-      { c: "shell-light", x: 8, y: 11, w: 5, h: 1, f: "#7bbd8a" },
-      { c: "shell-light", x: 7, y: 12, w: 3, h: 1, f: "#7bbd8a" },
-      // shell pattern (hex tiles)
-      { c: "shell-pattern", x: 11, y: 13, w: 3, h: 3, f: "#3f6c45" },
-      { c: "shell-pattern", x: 16, y: 13, w: 3, h: 3, f: "#3f6c45" },
-      { c: "shell-pattern", x: 13, y: 17, w: 3, h: 3, f: "#3f6c45" },
-      { c: "shell-pattern", x: 18, y: 16, w: 3, h: 2, f: "#3f6c45" },
-      // tail — tapered triangle hanging off the back-right of the shell
-      { c: "tail", x: 25, y: 18, w: 3, h: 2, f: "#5fa86d" },
-      { c: "tail", x: 27, y: 19, w: 2, h: 1, f: "#5fa86d" },
-      // head + neck
-      { c: "neck", x: 3,  y: 16, w: 3, h: 3, f: "#5fa86d" },
-      { c: "head", x: 1,  y: 14, w: 5, h: 5, f: "#5fa86d" },
-      // eyes (two black pixels) + tiny beak/mouth so the face reads
-      { c: "eye",   x: 2,  y: 15, w: 1, h: 1, f: "#000" },
-      { c: "eye",   x: 4,  y: 15, w: 1, h: 1, f: "#000" },
-      { c: "mouth", x: 0,  y: 17, w: 2, h: 1, f: "#3f6c45" },
+      // soft cast shadow
+      { c: "cast", x: 6, y: 26, w: 20, h: 1, f: "#000", o: 0.4 },
+      // legs (base + shadow under)
+      { c: "leg", x:  6, y: 22, w: 3, h: 3, f: "#3f7a4a" },
+      { c: "leg", x:  6, y: 25, w: 3, h: 1, f: "#1f3a25" },
+      { c: "leg", x: 23, y: 22, w: 3, h: 3, f: "#3f7a4a" },
+      { c: "leg", x: 23, y: 25, w: 3, h: 1, f: "#1f3a25" },
+      { c: "leg", x: 10, y: 23, w: 3, h: 2, f: "#3f7a4a" },
+      { c: "leg", x: 19, y: 23, w: 3, h: 2, f: "#3f7a4a" },
+      // shell — outline first (shadow tone)
+      { c: "shell-outline", x:  4, y: 13, w: 24, h: 1, f: "#1f3a25" },
+      { c: "shell-outline", x:  3, y: 14, w:  1, h: 8, f: "#1f3a25" },
+      { c: "shell-outline", x: 28, y: 14, w:  1, h: 8, f: "#1f3a25" },
+      { c: "shell-outline", x:  4, y: 22, w: 24, h: 1, f: "#1f3a25" },
+      { c: "shell-outline", x:  6, y: 11, w: 20, h: 1, f: "#1f3a25" },
+      { c: "shell-outline", x:  8, y:  9, w: 16, h: 1, f: "#1f3a25" },
+      // shell base fill
+      { c: "shell", x:  4, y: 14, w: 24, h: 8, f: "#3f7a4a" },
+      { c: "shell", x:  6, y: 12, w: 20, h: 2, f: "#3f7a4a" },
+      { c: "shell", x:  8, y: 10, w: 16, h: 2, f: "#3f7a4a" },
+      // top-left highlight band (mid)
+      { c: "shell-hi", x:  9, y: 11, w: 10, h: 1, f: "#6dc176" },
+      { c: "shell-hi", x:  6, y: 13, w:  4, h: 1, f: "#6dc176" },
+      { c: "shell-hi", x:  5, y: 14, w:  1, h: 4, f: "#6dc176" },
+      // bottom-right shadow band on the shell (darker base)
+      { c: "shell-sh", x: 22, y: 19, w:  5, h: 3, f: "#2a4f30" },
+      { c: "shell-sh", x: 26, y: 15, w:  2, h: 4, f: "#2a4f30" },
+      // specular spark — single bright pixel top-left
+      { c: "shell-spec", x:  7, y: 13, w: 2, h: 1, f: "#b6f0bd" },
+      // hex pattern in the shadow tone
+      { c: "shell-pattern", x: 12, y: 14, w: 3, h: 2, f: "#1f3a25" },
+      { c: "shell-pattern", x: 17, y: 14, w: 3, h: 2, f: "#1f3a25" },
+      { c: "shell-pattern", x: 14, y: 18, w: 4, h: 2, f: "#1f3a25" },
+      // tail
+      { c: "tail", x: 26, y: 17, w: 3, h: 2, f: "#5fa86d" },
+      { c: "tail", x: 28, y: 18, w: 1, h: 1, f: "#1f3a25" },
+      // neck + head with outline
+      { c: "head-outline", x: 3, y: 17, w: 1, h: 2, f: "#1f3a25" },
+      { c: "head-outline", x: 0, y: 14, w: 6, h: 1, f: "#1f3a25" },
+      { c: "head-outline", x: 0, y: 19, w: 6, h: 1, f: "#1f3a25" },
+      { c: "head-outline", x: 0, y: 15, w: 1, h: 4, f: "#1f3a25" },
+      { c: "neck", x: 3, y: 16, w: 3, h: 3, f: "#5fa86d" },
+      { c: "head", x: 1, y: 15, w: 5, h: 4, f: "#5fa86d" },
+      { c: "head-hi", x: 1, y: 15, w: 4, h: 1, f: "#7bbd8a" },
+      // eyes (whites + black pupils for definition at 32px)
+      { c: "eye-w", x: 2, y: 16, w: 2, h: 2, f: "#fff" },
+      { c: "eye",   x: 2, y: 16, w: 1, h: 1, f: "#000" },
+      { c: "eye-w", x: 4, y: 16, w: 1, h: 2, f: "#fff" },
+      { c: "eye",   x: 4, y: 16, w: 1, h: 1, f: "#000" },
+      // small mouth
+      { c: "mouth", x: 1, y: 18, w: 2, h: 1, f: "#1f3a25" },
     ],
     evo: [
-      // lvl 2 — radar dot on shell
+      // lvl 2 — radar dot top of shell
       [ { c: "radar", x: 15, y: 9, w: 2, h: 2, f: "currentColor" } ],
-      // lvl 3 — shell lights blink
-      [ { c: "shell-led", x: 10, y: 14, w: 1, h: 1, f: "currentColor" },
-        { c: "shell-led", x: 20, y: 14, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 4 — command-bridge bar
-      [ { c: "bridge", x: 8,  y: 8, w: 16, h: 1, f: "currentColor", o: 0.7 } ],
-      // lvl 5 — antenna
-      [ { c: "antenna",     x: 15, y: 3, w: 2, h: 6, f: "currentColor" },
-        { c: "antenna-tip", x: 14, y: 1, w: 4, h: 2, f: "currentColor" } ],
+      // lvl 3 — shell LEDs
+      [ { c: "shell-led", x: 10, y: 15, w: 1, h: 1, f: "currentColor" },
+        { c: "shell-led", x: 21, y: 15, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 4 — bridge bar
+      [ { c: "bridge", x: 8, y: 8, w: 16, h: 1, f: "currentColor", o: 0.7 } ],
+      // lvl 5 — gold antenna
+      [ { c: "antenna",     x: 15, y: 3, w: 2, h: 6, f: "#fcd34d" },
+        { c: "antenna",     x: 16, y: 3, w: 1, h: 6, f: "#fde68a" },
+        { c: "antenna-tip", x: 13, y: 1, w: 6, h: 2, f: "#fcd34d" },
+        { c: "antenna-tip", x: 14, y: 1, w: 4, h: 1, f: "#fde68a" } ],
     ],
   },
 
   /* ── SENTINEL — Guardian Owl ──────────────────────────────────────── *
-   * Stout body, big yellow eyes that fill half the head, tiny triangular
-   * beak, two ear tufts, talon row. Pupils blink. Scan-line at evo 2.       */
+   * Ramp: #3b2418 / #6b4630 / #a07655 / #d9b58f                          *
+   * Heart-shaped face disc, huge yellow eyes (eye-bg yellow + black     *
+   * pupil + 1px white glint), small triangular beak, ear tufts, talons. */
   owl: {
     label: "guardian owl",
     base: [
-      // body
-      { c: "body", x: 7,  y: 11, w: 18, h: 14, f: "#5e3f2d" },
-      { c: "body", x: 8,  y: 10, w: 16, h: 1,  f: "#5e3f2d" },
-      // chest
-      { c: "chest", x: 10, y: 16, w: 12, h: 9, f: "#a07655" },
+      // outline (silhouette)
+      { c: "body-outline", x: 7, y: 25, w: 18, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 6, y: 11, w: 1, h: 14, f: "#3b2418" },
+      { c: "body-outline", x: 25, y: 11, w: 1, h: 14, f: "#3b2418" },
+      { c: "body-outline", x: 6, y: 6, w: 20, h: 1, f: "#3b2418" },
+      { c: "body-outline", x: 5, y: 7, w: 1, h: 5, f: "#3b2418" },
+      { c: "body-outline", x: 26, y: 7, w: 1, h: 5, f: "#3b2418" },
+      // body (base)
+      { c: "body", x: 7, y: 11, w: 18, h: 14, f: "#6b4630" },
+      // top-left highlight on the body
+      { c: "body-hi", x: 7, y: 11, w: 4, h: 1, f: "#a07655" },
+      { c: "body-hi", x: 7, y: 12, w: 1, h: 4, f: "#a07655" },
+      // bottom-right shadow on body
+      { c: "body-sh", x: 22, y: 18, w: 3, h: 7, f: "#3b2418" },
+      // chest disc (lighter)
+      { c: "chest", x: 9, y: 14, w: 14, h: 11, f: "#a07655" },
+      { c: "chest-hi", x: 9, y: 14, w: 3, h: 1, f: "#d9b58f" },
+      // chest feather hints
+      { c: "feather", x: 12, y: 18, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 16, y: 18, w: 2, h: 1, f: "#6b4630" },
+      { c: "feather", x: 14, y: 20, w: 2, h: 1, f: "#6b4630" },
       // head
-      { c: "head", x: 6,  y: 6,  w: 20, h: 8,  f: "#5e3f2d" },
-      { c: "head", x: 7,  y: 5,  w: 18, h: 1,  f: "#5e3f2d" },
-      { c: "head", x: 9,  y: 4,  w: 14, h: 1,  f: "#5e3f2d" },
+      { c: "head", x: 6, y: 7, w: 20, h: 7, f: "#6b4630" },
+      { c: "head", x: 8, y: 5, w: 16, h: 2, f: "#6b4630" },
+      { c: "head", x: 9, y: 4, w: 14, h: 1, f: "#6b4630" },
+      // head highlight (top-left)
+      { c: "head-hi", x: 7, y: 7, w: 5, h: 1, f: "#a07655" },
+      { c: "head-hi", x: 9, y: 5, w: 4, h: 1, f: "#a07655" },
       // ear tufts
-      { c: "tuft",  x: 6,  y: 3, w: 2, h: 2,  f: "#5e3f2d" },
-      { c: "tuft",  x: 24, y: 3, w: 2, h: 2,  f: "#5e3f2d" },
-      // face disc (light feather ring)
-      { c: "face",  x: 8,  y: 7, w: 16, h: 7, f: "#c7a37f" },
-      // huge eyes — yellow ring + black pupil + white glint
-      { c: "eye-bg",   x: 9,  y: 8, w: 5, h: 5, f: "#fcd34d" },
-      { c: "eye-bg",   x: 18, y: 8, w: 5, h: 5, f: "#fcd34d" },
-      { c: "eye-pupil",x: 10, y: 9, w: 3, h: 3, f: "#000" },
-      { c: "eye-pupil",x: 19, y: 9, w: 3, h: 3, f: "#000" },
-      { c: "eye-glint",x: 11, y: 9, w: 1, h: 1, f: "#fff" },
-      { c: "eye-glint",x: 20, y: 9, w: 1, h: 1, f: "#fff" },
+      { c: "tuft",  x: 6, y: 3, w: 3, h: 2, f: "#3b2418" },
+      { c: "tuft",  x: 7, y: 2, w: 1, h: 1, f: "#3b2418" },
+      { c: "tuft",  x: 23, y: 3, w: 3, h: 2, f: "#3b2418" },
+      { c: "tuft",  x: 24, y: 2, w: 1, h: 1, f: "#3b2418" },
+      // face disc (cream/pale around the eyes)
+      { c: "face", x: 8, y: 8, w: 16, h: 5, f: "#d9b58f" },
+      // huge eyes (yellow with black pupil and white glint)
+      { c: "eye-bg",    x:  9, y:  8, w: 5, h: 5, f: "#fcd34d" },
+      { c: "eye-bg",    x: 18, y:  8, w: 5, h: 5, f: "#fcd34d" },
+      { c: "eye-pupil", x: 10, y:  9, w: 3, h: 3, f: "#0f172a" },
+      { c: "eye-pupil", x: 19, y:  9, w: 3, h: 3, f: "#0f172a" },
+      { c: "eye-glint", x: 11, y:  9, w: 1, h: 1, f: "#fff" },
+      { c: "eye-glint", x: 20, y:  9, w: 1, h: 1, f: "#fff" },
       // beak
       { c: "beak", x: 15, y: 13, w: 2, h: 2, f: "#f59e0b" },
-      { c: "beak", x: 16, y: 15, w: 1, h: 1, f: "#f59e0b" },
-      // talons — a single yellow bar with three claws beneath, so it
-      // reads as feet rather than three random pixels
-      { c: "talon", x: 9,  y: 25, w: 14, h: 1, f: "#f59e0b" },
-      { c: "talon", x: 10, y: 26, w: 2,  h: 1, f: "#f59e0b" },
-      { c: "talon", x: 15, y: 26, w: 2,  h: 1, f: "#f59e0b" },
-      { c: "talon", x: 20, y: 26, w: 2,  h: 1, f: "#f59e0b" },
+      { c: "beak", x: 16, y: 15, w: 1, h: 1, f: "#b45309" },
+      // talons — single bar + three claws
+      { c: "talon", x:  9, y: 25, w: 14, h: 1, f: "#f59e0b" },
+      { c: "talon", x: 10, y: 26, w:  2, h: 1, f: "#b45309" },
+      { c: "talon", x: 15, y: 26, w:  2, h: 1, f: "#b45309" },
+      { c: "talon", x: 20, y: 26, w:  2, h: 1, f: "#b45309" },
     ],
     evo: [
-      // lvl 2 — scan line under eyes
       [ { c: "scan", x: 6, y: 14, w: 20, h: 1, f: "currentColor", o: 0.7 } ],
-      // lvl 3 — chest feather pattern
-      [ { c: "feather", x: 12, y: 18, w: 2, h: 1, f: "#5e3f2d" },
-        { c: "feather", x: 16, y: 18, w: 2, h: 1, f: "#5e3f2d" },
-        { c: "feather", x: 14, y: 20, w: 2, h: 1, f: "#5e3f2d" } ],
-      // lvl 4 — wing edges
-      [ { c: "wing", x: 5,  y: 14, w: 2, h: 7, f: "#3a261a" },
-        { c: "wing", x: 25, y: 14, w: 2, h: 7, f: "#3a261a" } ],
-      // lvl 5 — aura halo
-      [ { c: "aura", x: 4, y: 5, w: 24, h: 22, f: "currentColor", o: 0.12 } ],
+      [ { c: "feather", x: 13, y: 16, w: 1, h: 1, f: "#3b2418" },
+        { c: "feather", x: 18, y: 16, w: 1, h: 1, f: "#3b2418" } ],
+      [ { c: "wing", x: 5,  y: 14, w: 2, h: 8, f: "#3b2418" },
+        { c: "wing", x: 25, y: 14, w: 2, h: 8, f: "#3b2418" } ],
+      [ { c: "aura", x: 3, y: 3, w: 26, h: 26, f: "currentColor", o: 0.12, } ],
     ],
   },
 
   /* ── AURORA — Neon Fox ────────────────────────────────────────────── *
-   * Pointy triangular head, big ears, white muzzle + chest, long bushy
-   * tail with WHITE tip, four legs. Glow stripe on tail at evo 2.          */
+   * Ramp: #8a2a08 / #e85a1c / #ff8a4d / #ffd7a8 + #fff (belly/tail tip)  *
+   * Sharp pointed head, big triangular ears, white muzzle + belly,      *
+   * BUSHY TAIL with a white tip. Lighting top-left.                     */
   fox: {
     label: "neon fox",
     base: [
-      // legs
-      { c: "leg", x: 10, y: 24, w: 2, h: 4, f: "#c2410c" },
-      { c: "leg", x: 16, y: 24, w: 2, h: 4, f: "#c2410c" },
-      { c: "leg", x: 20, y: 24, w: 2, h: 4, f: "#c2410c" },
-      // tail (orange) with white tip — stepped curve up + back
-      { c: "tail", x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
-      { c: "tail", x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
-      { c: "tail", x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
-      { c: "tail-tip", x: 27, y: 20, w: 3, h: 3, f: "#fff" },
+      // outline silhouette (back legs to ears)
+      { c: "body-outline", x: 7,  y: 26, w: 16, h: 1, f: "#8a2a08" },
+      { c: "body-outline", x: 7,  y: 15, w: 1,  h: 11, f: "#8a2a08" },
+      { c: "body-outline", x: 23, y: 15, w: 1,  h: 11, f: "#8a2a08" },
+      { c: "body-outline", x: 3,  y: 13, w: 4,  h: 1, f: "#8a2a08" },
+      { c: "body-outline", x: 13, y: 13, w: 11, h: 1, f: "#8a2a08" },
       // body
-      { c: "body", x: 8,  y: 16, w: 16, h: 9, f: "#e85a1c" },
-      { c: "body", x: 9,  y: 15, w: 14, h: 1, f: "#e85a1c" },
+      { c: "body", x: 8, y: 16, w: 15, h: 10, f: "#e85a1c" },
       // belly (white)
-      { c: "belly", x: 10, y: 21, w: 12, h: 3, f: "#fff" },
-      // head — wider, anchored to the body shoulder so it reads as a
-      // single creature rather than a floating mask
-      { c: "head", x: 5,  y: 11, w: 9,  h: 6, f: "#e85a1c" },
-      { c: "head", x: 6,  y: 10, w: 7,  h: 1, f: "#e85a1c" },
-      { c: "head", x: 7,  y: 17, w: 5,  h: 1, f: "#e85a1c" },     // jaw connection to body
-      { c: "head", x: 3,  y: 13, w: 3,  h: 3, f: "#e85a1c" },     // muzzle taper
-      // ears (orange triangles, taller for fox silhouette)
-      { c: "ear",   x: 4,  y: 7, w: 3, h: 4, f: "#e85a1c" },
-      { c: "ear",   x: 11, y: 7, w: 3, h: 4, f: "#e85a1c" },
-      // inner ear (pink)
-      { c: "ear-in", x: 5,  y: 9, w: 1, h: 2, f: "#fda4af" },
-      { c: "ear-in", x: 12, y: 9, w: 1, h: 2, f: "#fda4af" },
+      { c: "belly", x: 10, y: 21, w: 11, h: 4, f: "#fff" },
+      // top-left body highlight
+      { c: "body-hi", x: 9,  y: 16, w: 4, h: 1, f: "#ff8a4d" },
+      // bottom-right body shadow
+      { c: "body-sh", x: 20, y: 22, w: 3, h: 4, f: "#8a2a08" },
+      // legs (each leg gets a darker bottom edge)
+      { c: "leg", x: 10, y: 24, w: 2, h: 3, f: "#c2410c" },
+      { c: "leg", x: 10, y: 27, w: 2, h: 1, f: "#8a2a08" },
+      { c: "leg", x: 16, y: 24, w: 2, h: 3, f: "#c2410c" },
+      { c: "leg", x: 16, y: 27, w: 2, h: 1, f: "#8a2a08" },
+      { c: "leg", x: 20, y: 24, w: 2, h: 3, f: "#c2410c" },
+      { c: "leg", x: 20, y: 27, w: 2, h: 1, f: "#8a2a08" },
+      // tail — stepped from body up + back to a white tip
+      { c: "tail",    x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
+      { c: "tail",    x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
+      { c: "tail",    x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
+      { c: "tail-hi", x: 22, y: 14, w: 2, h: 1, f: "#ff8a4d" },
+      { c: "tail-tip", x: 27, y: 20, w: 3, h: 3, f: "#fff" },
+      { c: "tail-tip", x: 27, y: 23, w: 3, h: 1, f: "#ffd7a8" },
+      // head shape — sharp pointed snout to the left
+      { c: "head", x: 4, y: 11, w: 11, h: 6, f: "#e85a1c" },
+      { c: "head", x: 6, y: 17, w: 7,  h: 1, f: "#e85a1c" },
+      { c: "head-outline", x: 3, y: 13, w: 1, h: 3, f: "#8a2a08" },
+      { c: "head-outline", x: 14, y: 11, w: 1, h: 7, f: "#8a2a08" },
+      { c: "head-hi", x: 5, y: 11, w: 6, h: 1, f: "#ff8a4d" },
+      // ears (outline + inside)
+      { c: "ear-outline", x: 4,  y: 7, w: 1, h: 5, f: "#8a2a08" },
+      { c: "ear-outline", x: 7,  y: 7, w: 1, h: 5, f: "#8a2a08" },
+      { c: "ear-outline", x: 10, y: 7, w: 1, h: 5, f: "#8a2a08" },
+      { c: "ear-outline", x: 13, y: 7, w: 1, h: 5, f: "#8a2a08" },
+      { c: "ear", x: 5,  y: 7, w: 2, h: 5, f: "#e85a1c" },
+      { c: "ear", x: 11, y: 7, w: 2, h: 5, f: "#e85a1c" },
+      { c: "ear-in", x: 5,  y: 9, w: 2, h: 2, f: "#fda4af" },
+      { c: "ear-in", x: 11, y: 9, w: 2, h: 2, f: "#fda4af" },
       // muzzle (white)
-      { c: "muzzle", x: 3,  y: 14, w: 4, h: 2, f: "#fff" },
-      // black nose tip
-      { c: "nose",   x: 1,  y: 14, w: 2, h: 2, f: "#111" },
-      // eyes — slightly larger so they register at small sizes
-      { c: "eye",    x: 8,  y: 12, w: 1, h: 2, f: "#111" },
-      { c: "eye",    x: 12, y: 12, w: 1, h: 2, f: "#111" },
+      { c: "muzzle", x: 3, y: 14, w: 4, h: 2, f: "#fff" },
+      { c: "muzzle", x: 4, y: 13, w: 3, h: 1, f: "#fff" },
+      // nose (black with one highlight pixel)
+      { c: "nose",    x: 1, y: 14, w: 2, h: 2, f: "#0f172a" },
+      { c: "nose-hi", x: 1, y: 14, w: 1, h: 1, f: "#475569" },
+      // eyes (each: black + white glint)
+      { c: "eye",       x: 8,  y: 13, w: 1, h: 2, f: "#0f172a" },
+      { c: "eye-glint", x: 8,  y: 13, w: 1, h: 1, f: "#fcd34d" },
+      { c: "eye",       x: 12, y: 13, w: 1, h: 2, f: "#0f172a" },
+      { c: "eye-glint", x: 12, y: 13, w: 1, h: 1, f: "#fcd34d" },
     ],
     evo: [
-      // lvl 2 — tail glow stripe
       [ { c: "tail-glow", x: 22, y: 13, w: 8, h: 1, f: "currentColor", o: 0.7 } ],
-      // lvl 3 — cheek shimmer (sparkle pixel near tail)
       [ { c: "shimmer", x: 17, y: 12, w: 1, h: 1, f: "currentColor" },
         { c: "shimmer", x: 19, y: 14, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 4 — back stripe (darker accent)
-      [ { c: "stripe", x: 12, y: 16, w: 10, h: 1, f: "#9a2f0a" } ],
-      // lvl 5 — outer aura ring
+      [ { c: "stripe", x: 12, y: 16, w: 10, h: 1, f: "#8a2a08" } ],
       [ { c: "aura", x: 1, y: 8, w: 30, h: 18, f: "currentColor", o: 0.1 } ],
     ],
   },
 
   /* ── FORGE — Forge Mole ───────────────────────────────────────────── *
-   * Almost blind mole — tiny eye slit, big pink snout, two GIANT shovel
-   * claws on the front. Body brown, fur tufts at evo 3. Anvil at lvl 4.   */
+   * Ramp: #3d2818 / #6b4a32 / #8a6448 / #b48868                          *
+   * Round brown body, pink snout with nostrils, BIG silver shovel claws *
+   * (silver gets its own dark/mid/light ramp so they really look metal). */
   mole: {
     label: "forge mole",
     base: [
+      // cast shadow
+      { c: "cast", x: 6, y: 27, w: 22, h: 1, f: "#000", o: 0.35 },
+      // body outline
+      { c: "body-outline", x: 4, y: 12, w: 24, h: 1, f: "#3d2818" },
+      { c: "body-outline", x: 3, y: 13, w: 1, h: 13, f: "#3d2818" },
+      { c: "body-outline", x: 28, y: 13, w: 1, h: 13, f: "#3d2818" },
+      { c: "body-outline", x: 4, y: 26, w: 24, h: 1, f: "#3d2818" },
       // body
-      { c: "body", x: 5,  y: 12, w: 22, h: 14, f: "#5a4030" },
-      { c: "body", x: 6,  y: 11, w: 20, h: 1,  f: "#5a4030" },
-      { c: "body", x: 4,  y: 14, w: 1,  h: 10, f: "#5a4030" },
-      { c: "body", x: 27, y: 14, w: 1,  h: 10, f: "#5a4030" },
-      // belly highlight
-      { c: "belly", x: 7,  y: 18, w: 18, h: 6, f: "#7a5a44" },
-      // snout — pink, tapered: wider at the face, pointier tip
-      { c: "snout", x: 2,  y: 15, w: 4, h: 4, f: "#fb7185" },
-      { c: "snout", x: 1,  y: 16, w: 1, h: 2, f: "#fb7185" },
+      { c: "body", x: 4, y: 13, w: 24, h: 13, f: "#6b4a32" },
+      // top-left highlight
+      { c: "body-hi", x: 5, y: 13, w: 5, h: 1, f: "#8a6448" },
+      { c: "body-hi", x: 4, y: 14, w: 1, h: 4, f: "#8a6448" },
+      // bottom-right shadow
+      { c: "body-sh", x: 22, y: 22, w: 6, h: 4, f: "#3d2818" },
+      // belly
+      { c: "belly", x: 7, y: 18, w: 18, h: 6, f: "#8a6448" },
+      // snout (pink, tapered)
+      { c: "snout-outline", x: 0, y: 14, w: 1, h: 4, f: "#3d2818" },
+      { c: "snout-outline", x: 1, y: 18, w: 5, h: 1, f: "#3d2818" },
+      { c: "snout", x: 1, y: 15, w: 5, h: 3, f: "#fb7185" },
+      { c: "snout-hi", x: 1, y: 15, w: 3, h: 1, f: "#fda4af" },
       // nostrils
-      { c: "nostril", x: 2,  y: 17, w: 1, h: 1, f: "#7f1d1d" },
-      { c: "nostril", x: 4,  y: 17, w: 1, h: 1, f: "#7f1d1d" },
-      // closed-eye slit — a touch larger so it actually reads
-      { c: "eye",   x: 7,  y: 15, w: 2, h: 1, f: "#111" },
-      { c: "eye",   x: 8,  y: 14, w: 1, h: 1, f: "#111" },
+      { c: "nostril", x: 2, y: 16, w: 1, h: 1, f: "#7f1d1d" },
+      { c: "nostril", x: 4, y: 16, w: 1, h: 1, f: "#7f1d1d" },
+      // eye slit (closed eye, since moles can barely see)
+      { c: "eye", x: 7, y: 14, w: 3, h: 1, f: "#3d2818" },
       // whiskers
-      { c: "whisker", x: 0, y: 14, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
-      { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
-      // two BIG shovel claws on front
-      { c: "claw",  x: 24, y: 19, w: 6, h: 3, f: "#cbd5e1" },
-      { c: "claw",  x: 25, y: 22, w: 5, h: 1, f: "#cbd5e1" },
-      { c: "claw",  x: 26, y: 23, w: 4, h: 1, f: "#94a3b8" },
-      // claw tips (silver)
-      { c: "claw-tip", x: 29, y: 19, w: 1, h: 1, f: "#fff" },
-      { c: "claw-tip", x: 29, y: 21, w: 1, h: 1, f: "#fff" },
-      // back feet
-      { c: "foot",  x: 6,  y: 26, w: 3, h: 1, f: "#3d2a20" },
-      { c: "foot",  x: 22, y: 26, w: 3, h: 1, f: "#3d2a20" },
+      { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.8 },
+      // GIANT shovel claws (4-tone metal ramp)
+      { c: "claw-sh", x: 23, y: 18, w: 8, h: 1, f: "#475569" },     // top edge shadow
+      { c: "claw",    x: 23, y: 19, w: 8, h: 3, f: "#cbd5e1" },     // main blade
+      { c: "claw-hi", x: 23, y: 19, w: 8, h: 1, f: "#f1f5f9" },     // top highlight
+      { c: "claw-sh", x: 23, y: 22, w: 8, h: 1, f: "#64748b" },     // under-edge
+      // claw fingers
+      { c: "claw",    x: 23, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "claw",    x: 26, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "claw",    x: 29, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "claw-tip", x: 30, y: 19, w: 1, h: 3, f: "#f1f5f9" },
+      // small back feet
+      { c: "foot", x:  6, y: 26, w: 3, h: 1, f: "#3d2818" },
+      { c: "foot", x: 22, y: 26, w: 3, h: 1, f: "#3d2818" },
     ],
     evo: [
-      // lvl 2 — first spark
-      [ { c: "spark", x: 26, y: 16, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 3 — more sparks + fur tuft on head
-      [ { c: "spark", x: 28, y: 14, w: 1, h: 1, f: "currentColor" },
-        { c: "spark", x: 24, y: 14, w: 1, h: 1, f: "currentColor" },
-        { c: "fur",   x: 10, y: 10, w: 1, h: 1, f: "#3d2a20" },
-        { c: "fur",   x: 14, y: 10, w: 1, h: 1, f: "#3d2a20" } ],
-      // lvl 4 — anvil behind the mole
+      [ { c: "spark", x: 28, y: 16, w: 1, h: 1, f: "currentColor" } ],
+      [ { c: "spark", x: 25, y: 14, w: 1, h: 1, f: "currentColor" },
+        { c: "spark", x: 30, y: 17, w: 1, h: 1, f: "currentColor" },
+        { c: "fur",   x: 10, y: 11, w: 1, h: 1, f: "#3d2818" },
+        { c: "fur",   x: 14, y: 11, w: 1, h: 1, f: "#3d2818" } ],
       [ { c: "anvil",     x: 12, y: 26, w: 8, h: 1, f: "#475569" },
-        { c: "anvil-top", x: 14, y: 24, w: 4, h: 2, f: "#64748b" } ],
-      // lvl 5 — hammer floating above
-      [ { c: "hammer-head",  x: 22, y: 5, w: 4, h: 3, f: "#94a3b8" },
-        { c: "hammer-shaft", x: 23, y: 8, w: 1, h: 4, f: "#5a4030" } ],
+        { c: "anvil-top", x: 14, y: 24, w: 4, h: 2, f: "#64748b" },
+        { c: "anvil-hi",  x: 14, y: 24, w: 4, h: 1, f: "#94a3b8" } ],
+      [ { c: "hammer-head", x: 22, y:  5, w: 4, h: 3, f: "#94a3b8" },
+        { c: "hammer-hi",   x: 22, y:  5, w: 4, h: 1, f: "#cbd5e1" },
+        { c: "hammer-shaft",x: 23, y:  8, w: 1, h: 4, f: "#6b4a32" } ],
     ],
   },
 
   /* ── PRISM — Prism Chameleon ──────────────────────────────────────── *
-   * Long body, curly tail, one HUGE turret eye, tongue stub.
-   * Spots cycle colour. Crest at lvl 5.                                    */
+   * Ramp: #034a73 / #0ea5e9 / #38bdf8 / #bae6fd                          *
+   * Long body, turret eye on top with iris + glint, curled tail.        *
+   * Skin spots cycle through pink/yellow/cyan via CSS animation.        */
   chameleon: {
     label: "prism chameleon",
     base: [
-      // tail (curls)
-      { c: "tail", x: 24, y: 16, w: 5, h: 2, f: "#0ea5e9" },
-      { c: "tail", x: 27, y: 18, w: 2, h: 5, f: "#0ea5e9" },
-      { c: "tail", x: 25, y: 22, w: 3, h: 2, f: "#0ea5e9" },
-      // body main
-      { c: "body", x: 6,  y: 14, w: 20, h: 9, f: "#0ea5e9" },
-      { c: "body", x: 7,  y: 13, w: 18, h: 1, f: "#0ea5e9" },
-      // belly highlight
-      { c: "belly", x: 8,  y: 18, w: 16, h: 4, f: "#38bdf8" },
+      // body outline
+      { c: "body-outline", x: 5,  y: 13, w: 22, h: 1, f: "#034a73" },
+      { c: "body-outline", x: 5,  y: 23, w: 22, h: 1, f: "#034a73" },
+      { c: "body-outline", x: 4,  y: 14, w: 1, h: 9, f: "#034a73" },
+      { c: "body-outline", x: 27, y: 14, w: 1, h: 9, f: "#034a73" },
+      // tail (curl)
+      { c: "tail-outline", x: 27, y: 16, w: 3, h: 1, f: "#034a73" },
+      { c: "tail-outline", x: 30, y: 17, w: 1, h: 5, f: "#034a73" },
+      { c: "tail-outline", x: 28, y: 22, w: 2, h: 1, f: "#034a73" },
+      { c: "tail", x: 27, y: 17, w: 3, h: 1, f: "#0ea5e9" },
+      { c: "tail", x: 29, y: 17, w: 2, h: 5, f: "#0ea5e9" },
+      { c: "tail", x: 27, y: 21, w: 2, h: 1, f: "#0ea5e9" },
+      { c: "tail-hi", x: 29, y: 17, w: 2, h: 1, f: "#38bdf8" },
+      // body fill
+      { c: "body", x: 5, y: 14, w: 22, h: 9, f: "#0ea5e9" },
+      // top highlight
+      { c: "body-hi", x: 6, y: 14, w: 14, h: 1, f: "#38bdf8" },
+      { c: "body-hi", x: 5, y: 15, w: 1, h: 3, f: "#38bdf8" },
+      // bottom shadow
+      { c: "body-sh", x: 6, y: 22, w: 21, h: 1, f: "#034a73" },
+      { c: "body-sh", x: 20, y: 19, w: 7, h: 4, f: "#0288c4" },
+      // belly (lighter)
+      { c: "belly", x: 8, y: 18, w: 16, h: 4, f: "#38bdf8" },
       // feet (claws)
-      { c: "foot",  x: 8,  y: 23, w: 2, h: 3, f: "#0369a1" },
-      { c: "foot",  x: 14, y: 23, w: 2, h: 3, f: "#0369a1" },
-      { c: "foot",  x: 20, y: 23, w: 2, h: 3, f: "#0369a1" },
-      // toe pixels
-      { c: "toe", x: 8,  y: 26, w: 1, h: 1, f: "#0369a1" },
-      { c: "toe", x: 10, y: 26, w: 1, h: 1, f: "#0369a1" },
-      { c: "toe", x: 14, y: 26, w: 1, h: 1, f: "#0369a1" },
-      { c: "toe", x: 16, y: 26, w: 1, h: 1, f: "#0369a1" },
-      { c: "toe", x: 20, y: 26, w: 1, h: 1, f: "#0369a1" },
-      { c: "toe", x: 22, y: 26, w: 1, h: 1, f: "#0369a1" },
-      // head (squarish) — slightly wider so the turret eye has a base
-      { c: "head", x: 3,  y: 12, w: 7,  h: 7, f: "#0ea5e9" },
-      // turret eye — small dark "tower" base then a domed eye-ball on top
-      { c: "eye-cone", x: 4,  y: 9,  w: 3, h: 2, f: "#0369a1" },   // turret base (dark)
-      { c: "eye-ball", x: 3,  y: 7,  w: 5, h: 4, f: "#fef3c7" },   // pale eye dome
-      { c: "eye-iris", x: 4,  y: 8,  w: 3, h: 2, f: "#111" },
-      { c: "eye-glint",x: 4,  y: 8,  w: 1, h: 1, f: "#fff" },
-      // mouth + tongue stub
-      { c: "mouth", x: 2,  y: 16, w: 4, h: 1, f: "#0369a1" },
-      { c: "tongue",x: 1,  y: 16, w: 1, h: 1, f: "#f472b6" },
+      { c: "foot", x:  8, y: 24, w: 2, h: 3, f: "#034a73" },
+      { c: "foot", x: 14, y: 24, w: 2, h: 3, f: "#034a73" },
+      { c: "foot", x: 20, y: 24, w: 2, h: 3, f: "#034a73" },
+      { c: "toe", x:  8, y: 27, w: 1, h: 1, f: "#034a73" },
+      { c: "toe", x: 10, y: 27, w: 1, h: 1, f: "#034a73" },
+      { c: "toe", x: 14, y: 27, w: 1, h: 1, f: "#034a73" },
+      { c: "toe", x: 16, y: 27, w: 1, h: 1, f: "#034a73" },
+      { c: "toe", x: 20, y: 27, w: 1, h: 1, f: "#034a73" },
+      { c: "toe", x: 22, y: 27, w: 1, h: 1, f: "#034a73" },
+      // head
+      { c: "head-outline", x: 3, y: 13, w: 5, h: 1, f: "#034a73" },
+      { c: "head-outline", x: 3, y: 18, w: 5, h: 1, f: "#034a73" },
+      { c: "head-outline", x: 2, y: 14, w: 1, h: 4, f: "#034a73" },
+      { c: "head", x: 3, y: 14, w: 5, h: 4, f: "#0ea5e9" },
+      { c: "head-hi", x: 3, y: 14, w: 4, h: 1, f: "#38bdf8" },
+      // turret eye — small dark cone + big pale dome on top
+      { c: "eye-cone", x: 4, y: 10, w: 3, h: 2, f: "#034a73" },
+      { c: "eye-ball-outline", x: 2, y: 6, w: 7, h: 1, f: "#034a73" },
+      { c: "eye-ball-outline", x: 2, y: 7, w: 1, h: 4, f: "#034a73" },
+      { c: "eye-ball-outline", x: 8, y: 7, w: 1, h: 4, f: "#034a73" },
+      { c: "eye-ball", x: 3, y: 7, w: 5, h: 4, f: "#fef3c7" },
+      { c: "eye-iris", x: 4, y: 8, w: 3, h: 2, f: "#0f172a" },
+      { c: "eye-glint", x: 4, y: 8, w: 1, h: 1, f: "#fff" },
+      // mouth + tongue
+      { c: "mouth", x: 3, y: 17, w: 4, h: 1, f: "#034a73" },
+      { c: "tongue", x: 1, y: 17, w: 2, h: 1, f: "#f472b6" },
     ],
     evo: [
-      // lvl 2 — colour-cycling spot
       [ { c: "spot", x: 12, y: 16, w: 2, h: 2, f: "#f472b6" } ],
-      // lvl 3 — more spots
       [ { c: "spot", x: 17, y: 15, w: 2, h: 2, f: "#fcd34d" },
         { c: "spot", x: 21, y: 17, w: 2, h: 2, f: "#a78bfa" } ],
-      // lvl 4 — back stripes
-      [ { c: "stripe", x: 14, y: 13, w: 1, h: 3, f: "#0369a1" },
-        { c: "stripe", x: 19, y: 13, w: 1, h: 3, f: "#0369a1" } ],
-      // lvl 5 — crest spikes
+      [ { c: "stripe", x: 14, y: 13, w: 1, h: 3, f: "#034a73" },
+        { c: "stripe", x: 19, y: 13, w: 1, h: 3, f: "#034a73" } ],
       [ { c: "crest", x: 12, y: 11, w: 1, h: 2, f: "currentColor" },
         { c: "crest", x: 15, y: 10, w: 1, h: 3, f: "currentColor" },
         { c: "crest", x: 18, y: 11, w: 1, h: 2, f: "currentColor" },
@@ -339,192 +424,246 @@ const SPRITES = {
   },
 
   /* ── ECHO — Signal Bat ────────────────────────────────────────────── *
-   * Triangular body, two big wings ATTACHED to the body via shoulder
-   * pixels (the previous version had the wings floating in mid-air with
-   * a 2px gap), finger bones, pointed ears, tiny fangs. Sonar at evo 2+. */
+   * Ramp: #0c0a26 / #312e81 / #5b51c5 / #a5b4fc                          *
+   * Triangular body, big wings WITH finger bones, pointed ears,         *
+   * red eyes + tiny fangs. Sonar rings via evo layers.                  */
   bat: {
     label: "signal bat",
     base: [
-      // wings — left, now anchored at the body shoulder (x=11)
-      { c: "wing-l", x: 1,  y: 12, w: 11, h: 7, f: "#312e81" },
-      { c: "wing-l", x: 3,  y: 11, w: 9,  h: 1, f: "#312e81" },
-      { c: "wing-l", x: 5,  y: 19, w: 7,  h: 1, f: "#312e81" },  // wing trailing edge ties back into body
-      // wing finger bones — slightly lifted so they don't crowd the body
-      { c: "wing-bone", x: 4, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      { c: "wing-bone", x: 7, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      // wings — right, mirror of the left
+      // left wing — outline + fill + bones
+      { c: "wing-outline", x: 1,  y: 11, w: 11, h: 1, f: "#0c0a26" },
+      { c: "wing-outline", x: 1,  y: 19, w: 9, h: 1, f: "#0c0a26" },
+      { c: "wing-outline", x: 0,  y: 12, w: 1, h: 7, f: "#0c0a26" },
+      { c: "wing-l", x: 1, y: 12, w: 11, h: 7, f: "#312e81" },
+      { c: "wing-l-hi", x: 1, y: 12, w: 10, h: 1, f: "#5b51c5" },
+      { c: "wing-bone", x: 4, y: 13, w: 1, h: 5, f: "#0c0a26" },
+      { c: "wing-bone", x: 7, y: 13, w: 1, h: 5, f: "#0c0a26" },
+      // right wing — mirror
+      { c: "wing-outline", x: 20, y: 11, w: 11, h: 1, f: "#0c0a26" },
+      { c: "wing-outline", x: 22, y: 19, w: 9, h: 1, f: "#0c0a26" },
+      { c: "wing-outline", x: 31, y: 12, w: 1, h: 7, f: "#0c0a26" },
       { c: "wing-r", x: 20, y: 12, w: 11, h: 7, f: "#312e81" },
-      { c: "wing-r", x: 20, y: 11, w: 9,  h: 1, f: "#312e81" },
-      { c: "wing-r", x: 20, y: 19, w: 7,  h: 1, f: "#312e81" },
-      { c: "wing-bone", x: 24, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      { c: "wing-bone", x: 27, y: 13, w: 1, h: 5, f: "#1e1b4b" },
-      // body (dark triangle) — same as before
-      { c: "body", x: 12, y: 10, w: 8,  h: 12, f: "#1e1b4b" },
-      { c: "body", x: 13, y: 22, w: 6,  h: 2,  f: "#1e1b4b" },
-      { c: "body", x: 14, y: 24, w: 4,  h: 1,  f: "#1e1b4b" },
-      // ears (pointy)
-      { c: "ear", x: 12, y: 7,  w: 2, h: 3, f: "#1e1b4b" },
-      { c: "ear", x: 18, y: 7,  w: 2, h: 3, f: "#1e1b4b" },
-      { c: "ear-in", x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
-      { c: "ear-in", x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
-      // eyes (red) — bumped to 1×2px so they actually read
-      { c: "eye", x: 14, y: 13, w: 1, h: 2, f: "#fca5a5" },
-      { c: "eye", x: 17, y: 13, w: 1, h: 2, f: "#fca5a5" },
-      // tiny fangs (white)
-      { c: "fang", x: 14, y: 16, w: 1, h: 2, f: "#fff" },
-      { c: "fang", x: 17, y: 16, w: 1, h: 2, f: "#fff" },
+      { c: "wing-r-hi", x: 20, y: 12, w: 10, h: 1, f: "#5b51c5" },
+      { c: "wing-bone", x: 24, y: 13, w: 1, h: 5, f: "#0c0a26" },
+      { c: "wing-bone", x: 27, y: 13, w: 1, h: 5, f: "#0c0a26" },
+      // body (triangle) — outline + fill
+      { c: "body-outline", x: 12, y: 9, w: 8, h: 1, f: "#0c0a26" },
+      { c: "body-outline", x: 11, y: 10, w: 1, h: 12, f: "#0c0a26" },
+      { c: "body-outline", x: 20, y: 10, w: 1, h: 12, f: "#0c0a26" },
+      { c: "body-outline", x: 13, y: 24, w: 6, h: 1, f: "#0c0a26" },
+      { c: "body", x: 12, y: 10, w: 8, h: 14, f: "#1e1b4b" },
+      { c: "body-hi", x: 12, y: 10, w: 4, h: 1, f: "#312e81" },
+      // pointed ears
+      { c: "ear", x: 12, y: 7, w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear", x: 18, y: 7, w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear-outline", x: 12, y: 6, w: 1, h: 1, f: "#0c0a26" },
+      { c: "ear-outline", x: 19, y: 6, w: 1, h: 1, f: "#0c0a26" },
+      { c: "ear-in", x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
+      { c: "ear-in", x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
+      // red eyes (white outline + red + black pupil pixel)
+      { c: "eye-outline", x: 13, y: 12, w: 3, h: 3, f: "#0c0a26" },
+      { c: "eye-outline", x: 16, y: 12, w: 3, h: 3, f: "#0c0a26" },
+      { c: "eye-w", x: 14, y: 13, w: 1, h: 1, f: "#fff" },
+      { c: "eye-w", x: 17, y: 13, w: 1, h: 1, f: "#fff" },
+      { c: "eye",   x: 14, y: 13, w: 1, h: 1, f: "#ef4444" },
+      { c: "eye",   x: 17, y: 13, w: 1, h: 1, f: "#ef4444" },
+      // fangs
+      { c: "fang", x: 14, y: 17, w: 1, h: 2, f: "#fff" },
+      { c: "fang", x: 17, y: 17, w: 1, h: 2, f: "#fff" },
     ],
     evo: [
-      // lvl 2 — first sonar ring
-      [ { c: "sonar s1", x: 8, y: 6, w: 16, h: 1, f: "currentColor", o: 0.6 },
-        { c: "sonar s1", x: 8, y: 25, w: 16, h: 1, f: "currentColor", o: 0.6 } ],
-      // lvl 3 — wider sonar
-      [ { c: "sonar s2", x: 5, y: 3, w: 22, h: 1, f: "currentColor", o: 0.4 },
-        { c: "sonar s2", x: 5, y: 28, w: 22, h: 1, f: "currentColor", o: 0.4 } ],
-      // lvl 4 — wing tips highlight
-      [ { c: "wing-tip", x: 1, y: 19, w: 2, h: 1, f: "currentColor" },
-        { c: "wing-tip", x: 29, y: 19, w: 2, h: 1, f: "currentColor" } ],
-      // lvl 5 — aura
+      [ { c: "sonar s1", x: 8,  y: 5, w: 16, h: 1, f: "currentColor", o: 0.65 },
+        { c: "sonar s1", x: 8,  y: 25, w: 16, h: 1, f: "currentColor", o: 0.65 } ],
+      [ { c: "sonar s2", x: 5,  y: 2, w: 22, h: 1, f: "currentColor", o: 0.4 },
+        { c: "sonar s2", x: 5,  y: 28, w: 22, h: 1, f: "currentColor", o: 0.4 } ],
+      [ { c: "wing-tip", x: 0,  y: 19, w: 2, h: 1, f: "currentColor" },
+        { c: "wing-tip", x: 30, y: 19, w: 2, h: 1, f: "currentColor" } ],
       [ { c: "aura", x: 0, y: 0, w: 32, h: 32, f: "currentColor", o: 0.08 } ],
     ],
   },
 
   /* ── VEGA — Neon Hummingbird ──────────────────────────────────────── *
-   * Streamlined body, long needle beak. Wings now actually touch the
-   * body shoulder instead of hovering 3px above/below. Forked tail.        */
+   * Ramp: #064e3b / #10b981 / #34d399 / #a7f3d0   green back            *
+   *       #be185d / #f472b6 / #fbcfe8              pink chest           *
+   * Streamlined body, long needle beak, wings touching the shoulder.    */
   hummingbird: {
     label: "neon hummingbird",
     base: [
-      // motion trail (always present, base layer)
-      { c: "trail",  x: 3,  y: 14, w: 2, h: 1, f: "#34d399", o: 0.4 },
-      { c: "trail",  x: 6,  y: 14, w: 2, h: 1, f: "#34d399", o: 0.6 },
-      // body (chest pink, back green)
-      { c: "back",   x: 11, y: 12, w: 9,  h: 4, f: "#10b981" },
-      { c: "back",   x: 11, y: 11, w: 7,  h: 1, f: "#10b981" },
-      { c: "chest",  x: 12, y: 15, w: 8,  h: 3, f: "#f472b6" },
+      // motion trail
+      { c: "trail",  x: 1, y: 14, w: 1, h: 1, f: "#34d399", o: 0.6 },
+      { c: "trail",  x: 3, y: 14, w: 2, h: 1, f: "#34d399", o: 0.5 },
+      { c: "trail",  x: 6, y: 14, w: 2, h: 1, f: "#34d399", o: 0.4 },
+      // body outline (green back + pink chest)
+      { c: "body-outline", x: 11, y: 10, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x: 11, y: 18, w: 10, h: 1, f: "#064e3b" },
+      { c: "body-outline", x: 10, y: 11, w: 1, h: 7, f: "#064e3b" },
+      { c: "body-outline", x: 21, y: 11, w: 1, h: 7, f: "#064e3b" },
+      // back (green)
+      { c: "back", x: 11, y: 11, w: 10, h: 4, f: "#10b981" },
+      { c: "back-hi", x: 11, y: 11, w: 9, h: 1, f: "#34d399" },
+      // chest (pink)
+      { c: "chest", x: 11, y: 15, w: 10, h: 3, f: "#f472b6" },
+      { c: "chest-hi", x: 12, y: 15, w: 6, h: 1, f: "#fbcfe8" },
       // head
-      { c: "head",   x: 17, y: 9,  w: 5,  h: 5, f: "#10b981" },
+      { c: "head-outline", x: 17, y: 9, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 17, y: 14, w: 6, h: 1, f: "#064e3b" },
+      { c: "head-outline", x: 23, y: 10, w: 1, h: 4, f: "#064e3b" },
+      { c: "head", x: 17, y: 10, w: 6, h: 4, f: "#10b981" },
+      { c: "head-hi", x: 17, y: 10, w: 5, h: 1, f: "#34d399" },
       // eye
-      { c: "eye",    x: 19, y: 11, w: 1, h: 1, f: "#111" },
+      { c: "eye-w", x: 19, y: 11, w: 1, h: 1, f: "#fff" },
+      { c: "eye", x: 19, y: 11, w: 1, h: 1, f: "#0f172a" },
       // long needle beak
-      { c: "beak",   x: 22, y: 11, w: 8, h: 1, f: "#fcd34d" },
-      // wings — wider + denser so they read as wings even mid-flap,
-      // anchored AT the body line (y=11 / y=18 instead of y=8 / y=17)
-      { c: "wing-t", x: 10, y: 10, w: 9, h: 3, f: "#6ee7b7" },
-      { c: "wing-t", x: 13, y: 9,  w: 5, h: 1, f: "#6ee7b7", o: 0.85 },
-      { c: "wing-b", x: 10, y: 18, w: 9, h: 3, f: "#6ee7b7" },
-      { c: "wing-b", x: 13, y: 21, w: 5, h: 1, f: "#6ee7b7", o: 0.85 },
+      { c: "beak-outline", x: 22, y: 10, w: 9, h: 1, f: "#92400e" },
+      { c: "beak-outline", x: 22, y: 12, w: 9, h: 1, f: "#92400e" },
+      { c: "beak",         x: 22, y: 11, w: 9, h: 1, f: "#fcd34d" },
+      // wings (top + bottom) anchored to body
+      { c: "wing-t-outline", x: 9, y: 9, w: 11, h: 1, f: "#064e3b" },
+      { c: "wing-t", x: 10, y: 9, w: 9, h: 2, f: "#6ee7b7" },
+      { c: "wing-t", x: 13, y: 8, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
+      { c: "wing-b-outline", x: 9, y: 19, w: 11, h: 1, f: "#064e3b" },
+      { c: "wing-b", x: 10, y: 19, w: 9, h: 2, f: "#6ee7b7" },
+      { c: "wing-b", x: 13, y: 21, w: 4, h: 1, f: "#6ee7b7", o: 0.85 },
       // forked tail
-      { c: "tail",   x: 7,  y: 14, w: 4, h: 1, f: "#10b981" },
-      { c: "tail",   x: 7,  y: 16, w: 4, h: 1, f: "#10b981" },
+      { c: "tail", x: 6, y: 13, w: 4, h: 1, f: "#10b981" },
+      { c: "tail", x: 6, y: 16, w: 4, h: 1, f: "#10b981" },
+      { c: "tail", x: 6, y: 15, w: 1, h: 1, f: "#064e3b" },
     ],
     evo: [
-      // lvl 2 — extra trail particles
-      [ { c: "trail2", x: 1, y: 14, w: 1, h: 1, f: "currentColor", o: 0.7 } ],
-      // lvl 3 — chest shimmer
+      [ { c: "trail2", x: 1, y: 13, w: 1, h: 1, f: "currentColor", o: 0.7 } ],
       [ { c: "shimmer", x: 14, y: 16, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 4 — beak tip glow
       [ { c: "beak-tip", x: 30, y: 11, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 5 — orbit halo
-      [ { c: "orbit", x: 4, y: 6, w: 26, h: 18, f: "currentColor", o: 0.1 } ],
+      [ { c: "orbit", x: 4, y: 5, w: 26, h: 22, f: "currentColor", o: 0.1 } ],
     ],
   },
 
   /* ── SCRIBE — Scribe Raven ────────────────────────────────────────── *
-   * Black raven on a perch with a feather quill in claw. Yellow beak.    */
+   * Ramp: #020617 / #0f172a / #334155 / #94a3b8                          *
+   * Black raven body (with feather highlight), YELLOW beak, gold eye,   *
+   * sits on a parchment scroll. Quill at evo 2.                         */
   raven: {
     label: "scribe raven",
     base: [
-      // perch (paper) under feet — base level scroll
-      { c: "scroll", x: 4,  y: 26, w: 24, h: 2, f: "#fef3c7" },
-      { c: "scroll-edge", x: 4, y: 26, w: 24, h: 1, f: "#d4a574" },
-      // body (black)
-      { c: "body",   x: 8,  y: 12, w: 14, h: 13, f: "#0f172a" },
-      { c: "body",   x: 9,  y: 11, w: 12, h: 1,  f: "#0f172a" },
-      // belly highlight
-      { c: "belly",  x: 11, y: 18, w: 8, h: 6,  f: "#1e293b" },
-      // wing (folded)
-      { c: "wing",   x: 9,  y: 13, w: 6, h: 9, f: "#020617" },
+      // parchment scroll (perch)
+      { c: "scroll-outline", x: 3, y: 25, w: 26, h: 1, f: "#92400e" },
+      { c: "scroll",         x: 3, y: 26, w: 26, h: 2, f: "#fef3c7" },
+      { c: "scroll-edge",    x: 3, y: 28, w: 26, h: 1, f: "#d4a574" },
+      { c: "scroll-curl",    x: 2, y: 26, w: 1, h: 2, f: "#d4a574" },
+      { c: "scroll-curl",    x: 29, y: 26, w: 1, h: 2, f: "#d4a574" },
+      // body outline
+      { c: "body-outline", x: 8, y: 11, w: 14, h: 1, f: "#020617" },
+      { c: "body-outline", x: 8, y: 25, w: 14, h: 1, f: "#020617" },
+      { c: "body-outline", x: 7, y: 12, w: 1, h: 13, f: "#020617" },
+      { c: "body-outline", x: 22, y: 12, w: 1, h: 13, f: "#020617" },
+      // body
+      { c: "body", x: 8, y: 12, w: 14, h: 13, f: "#0f172a" },
+      // top-left feather highlight (subtle)
+      { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#334155" },
+      { c: "body-hi", x: 8, y: 13, w: 1, h: 4, f: "#334155" },
+      // wing (folded, darker)
+      { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#020617" },
+      { c: "wing-hi", x: 9, y: 13, w: 4, h: 1, f: "#334155" },
       // head
-      { c: "head",   x: 17, y: 7,  w: 8, h: 7, f: "#0f172a" },
-      // beak (yellow, pointed)
-      { c: "beak",   x: 25, y: 10, w: 5, h: 1, f: "#fcd34d" },
-      { c: "beak",   x: 25, y: 11, w: 4, h: 1, f: "#fcd34d" },
-      { c: "beak",   x: 25, y: 12, w: 3, h: 1, f: "#fcd34d" },
-      // eye
-      { c: "eye",    x: 22, y: 10, w: 2, h: 2, f: "#fcd34d" },
-      { c: "eye",    x: 23, y: 11, w: 1, h: 1, f: "#000" },
-      // legs / claws
-      { c: "leg",    x: 12, y: 25, w: 2, h: 2, f: "#fcd34d" },
-      { c: "leg",    x: 18, y: 25, w: 2, h: 2, f: "#fcd34d" },
+      { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#020617" },
+      { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#020617" },
+      { c: "head-outline", x: 16, y: 7, w: 1, h: 7, f: "#020617" },
+      { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#020617" },
+      { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0f172a" },
+      { c: "head-hi", x: 17, y: 7, w: 5, h: 1, f: "#334155" },
+      // beak (yellow, tapered)
+      { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#92400e" },
+      { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#92400e" },
+      { c: "beak", x: 25, y: 10, w: 6, h: 1, f: "#fcd34d" },
+      { c: "beak", x: 25, y: 11, w: 5, h: 1, f: "#fcd34d" },
+      { c: "beak", x: 25, y: 12, w: 4, h: 1, f: "#fcd34d" },
+      { c: "beak-hi", x: 25, y: 10, w: 4, h: 1, f: "#fde68a" },
+      // eye (gold ring + black pupil + white glint)
+      { c: "eye-w", x: 21, y: 9, w: 3, h: 3, f: "#fcd34d" },
+      { c: "eye",   x: 22, y: 10, w: 1, h: 1, f: "#0f172a" },
+      { c: "eye-glint", x: 23, y: 9, w: 1, h: 1, f: "#fff" },
+      // legs
+      { c: "leg", x: 12, y: 25, w: 2, h: 2, f: "#fcd34d" },
+      { c: "leg", x: 18, y: 25, w: 2, h: 2, f: "#fcd34d" },
     ],
     evo: [
-      // lvl 2 — quill in front of body
       [ { c: "quill-shaft",   x: 18, y: 16, w: 1, h: 8, f: "#fcd34d" },
-        { c: "quill-feather", x: 16, y: 13, w: 5, h: 3, f: "#fcd34d" } ],
-      // lvl 3 — ink dot pixel on scroll
+        { c: "quill-shaft",   x: 19, y: 16, w: 1, h: 8, f: "#92400e" },
+        { c: "quill-feather", x: 16, y: 13, w: 5, h: 3, f: "#fcd34d" },
+        { c: "quill-feather", x: 16, y: 13, w: 4, h: 1, f: "#fde68a" } ],
       [ { c: "ink", x: 16, y: 27, w: 2, h: 1, f: "#1e293b" } ],
-      // lvl 4 — script lines on scroll
       [ { c: "line", x: 6,  y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 },
         { c: "line", x: 19, y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 } ],
-      // lvl 5 — second quill behind ear
       [ { c: "feather-tuft", x: 14, y: 6, w: 1, h: 3, f: "#fcd34d" } ],
     ],
   },
 
   /* ── LEDGER — Accountant Raccoon ──────────────────────────────────── *
-   * Grey body, BLACK bandit mask across eyes, striped tail (light/dark),
-   * little hands holding a coin.                                           */
+   * Ramp: #475569 / #94a3b8 / #cbd5e1 / #f1f5f9   grey fur              *
+   *       #0f172a (mask) / #fff (eyes) / #fcd34d (coin)                 */
   raccoon: {
     label: "accountant raccoon",
     base: [
-      // tail (striped)
-      { c: "tail",       x: 22, y: 18, w: 3, h: 3, f: "#94a3b8" },
-      { c: "tail",       x: 24, y: 20, w: 4, h: 3, f: "#1e293b" },
-      { c: "tail",       x: 26, y: 22, w: 4, h: 3, f: "#94a3b8" },
-      { c: "tail",       x: 28, y: 24, w: 3, h: 2, f: "#1e293b" },
-      // body
-      { c: "body",       x: 7,  y: 14, w: 16, h: 12, f: "#94a3b8" },
-      { c: "body",       x: 8,  y: 13, w: 14, h: 1,  f: "#94a3b8" },
+      // tail — alternating stripes (light/dark/light/dark)
+      { c: "tail-outline", x: 23, y: 16, w: 8, h: 1, f: "#1e293b" },
+      { c: "tail-outline", x: 23, y: 26, w: 8, h: 1, f: "#1e293b" },
+      { c: "tail-outline", x: 23, y: 17, w: 1, h: 9, f: "#1e293b" },
+      { c: "tail-outline", x: 31, y: 17, w: 1, h: 9, f: "#1e293b" },
+      { c: "tail", x: 23, y: 17, w: 8, h: 2, f: "#cbd5e1" },
+      { c: "tail", x: 23, y: 19, w: 8, h: 2, f: "#1e293b" },
+      { c: "tail", x: 23, y: 21, w: 8, h: 2, f: "#94a3b8" },
+      { c: "tail", x: 23, y: 23, w: 8, h: 2, f: "#1e293b" },
+      { c: "tail", x: 23, y: 25, w: 8, h: 1, f: "#cbd5e1" },
+      // body outline
+      { c: "body-outline", x: 7, y: 14, w: 16, h: 1, f: "#475569" },
+      { c: "body-outline", x: 7, y: 26, w: 16, h: 1, f: "#475569" },
+      { c: "body-outline", x: 6, y: 15, w: 1, h: 11, f: "#475569" },
+      { c: "body-outline", x: 23, y: 15, w: 1, h: 11, f: "#475569" },
+      { c: "body", x: 7, y: 15, w: 16, h: 11, f: "#94a3b8" },
+      { c: "body-hi", x: 7, y: 15, w: 4, h: 1, f: "#cbd5e1" },
+      { c: "body-sh", x: 19, y: 22, w: 4, h: 4, f: "#475569" },
       // chest light
-      { c: "chest",      x: 10, y: 18, w: 10, h: 7,  f: "#cbd5e1" },
+      { c: "chest", x: 10, y: 18, w: 10, h: 7, f: "#cbd5e1" },
+      { c: "chest-hi", x: 10, y: 18, w: 6, h: 1, f: "#f1f5f9" },
       // legs
-      { c: "leg",        x: 9,  y: 26, w: 3, h: 2,  f: "#475569" },
-      { c: "leg",        x: 18, y: 26, w: 3, h: 2,  f: "#475569" },
+      { c: "leg", x:  9, y: 26, w: 3, h: 2, f: "#475569" },
+      { c: "leg", x: 18, y: 26, w: 3, h: 2, f: "#475569" },
+      // head outline
+      { c: "head-outline", x: 6, y: 7, w: 14, h: 1, f: "#475569" },
+      { c: "head-outline", x: 6, y: 15, w: 14, h: 1, f: "#475569" },
+      { c: "head-outline", x: 5, y: 8, w: 1, h: 7, f: "#475569" },
+      { c: "head-outline", x: 20, y: 8, w: 1, h: 7, f: "#475569" },
       // head
-      { c: "head",       x: 6,  y: 7,  w: 14, h: 8, f: "#94a3b8" },
-      { c: "head",       x: 7,  y: 6,  w: 12, h: 1, f: "#94a3b8" },
+      { c: "head", x: 6, y: 8, w: 14, h: 7, f: "#94a3b8" },
+      { c: "head-hi", x: 6, y: 8, w: 5, h: 1, f: "#cbd5e1" },
       // ears
-      { c: "ear",        x: 6,  y: 4,  w: 3, h: 3, f: "#94a3b8" },
-      { c: "ear",        x: 17, y: 4,  w: 3, h: 3, f: "#94a3b8" },
-      { c: "ear-in",     x: 7,  y: 5,  w: 1, h: 1, f: "#1e293b" },
-      { c: "ear-in",     x: 18, y: 5,  w: 1, h: 1, f: "#1e293b" },
-      // BANDIT MASK — one continuous black strip with a thin top/bottom
-      // edge so it really reads as worn over the eyes
-      { c: "mask",       x: 6,  y: 9,  w: 14, h: 4, f: "#0f172a" },
-      { c: "mask",       x: 5,  y: 10, w: 1,  h: 2, f: "#0f172a" },
-      { c: "mask",       x: 20, y: 10, w: 1,  h: 2, f: "#0f172a" },
-      // eyes (white inside mask)
-      { c: "eye",        x: 8,  y: 10, w: 2, h: 2, f: "#fff" },
-      { c: "eye",        x: 16, y: 10, w: 2, h: 2, f: "#fff" },
-      { c: "eye-pupil",  x: 9,  y: 11, w: 1, h: 1, f: "#000" },
-      { c: "eye-pupil",  x: 17, y: 11, w: 1, h: 1, f: "#000" },
-      // nose — small black diamond
-      { c: "nose",       x: 12, y: 14, w: 2, h: 1, f: "#0f172a" },
-      // hands — moved up and inward so they're clearly on the body
-      { c: "hand",       x: 6,  y: 16, w: 2, h: 2, f: "#475569" },
-      { c: "hand",       x: 22, y: 16, w: 2, h: 2, f: "#475569" },
+      { c: "ear", x: 5, y: 4, w: 3, h: 3, f: "#94a3b8" },
+      { c: "ear", x: 18, y: 4, w: 3, h: 3, f: "#94a3b8" },
+      { c: "ear-outline", x: 5, y: 3, w: 3, h: 1, f: "#475569" },
+      { c: "ear-outline", x: 18, y: 3, w: 3, h: 1, f: "#475569" },
+      { c: "ear-in", x: 6, y: 5, w: 1, h: 1, f: "#1e293b" },
+      { c: "ear-in", x: 19, y: 5, w: 1, h: 1, f: "#1e293b" },
+      // BANDIT MASK (thick black bar with side wraps)
+      { c: "mask", x: 6, y: 9, w: 14, h: 4, f: "#0f172a" },
+      { c: "mask", x: 5, y: 10, w: 1, h: 2, f: "#0f172a" },
+      { c: "mask", x: 20, y: 10, w: 1, h: 2, f: "#0f172a" },
+      // eyes in mask (white + black pupil)
+      { c: "eye-w", x: 8, y: 10, w: 2, h: 2, f: "#fff" },
+      { c: "eye-w", x: 16, y: 10, w: 2, h: 2, f: "#fff" },
+      { c: "eye-pupil", x: 9, y: 11, w: 1, h: 1, f: "#000" },
+      { c: "eye-pupil", x: 17, y: 11, w: 1, h: 1, f: "#000" },
+      // nose
+      { c: "nose", x: 12, y: 14, w: 2, h: 1, f: "#0f172a" },
+      // hands
+      { c: "hand", x: 6, y: 16, w: 2, h: 2, f: "#475569" },
+      { c: "hand", x: 22, y: 16, w: 2, h: 2, f: "#475569" },
     ],
     evo: [
-      // lvl 2 — coin in hand
-      [ { c: "coin", x: 22, y: 16, w: 3, h: 3, f: "#fcd34d" },
-        { c: "coin", x: 23, y: 17, w: 1, h: 1, f: "#a16207" } ],
-      // lvl 3 — second coin floating
+      [ { c: "coin", x: 22, y: 14, w: 3, h: 3, f: "#fcd34d" },
+        { c: "coin-hi", x: 22, y: 14, w: 3, h: 1, f: "#fde68a" },
+        { c: "coin-sym", x: 23, y: 15, w: 1, h: 1, f: "#92400e" } ],
       [ { c: "coin2", x: 26, y: 6, w: 2, h: 2, f: "currentColor" } ],
-      // lvl 4 — budget bar at bottom
       [ { c: "bar-bg",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
         { c: "bar-fill", x: 2,  y: 30, w: 14, h: 1, f: "#fcd34d" } ],
-      // lvl 5 — tick numbers
       [ { c: "tick", x: 25, y: 10, w: 1, h: 1, f: "currentColor" },
         { c: "tick", x: 27, y: 12, w: 1, h: 1, f: "currentColor" },
         { c: "tick", x: 29, y: 10, w: 1, h: 1, f: "currentColor" } ],
@@ -532,144 +671,188 @@ const SPRITES = {
   },
 
   /* ── RAVEN (debug) — Dark Raven ───────────────────────────────────── *
-   * Black raven silhouette with GLITCH-RED eye, glitch lines.            */
+   * Ramp: #000 / #0a0a0a / #1f2937 / #4b5563                             *
+   * Pitch-black silhouette, RED glowing eye, glitch lines, sharp beak.  */
   darkRaven: {
     label: "debug raven",
     base: [
-      // body
-      { c: "body",  x: 8,  y: 12, w: 14, h: 13, f: "#000" },
-      { c: "body",  x: 9,  y: 11, w: 12, h: 1,  f: "#000" },
-      // belly
-      { c: "belly", x: 11, y: 18, w: 8, h: 6,  f: "#171717" },
+      // body outline (using pure black on a slightly less-black body)
+      { c: "body-outline", x: 8, y: 11, w: 14, h: 1, f: "#000" },
+      { c: "body-outline", x: 8, y: 25, w: 14, h: 1, f: "#000" },
+      { c: "body-outline", x: 7, y: 12, w: 1, h: 13, f: "#000" },
+      { c: "body-outline", x: 22, y: 12, w: 1, h: 13, f: "#000" },
+      { c: "body", x: 8, y: 12, w: 14, h: 13, f: "#0a0a0a" },
+      // subtle highlight (very dark slate)
+      { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#1f2937" },
       // wing
-      { c: "wing",  x: 9,  y: 13, w: 6, h: 9, f: "#0a0a0a" },
+      { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#000" },
       // head
-      { c: "head",  x: 17, y: 7,  w: 8, h: 7, f: "#000" },
-      // beak (sharp + dark red)
-      { c: "beak",  x: 25, y: 10, w: 5, h: 1, f: "#7f1d1d" },
-      { c: "beak",  x: 25, y: 11, w: 4, h: 1, f: "#7f1d1d" },
-      { c: "beak",  x: 25, y: 12, w: 3, h: 1, f: "#7f1d1d" },
-      // ERROR-RED eye
-      { c: "eye",   x: 22, y: 10, w: 2, h: 2, f: "#ef4444" },
-      { c: "eye-glow", x: 21, y: 9, w: 4, h: 4, f: "#ef4444", o: 0.25 },
+      { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#000" },
+      { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#000" },
+      { c: "head-outline", x: 16, y: 7, w: 1, h: 7, f: "#000" },
+      { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#000" },
+      { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0a0a0a" },
+      // sharp beak (dark red, drips slightly)
+      { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#450a0a" },
+      { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#450a0a" },
+      { c: "beak", x: 25, y: 10, w: 6, h: 1, f: "#7f1d1d" },
+      { c: "beak", x: 25, y: 11, w: 5, h: 1, f: "#7f1d1d" },
+      { c: "beak", x: 25, y: 12, w: 4, h: 1, f: "#7f1d1d" },
+      // ERROR-RED eye with glow halo
+      { c: "eye-glow", x: 21, y: 9, w: 4, h: 4, f: "#ef4444", o: 0.3 },
+      { c: "eye-w", x: 22, y: 10, w: 2, h: 2, f: "#ef4444" },
+      { c: "eye", x: 22, y: 10, w: 1, h: 1, f: "#fca5a5" },
       // legs
-      { c: "leg",   x: 12, y: 25, w: 2, h: 3, f: "#7f1d1d" },
-      { c: "leg",   x: 18, y: 25, w: 2, h: 3, f: "#7f1d1d" },
+      { c: "leg", x: 12, y: 25, w: 2, h: 3, f: "#7f1d1d" },
+      { c: "leg", x: 18, y: 25, w: 2, h: 3, f: "#7f1d1d" },
     ],
     evo: [
-      // lvl 2 — glitch lines
       [ { c: "glitch", x: 5,  y: 16, w: 4, h: 1, f: "#ef4444", o: 0.7 },
         { c: "glitch", x: 24, y: 22, w: 5, h: 1, f: "#ef4444", o: 0.7 } ],
-      // lvl 3 — more glitches
       [ { c: "glitch", x: 1,  y: 9,  w: 6, h: 1, f: "#ef4444", o: 0.5 },
         { c: "glitch", x: 22, y: 16, w: 8, h: 1, f: "#ef4444", o: 0.5 } ],
-      // lvl 4 — trace dashes at bottom
       [ { c: "trace", x: 4,  y: 30, w: 2, h: 1, f: "currentColor" },
         { c: "trace", x: 8,  y: 30, w: 2, h: 1, f: "currentColor" },
         { c: "trace", x: 12, y: 30, w: 2, h: 1, f: "currentColor" },
         { c: "trace", x: 16, y: 30, w: 2, h: 1, f: "currentColor" } ],
-      // lvl 5 — stack frame box
       [ { c: "stack",       x: 0,  y: 0, w: 8, h: 5, f: "#7f1d1d", o: 0.5 },
         { c: "stack-text",  x: 1,  y: 2, w: 6, h: 1, f: "currentColor" } ],
     ],
   },
 
   /* ── LUMA — Firefly ───────────────────────────────────────────────── *
-   * Small insect — head + thorax + abdomen on one diagonal line, six
-   * legs, two translucent wings that ACTUALLY touch the thorax, and a
-   * big yellow lantern stuck to the back end.                              */
+   * Ramp: #4a2906 / #854d0e / #a16207 / #ca8a04   brown body            *
+   *       lantern: white core, yellow mid, yellow-glow halo             *
+   * Small insect — diagonal head→thorax→abdomen line, glowing lantern.  */
   firefly: {
     label: "firefly",
     base: [
-      // wings — left and right, anchored at the thorax (y=15 → y=20)
-      { c: "wing-l", x: 5,  y: 12, w: 8, h: 6, f: "#fde047", o: 0.45 },
-      { c: "wing-l", x: 7,  y: 11, w: 5, h: 1, f: "#fde047", o: 0.3  },
-      { c: "wing-r", x: 14, y: 12, w: 8, h: 6, f: "#fde047", o: 0.45 },
-      { c: "wing-r", x: 15, y: 11, w: 5, h: 1, f: "#fde047", o: 0.3  },
-      // body segments — read left-to-right: head, thorax, abdomen
-      { c: "head",    x: 9,  y: 14, w: 4, h: 4, f: "#713f12" },
-      { c: "thorax",  x: 13, y: 15, w: 4, h: 4, f: "#854d0e" },
-      { c: "abdomen", x: 17, y: 16, w: 5, h: 4, f: "#a16207" },
-      // antennae (forward, both pointing up-left)
-      { c: "antenna", x: 8,  y: 11, w: 1, h: 3, f: "#713f12" },
-      { c: "antenna", x: 11, y: 11, w: 1, h: 3, f: "#713f12" },
-      { c: "antenna-tip", x: 7,  y: 10, w: 1, h: 1, f: "#fde047" },
-      { c: "antenna-tip", x: 11, y: 10, w: 1, h: 1, f: "#fde047" },
+      // wings (translucent yellow)
+      { c: "wing-l", x: 5,  y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
+      { c: "wing-l", x: 7,  y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
+      { c: "wing-l-edge", x: 5,  y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      { c: "wing-r", x: 14, y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
+      { c: "wing-r", x: 15, y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
+      { c: "wing-r-edge", x: 14, y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      // body segments (each with outline + highlight)
+      { c: "head-outline", x: 8, y: 13, w: 6, h: 1, f: "#4a2906" },
+      { c: "head-outline", x: 8, y: 18, w: 6, h: 1, f: "#4a2906" },
+      { c: "head-outline", x: 8, y: 14, w: 1, h: 4, f: "#4a2906" },
+      { c: "head", x: 9, y: 14, w: 5, h: 4, f: "#713f12" },
+      { c: "head-hi", x: 9, y: 14, w: 4, h: 1, f: "#854d0e" },
+      { c: "thorax-outline", x: 13, y: 14, w: 5, h: 1, f: "#4a2906" },
+      { c: "thorax-outline", x: 13, y: 19, w: 5, h: 1, f: "#4a2906" },
+      { c: "thorax", x: 13, y: 15, w: 5, h: 4, f: "#854d0e" },
+      { c: "thorax-hi", x: 13, y: 15, w: 4, h: 1, f: "#a16207" },
+      { c: "abdomen-outline", x: 17, y: 15, w: 6, h: 1, f: "#4a2906" },
+      { c: "abdomen-outline", x: 17, y: 20, w: 6, h: 1, f: "#4a2906" },
+      { c: "abdomen", x: 17, y: 16, w: 6, h: 4, f: "#a16207" },
+      { c: "abdomen-hi", x: 17, y: 16, w: 5, h: 1, f: "#ca8a04" },
+      // antennae
+      { c: "antenna", x: 8, y: 11, w: 1, h: 3, f: "#4a2906" },
+      { c: "antenna", x: 11, y: 11, w: 1, h: 3, f: "#4a2906" },
+      { c: "antenna-tip", x: 7, y: 10, w: 2, h: 1, f: "#fde047" },
+      { c: "antenna-tip", x: 11, y: 10, w: 2, h: 1, f: "#fde047" },
       // eye
-      { c: "eye",     x: 10, y: 15, w: 1, h: 1, f: "#000" },
-      // legs (three pairs of two pixels each, anchored to the thorax)
-      { c: "leg", x: 10, y: 18, w: 1, h: 3, f: "#713f12" },
-      { c: "leg", x: 13, y: 19, w: 1, h: 3, f: "#713f12" },
-      { c: "leg", x: 16, y: 20, w: 1, h: 3, f: "#713f12" },
-      // LANTERN — glow rings around a bright core, stuck to the abdomen
+      { c: "eye-w", x: 10, y: 15, w: 1, h: 1, f: "#fff" },
+      { c: "eye",   x: 10, y: 15, w: 1, h: 1, f: "#000" },
+      // legs
+      { c: "leg", x: 10, y: 18, w: 1, h: 3, f: "#4a2906" },
+      { c: "leg", x: 13, y: 19, w: 1, h: 3, f: "#4a2906" },
+      { c: "leg", x: 16, y: 20, w: 1, h: 3, f: "#4a2906" },
+      // LANTERN — wide glow halo, mid yellow, white core
       { c: "lantern-glow", x: 19, y: 17, w: 9, h: 7, f: "#fde047", o: 0.35 },
+      { c: "lantern-glow", x: 18, y: 18, w: 11, h: 5, f: "#fde047", o: 0.25 },
       { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 5, f: "#fef08a" },
+      { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 1, f: "#fef9c3" },
       { c: "lantern-core", x: 22, y: 19, w: 4, h: 3, f: "#fff" },
     ],
     evo: [
-      // lvl 2 — sparkle particles
       [ { c: "spark s1", x: 2,  y: 4,  w: 1, h: 1, f: "currentColor" } ],
-      // lvl 3 — more sparks
       [ { c: "spark s2", x: 28, y: 6,  w: 1, h: 1, f: "currentColor" },
         { c: "spark s3", x: 4,  y: 28, w: 1, h: 1, f: "currentColor" } ],
-      // lvl 4 — wing veins
-      [ { c: "vein", x: 6,  y: 9, w: 4, h: 1, f: "#a16207", o: 0.5 },
-        { c: "vein", x: 16, y: 9, w: 4, h: 1, f: "#a16207", o: 0.5 } ],
-      // lvl 5 — outer aura
-      [ { c: "aura", x: 14, y: 18, w: 14, h: 12, f: "currentColor", o: 0.15 } ],
+      [ { c: "vein", x: 6,  y: 14, w: 5, h: 1, f: "#a16207", o: 0.5 },
+        { c: "vein", x: 16, y: 14, w: 5, h: 1, f: "#a16207", o: 0.5 } ],
+      [ { c: "aura", x: 14, y: 17, w: 16, h: 14, f: "currentColor", o: 0.15 } ],
     ],
   },
 
   /* ── NOVA — Tiny Star Dragon ──────────────────────────────────────── *
-   * Coiled dragon body, two wings, three spikes on back, small head,
-   * smoke breath, stars around (level 2+).                                 */
+   * Ramp: #3b0764 / #7c3aed / #a78bfa / #d8b4fe   purple body           *
+   *       gold horns (#fcd34d / #b45309), small smoke breath            *
+   * Coiled body, two wings with membranes, three back spikes.           */
   dragon: {
     label: "star dragon",
     base: [
-      // tail curl
-      { c: "tail",  x: 22, y: 18, w: 4, h: 2, f: "#7c3aed" },
-      { c: "tail",  x: 25, y: 20, w: 2, h: 4, f: "#7c3aed" },
-      { c: "tail",  x: 23, y: 24, w: 3, h: 2, f: "#7c3aed" },
+      // tail (curled)
+      { c: "tail-outline", x: 22, y: 17, w: 5, h: 1, f: "#3b0764" },
+      { c: "tail-outline", x: 22, y: 21, w: 5, h: 1, f: "#3b0764" },
+      { c: "tail-outline", x: 27, y: 18, w: 1, h: 3, f: "#3b0764" },
+      { c: "tail-outline", x: 24, y: 22, w: 4, h: 1, f: "#3b0764" },
+      { c: "tail-outline", x: 23, y: 25, w: 4, h: 1, f: "#3b0764" },
+      { c: "tail", x: 22, y: 18, w: 5, h: 3, f: "#7c3aed" },
+      { c: "tail", x: 24, y: 22, w: 4, h: 1, f: "#7c3aed" },
+      { c: "tail", x: 23, y: 23, w: 4, h: 2, f: "#7c3aed" },
+      { c: "tail-hi", x: 22, y: 18, w: 5, h: 1, f: "#a78bfa" },
+      // body outline
+      { c: "body-outline", x: 6, y: 13, w: 18, h: 1, f: "#3b0764" },
+      { c: "body-outline", x: 6, y: 22, w: 18, h: 1, f: "#3b0764" },
+      { c: "body-outline", x: 5, y: 14, w: 1, h: 8, f: "#3b0764" },
+      { c: "body-outline", x: 24, y: 14, w: 1, h: 8, f: "#3b0764" },
       // body
-      { c: "body",  x: 6,  y: 14, w: 18, h: 8, f: "#7c3aed" },
-      { c: "body",  x: 7,  y: 13, w: 16, h: 1, f: "#7c3aed" },
+      { c: "body", x: 6, y: 14, w: 18, h: 8, f: "#7c3aed" },
       // belly highlight (lighter)
-      { c: "belly", x: 8,  y: 18, w: 14, h: 4, f: "#a78bfa" },
+      { c: "belly", x: 8, y: 17, w: 14, h: 4, f: "#a78bfa" },
+      { c: "belly-hi", x: 8, y: 17, w: 6, h: 1, f: "#d8b4fe" },
+      // back highlight
+      { c: "body-hi", x: 6, y: 14, w: 5, h: 1, f: "#a78bfa" },
       // legs
-      { c: "leg",   x: 9,  y: 22, w: 2, h: 3, f: "#5b21b6" },
-      { c: "leg",   x: 14, y: 22, w: 2, h: 3, f: "#5b21b6" },
-      { c: "leg",   x: 19, y: 22, w: 2, h: 3, f: "#5b21b6" },
-      // wing — anchored along the back ridge (y=13/14 ties into body)
-      { c: "wing",  x: 12, y: 8,  w: 8, h: 5, f: "#5b21b6" },
-      { c: "wing",  x: 14, y: 7,  w: 4, h: 1, f: "#5b21b6" },
-      { c: "wing",  x: 14, y: 13, w: 6, h: 1, f: "#5b21b6" },  // wing-base ties to back
+      { c: "leg", x: 9,  y: 22, w: 2, h: 3, f: "#5b21b6" },
+      { c: "leg", x: 14, y: 22, w: 2, h: 3, f: "#5b21b6" },
+      { c: "leg", x: 19, y: 22, w: 2, h: 3, f: "#5b21b6" },
+      { c: "leg-hi", x: 9,  y: 22, w: 1, h: 1, f: "#7c3aed" },
+      { c: "leg-hi", x: 14, y: 22, w: 1, h: 1, f: "#7c3aed" },
+      { c: "leg-hi", x: 19, y: 22, w: 1, h: 1, f: "#7c3aed" },
+      // wing (folded back, with membranes)
+      { c: "wing-outline", x: 11, y: 7, w: 10, h: 1, f: "#3b0764" },
+      { c: "wing-outline", x: 11, y: 13, w: 10, h: 1, f: "#3b0764" },
+      { c: "wing", x: 12, y: 8, w: 8, h: 5, f: "#5b21b6" },
+      { c: "wing", x: 14, y: 7, w: 4, h: 1, f: "#5b21b6" },
+      { c: "wing-hi", x: 12, y: 8, w: 5, h: 1, f: "#7c3aed" },
       { c: "wing-membrane", x: 13, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 16, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 19, y: 11, w: 1, h: 2, f: "#a78bfa" },
-      // back spikes
-      { c: "spike", x: 10, y: 12, w: 1, h: 2, f: "#fcd34d" },
-      { c: "spike", x: 13, y: 12, w: 1, h: 2, f: "#fcd34d" },
-      { c: "spike", x: 17, y: 12, w: 1, h: 2, f: "#fcd34d" },
+      // back spikes (gold)
+      { c: "spike", x: 10, y: 11, w: 1, h: 3, f: "#fcd34d" },
+      { c: "spike", x: 10, y: 11, w: 1, h: 1, f: "#fde68a" },
+      { c: "spike", x: 13, y: 11, w: 1, h: 3, f: "#fcd34d" },
+      { c: "spike", x: 13, y: 11, w: 1, h: 1, f: "#fde68a" },
+      { c: "spike", x: 17, y: 11, w: 1, h: 3, f: "#fcd34d" },
+      { c: "spike", x: 17, y: 11, w: 1, h: 1, f: "#fde68a" },
       // head
-      { c: "head",  x: 2,  y: 13, w: 6, h: 5, f: "#7c3aed" },
-      // horns
-      { c: "horn",  x: 3,  y: 11, w: 1, h: 2, f: "#fcd34d" },
-      { c: "horn",  x: 5,  y: 11, w: 1, h: 2, f: "#fcd34d" },
-      // eye
-      { c: "eye",   x: 3,  y: 15, w: 1, h: 1, f: "#fcd34d" },
+      { c: "head-outline", x: 2, y: 13, w: 6, h: 1, f: "#3b0764" },
+      { c: "head-outline", x: 2, y: 18, w: 6, h: 1, f: "#3b0764" },
+      { c: "head-outline", x: 1, y: 14, w: 1, h: 4, f: "#3b0764" },
+      { c: "head", x: 2, y: 14, w: 6, h: 4, f: "#7c3aed" },
+      { c: "head-hi", x: 2, y: 14, w: 5, h: 1, f: "#a78bfa" },
+      // horns (gold + dark gold base)
+      { c: "horn", x: 3, y: 11, w: 1, h: 2, f: "#fcd34d" },
+      { c: "horn", x: 3, y: 12, w: 1, h: 1, f: "#b45309" },
+      { c: "horn", x: 6, y: 11, w: 1, h: 2, f: "#fcd34d" },
+      { c: "horn", x: 6, y: 12, w: 1, h: 1, f: "#b45309" },
+      // eye (gold)
+      { c: "eye-w", x: 3, y: 15, w: 2, h: 2, f: "#fcd34d" },
+      { c: "eye",   x: 3, y: 15, w: 1, h: 1, f: "#000" },
       // smoke breath
-      { c: "breath", x: 0,  y: 16, w: 2, h: 1, f: "currentColor", o: 0.6 },
+      { c: "breath", x: 0, y: 16, w: 2, h: 1, f: "currentColor", o: 0.6 },
+      { c: "breath", x: 0, y: 15, w: 1, h: 1, f: "currentColor", o: 0.4 },
     ],
     evo: [
-      // lvl 2 — first star
       [ { c: "star", x: 26, y: 4, w: 2, h: 2, f: "#fcd34d" } ],
-      // lvl 3 — more stars
       [ { c: "star", x: 22, y: 2, w: 2, h: 2, f: "#fcd34d" },
         { c: "star", x: 29, y: 8, w: 1, h: 1, f: "#fcd34d" } ],
-      // lvl 4 — fire breath
       [ { c: "fire", x: 0, y: 15, w: 1, h: 1, f: "#f97316" },
         { c: "fire", x: 0, y: 17, w: 1, h: 1, f: "#fb923c" } ],
-      // lvl 5 — orbit ring
       [ { c: "orbit", x: 0, y: 6, w: 32, h: 22, f: "currentColor", o: 0.08 } ],
     ],
   },
