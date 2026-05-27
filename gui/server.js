@@ -24,6 +24,7 @@ import path from "node:path";
 import { spawn as spawnProc } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildState } from "../lib/state.mjs";
+import { atlasBrief, llmConfig } from "./llm.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,8 +51,11 @@ const AUTOSTART = process.env.AUTOSTART !== "0";
 const ARENA_FILE = path.join(REPO_DIR, ".team", "arena.json");
 
 const config = JSON.parse(fs.readFileSync(path.join(HERE, "agents.json"), "utf8"));
+const specialists = Array.isArray(config.specialists) ? config.specialists : [];
+const allDefs = [...config.agents, ...specialists];
+const ptyIndex = new Map(allDefs.map((d) => [d.id, d]));
 if (process.env.TEST_CMD) {
-  for (const a of config.agents) {
+  for (const a of allDefs) {
     a.cmd = process.env.TEST_CMD;
     a.args = [];
   }
@@ -223,7 +227,11 @@ const server = http.createServer((req, res) => {
   // REST surfaces ----------------------------------------------------------
   if (url === "/api/agents" || url === "/agents") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ agents: config.agents, repoDir: REPO_DIR }));
+    return res.end(JSON.stringify({
+      agents: config.agents,
+      specialists: specialists.map(({ prompt, ...rest }) => rest), // omit raw prompt over HTTP
+      repoDir: REPO_DIR,
+    }));
   }
   if (url === "/api/state" || url === "/state") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -237,7 +245,10 @@ const server = http.createServer((req, res) => {
       customAgents: arenaState.customAgents,
       atlasMission: arenaState.atlasMission,
       ptyAgents: config.agents.map((a) => a.id),
+      specialists: specialists.map((s) => s.id),
+      runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
+      llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
     }));
   }
 
@@ -288,7 +299,7 @@ wss.on("connection", (ws) => {
     else if (m.t === "resize" && rec) {
       try { rec.term.resize(Math.max(2, m.cols | 0), Math.max(2, m.rows | 0)); } catch {}
     } else if (m.t === "start") {
-      const def = config.agents.find((a) => a.id === m.id);
+      const def = ptyIndex.get(m.id);
       if (def) startAgent(def);
     } else if (m.t === "stop" && rec) {
       try { rec.term.kill(); } catch {}
@@ -352,12 +363,67 @@ arenaWss.on("connection", (ws) => {
         break;
       }
       case "start-pty": {
-        const def = config.agents.find((a) => a.id === m.id);
-        if (def) startAgent(def);
+        const def = ptyIndex.get(m.id);
+        if (def) {
+          startAgent(def);
+          // If this is a specialist (has a briefing prompt), paste the briefing
+          // and press Enter so the launched session boots into its role.
+          const goal = (m.goal || "").trim();
+          const promptText = def.prompt && goal
+            ? def.prompt.replace("{{GOAL}}", goal)
+            : def.prompt;
+          if (promptText) {
+            setTimeout(() => {
+              const rec2 = agents.get(def.id); if (!rec2) return;
+              try {
+                rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
+                rec2.term.write("\r");
+              } catch {}
+            }, 900);
+          }
+        } else {
+          ws.send(JSON.stringify({ t: "error", reason: `unknown pty id: ${m.id}` }));
+        }
         break;
       }
       case "stop-pty": {
         const rec = agents.get(m.id); if (rec) try { rec.term.kill(); } catch {}
+        break;
+      }
+      case "atlas-brief": {
+        // Stream a real Atlas briefing through the configured LLM, if a key
+        // is set. Falls back with an explicit error message that the arena
+        // shows in Atlas's terminal so the operator knows why nothing is
+        // happening live.
+        const goal = String(m.goal || "").slice(0, 4000);
+        const roster = Array.isArray(m.roster) ? m.roster.slice(0, 32) : [];
+        const cfg = llmConfig();
+        if (!cfg.enabled) {
+          ws.send(JSON.stringify({ t: "atlas-brief-error", reason: "ANTHROPIC_API_KEY not set on the server — falling back to mock broadcast." }));
+          break;
+        }
+        const ac = new AbortController();
+        const reqId = `b-${Date.now()}`;
+        ws.send(JSON.stringify({ t: "atlas-brief-start", reqId, model: cfg.model }));
+        atlasBrief({
+          goal, roster,
+          signal: ac.signal,
+          onDelta: (d) => {
+            try { ws.send(JSON.stringify({ t: "atlas-brief-delta", reqId, d })); } catch {}
+          },
+        }).then(({ usage, cost, model }) => {
+          ws.send(JSON.stringify({ t: "atlas-brief-end", reqId, usage, cost, model }));
+        }).catch((e) => {
+          ws.send(JSON.stringify({ t: "atlas-brief-error", reqId, reason: String(e.message || e) }));
+        });
+        // Stash so we can abort later if needed
+        ws._atlasAborts = ws._atlasAborts || new Map();
+        ws._atlasAborts.set(reqId, ac);
+        break;
+      }
+      case "atlas-brief-abort": {
+        const ac = ws._atlasAborts && ws._atlasAborts.get(m.reqId);
+        if (ac) { try { ac.abort(); } catch {} }
         break;
       }
     }

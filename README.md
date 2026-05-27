@@ -31,6 +31,31 @@ permission prompts so they don't have to keep approving.
 It is local-first, file-coordinated and dependency-light. The optional Rust
 accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 
+## The swarm
+
+<p align="center">
+  <img src="docs/mascots/_gallery.svg" alt="Gallery of all 12 AgentForge mascots" width="100%"/>
+</p>
+
+| Agent | Mascot | Domain |
+|---|---|---|
+| **ATLAS PRIME** | Cyber Turtle      | Chief Orchestrator |
+| **SENTINEL**    | Guardian Owl      | Risk & Safety |
+| **AURORA**      | Neon Fox          | Premium UI / Motion |
+| **FORGE**       | Forge Mole        | Build & Release |
+| **PRISM**       | Prism Chameleon   | Visualization & Graphs |
+| **ECHO**        | Signal Bat        | Event Stream & Replay |
+| **VEGA**        | Neon Hummingbird  | Performance / Motion Engine |
+| **SCRIBE**      | Scribe Raven      | Documentation |
+| **LEDGER**      | Accountant Raccoon| Tokens & Cost |
+| **RAVEN**       | Debug Raven       | Debug & Failure Analysis |
+| **LUMA**        | Firefly           | Accessibility |
+| **NOVA**        | Star Dragon       | Product Story / Positioning |
+
+> Mascots are rendered from `gui/public/arena/mascots.js` via
+> `node scripts/render-mascots.mjs` — same source, two outputs (live arena +
+> static docs).
+
 > [!NOTE]
 > The 4-agent coordination kit that started this project is preserved at
 > [`/console`](http://localhost:4173/console) and in [`.team/`](.team/) — the
@@ -70,6 +95,23 @@ Optional — build the Rust accelerator (auto-detected on next launch):
 cd tools/forge-pulse
 cargo build --release
 ```
+
+Optional — live LLM briefings:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... node gui/server.js
+# Atlas now briefs the swarm through the Anthropic Messages API,
+# streaming text deltas and reporting tokens + cost in its own terminal.
+```
+
+Optional — launch a real Claude session per specialist:
+
+The arena's WebSocket accepts `{t:"start-pty", id:"sentinel", goal:"…"}` —
+the server starts a PTY for that specialist, pastes its role-specific
+briefing from `gui/agents.json`, and presses Enter so the session boots
+into role. The 12 `specialists` in `agents.json` do **not** autostart;
+launching is operator-driven so you don't accidentally fire up a dozen
+concurrent claude processes.
 
 ## Mission Control
 

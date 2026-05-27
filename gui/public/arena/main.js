@@ -153,7 +153,19 @@ document.addEventListener("keydown", (e) => {
 broadcastInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && broadcastInput.value.trim()) {
     const msg = broadcastInput.value.trim();
-    broadcaster.fire(msg);
+    // If the server advertised a live LLM, route the briefing through Atlas
+    // for real — otherwise we use the local mock simulator.
+    const conn = store.get("connection") || {};
+    if (conn.llmEnabled && arenaSocket && arenaSocket.readyState === 1) {
+      const roster = (store.get("agents") || []).map((a) => ({
+        id: a.id, name: a.name, role: a.role, superSkill: a.superSkill,
+      }));
+      arenaSocket.send(JSON.stringify({ t: "atlas-brief", goal: msg, roster }));
+      engine.appendLine(LEAD_ID, `broadcast > ${msg}`);
+      engine.setAnimationState(LEAD_ID, "thinking");
+    } else {
+      broadcaster.fire(msg);
+    }
     broadcastInput.value = "";
   }
 });
@@ -224,7 +236,27 @@ function handleServerMessage(m) {
     store.set("connection", {
       ws: true, pulse: !!m.pulse,
       ptyIds: m.ptyAgents || [],
+      llmEnabled: !!(m.llm && m.llm.enabled),
+      llmModel: m.llm && m.llm.model,
     });
+  } else if (m.t === "atlas-brief-start") {
+    engine.appendLine(LEAD_ID, `[atlas] live briefing via ${m.model}…`);
+    engine.setAnimationState(LEAD_ID, "working");
+  } else if (m.t === "atlas-brief-delta") {
+    // Accumulate the text into Atlas's most recent line for a typing feel.
+    const a = engine.get(LEAD_ID); if (a) {
+      const last = a.terminalLines[a.terminalLines.length - 1] || "";
+      a.terminalLines[a.terminalLines.length - 1] = (last + m.d).slice(0, 200);
+      engine.publish();
+    }
+  } else if (m.t === "atlas-brief-end") {
+    engine.appendLine(LEAD_ID, `[atlas] done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
+    engine.setAnimationState(LEAD_ID, "success");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
+  } else if (m.t === "atlas-brief-error") {
+    engine.appendLine(LEAD_ID, `[atlas] ${m.reason || "live brief failed"}`);
+    engine.setAnimationState(LEAD_ID, "warning");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
   } else if (m.t === "auto-config-ack") {
     // server confirmed the set of armed PTYs — could surface this if needed
   } else if (m.t === "auto-fired") {

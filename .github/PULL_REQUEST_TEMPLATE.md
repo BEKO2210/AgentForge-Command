@@ -13,9 +13,12 @@
 ## Checklist
 
 - [ ] `bash scripts/team-check.sh` is green locally
-- [ ] `bash tests/run.sh` is green locally
+- [ ] `bash tests/run.sh` is green locally (88 checks)
 - [ ] If `mcp/` was touched: `cd mcp && node test.js` is green
 - [ ] If `gui/` was touched: smoke-tested with `AUTOSTART=0 TEST_CMD=bash node gui/server.js`
+- [ ] If `tools/forge-pulse/` was touched: `cargo build --release`, `cargo test --release`
+      and `cargo clippy --release -- -D warnings` are clean
+- [ ] If mascots changed: `node scripts/render-mascots.mjs` refreshed `docs/mascots/`
 - [ ] If the state contract changed: `schema/team-state.schema.json` updated and
       `tests/validate-schema.mjs` still passes
 - [ ] No `git add -A` style changes — only the paths actually touched

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"
+     role="img" aria-label="RAVEN · Debug Raven mascot">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c1224"/>
+      <stop offset="100%" stop-color="#06090f"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b7d" stop-opacity=".25"/>
+      <stop offset="70%" stop-color="#ff6b7d" stop-opacity=".03"/>
+      <stop offset="100%" stop-color="#ff6b7d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" rx="22" fill="url(#bg)"/>
+  <rect x="6" y="6" width="188" height="188" rx="18" fill="none" stroke="#ff6b7d" stroke-opacity=".35"/>
+  <circle cx="100" cy="100" r="86" fill="url(#halo)"/>
+  <g transform="translate(50,50) scale(1.0)" style="color:#ff6b7d">
+    
+      <defs>
+        <radialGradient id="halo-darkRaven-5" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="currentColor" stop-opacity="0.27499999999999997"/>
+          <stop offset="60%" stop-color="currentColor" stop-opacity="0.02"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="glow-darkRaven-5" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle class="mascot-halo" cx="50" cy="52" r="46" fill="url(#halo-darkRaven-5)"/>
+      <g class="mascot-body" filter="url(#glow-darkRaven-5)">
+    <g class="m-drv">
+      <ellipse class="m-drv-body" cx="50" cy="60" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <path    class="m-drv-wing" d="M30 60q6 -12 22 -10q -8 10 -16 14z" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle  class="m-drv-head" cx="66" cy="48" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path    class="m-drv-beak" d="M74 48l10 -2l-10 5z" fill="currentColor"/>
+      <circle  class="m-drv-eye" cx="67" cy="46" r="1.5" fill="currentColor"/>
+      <circle  class="m-drv-glow" cx="67" cy="46" r="3" fill="currentColor" opacity=".15"/>
+      <path    class="m-drv-leg" d="M44 70v8M54 70v8" stroke="currentColor" stroke-width="1.6"/>
+      <path class="m-glitch g1" d="M30 50h6M40 52h4" stroke="currentColor" stroke-width="1" opacity=".7"/>
+      <path class="m-glitch g2" d="M20 64h10M58 70h6" stroke="currentColor" stroke-width="1" opacity=".7"/>
+      <path class="m-trace" d="M14 86l20 -4l16 6l20 -10" stroke="currentColor" stroke-width="0.7" fill="none" opacity=".55" stroke-dasharray="3 2"/>
+      <text x="50" y="92" text-anchor="middle" font-size="5" font-family="monospace" fill="currentColor" opacity=".85" class="m-stack">stack#0xE3</text>
+    </g>
+  </g>
+      <circle class="evo-spark" cx="21" cy="13" r="0.7" style="animation-duration:1.6s;animation-delay:0s"/><circle class="evo-spark" cx="34" cy="16" r="0.95" style="animation-duration:2.0500000000000003s;animation-delay:0.21s"/><circle class="evo-spark" cx="47" cy="19" r="1.2" style="animation-duration:2.5s;animation-delay:0.42s"/><circle class="evo-spark" cx="60" cy="22" r="0.7" style="animation-duration:2.95s;animation-delay:0.63s"/><circle class="evo-spark" cx="73" cy="9" r="0.95" style="animation-duration:1.6s;animation-delay:0.84s"/><circle class="evo-spark" cx="14" cy="12" r="1.2" style="animation-duration:2.0500000000000003s;animation-delay:1.05s"/><circle class="evo-spark" cx="27" cy="15" r="0.7" style="animation-duration:2.5s;animation-delay:1.26s"/><circle class="evo-spark" cx="40" cy="18" r="0.95" style="animation-duration:2.95s;animation-delay:1.47s"/>
+    
+  </g>
+  <text x="100" y="186" text-anchor="middle"
+        font-family="JetBrains Mono, ui-monospace, monospace"
+        font-weight="700" font-size="9" fill="#ff6b7d"
+        opacity=".75" letter-spacing="1.2">
+    RAVEN · DEBUG RAVEN
+  </text>
+</svg>

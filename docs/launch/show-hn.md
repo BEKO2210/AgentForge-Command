@@ -1,45 +1,58 @@
-# Show HN draft — 4-Agent Team Kit for Claude Code
+# Show HN draft — AgentForge Command
 
-> Paste into a Show HN post. The HN audience values concrete, honest, minimal claims.
-> No emojis in the title. Keep the body short; let the README do the rest.
+> Paste into a Show HN post. The HN audience values concrete, honest, minimal
+> claims. No emojis in the title. Keep the body short; let the README do the
+> rest.
 
 ## Title
 
 ```
-Show HN: 4-Agent Team Kit – coordinating Claude Code sessions through plain files
+Show HN: AgentForge Command – local mission control for a Claude Code swarm
 ```
 
 ## Body
 
 ```
-I kept running multiple Claude Code agents on the same repo and they kept stepping on
-each other — overwriting files, racing on commits, losing the plot. I wanted the
-coordination to fit in my head, not in a framework, so I built this and used it on a
-real project.
+I kept running multiple Claude Code sessions on one repo. Four worked. Twelve
+broke my head. So I built a local cockpit that orchestrates a swarm of
+specialised agents — Atlas Prime as the lead, eleven specialists each with a
+role, super-skill and an animated mascot, all driven from one browser tab.
 
-It's a coordination protocol, not a runtime. Four sessions share one `.team/` folder
-of markdown (a board, per-agent append-only logs, role files, a memory file). A handful
-of POSIX shell scripts enforce the rules: one writer per file, serialized commits
-through an atomic `mkdir` lock with PID-liveness stale detection, a green gate before
-every commit, lead-only push. Logs are the authority; the board is a projection a
-`team-sync.sh` tool reconciles. There's also an optional Node web console and an
-optional read-only MCP server.
+The 4-agent coordination kit that started the project is still in there. The
+`.team/` board, the atomic `mkdir` locks, the per-agent append-only logs, the
+green gate, the MCP server, the 88-check Bash test suite — all unchanged and
+all still the substrate. The new cockpit sits on top:
 
-Zero dependencies in the core. MIT-licensed. CI runs `bash -n` + shellcheck + an 87-check
-sandboxed test suite on every push.
+- Twelve animated SVG mascots with idle/thinking/working/success/warning
+  states and 5 evolution levels. Pure CSS, no library.
+- Per-PTY auto-enter watchdog: arm an agent, the server presses Enter on
+  clear permission prompts ((y/n), "press enter", "approve?", "allow this
+  tool to run", …). Single fire, 1.5s cooldown. Off by default.
+- Broadcast bar that either runs the local mock simulator OR — if you set
+  ANTHROPIC_API_KEY — streams a live briefing through Claude with usage +
+  cost reported back to the UI.
+- Spawn-Builder modal for ad-hoc specialists; per-agent real Claude PTYs you
+  launch on demand with the role briefing pre-pasted.
+- Optional Rust accelerator (forge-pulse) for the hot-path PTY matcher.
+  Single-file, zero deps, crash-isolated. Disable with FORGE_PULSE=0.
 
-A self-contained 30-second demo runs without Claude Code:
-  git clone https://github.com/BEKO2210/4-Agent-Team-Kit-for-Claude-Code
-  cd 4-Agent-Team-Kit-for-Claude-Code
-  bash scripts/team-demo.sh
+Local-first, binds to 127.0.0.1, no telemetry. State persists to
+.team/arena.json. Reduced-motion fully respected. MIT-licensed.
 
-Happy to answer questions about the locking, the board/log reconciliation, why I
-didn't pick LangGraph/CrewAI/AutoGen, and how it behaves when an agent crashes.
+  git clone https://github.com/BEKO2210/AgentForge-Command
+  cd AgentForge-Command
+  cd gui && npm install && cd ..
+  node gui/server.js          # → http://localhost:4173/
+
+Happy to answer questions about the auto-enter heuristics, why Rust ended up
+at one specific seam and nowhere else, how the mascots stay cheap to render,
+and how the 4-agent kit stayed compatible underneath.
 ```
 
 ## After posting
 
 - Reply to early comments quickly (first hour matters).
-- Don't argue with critics on Hacker News — explain your reasoning once, link to the
-  relevant file, and let the work speak.
-- Pin a comment with the demo command so people who scrolled past the body still see it.
+- Don't argue with critics on Hacker News — explain your reasoning once,
+  link to the relevant file, and let the work speak.
+- Pin a comment with `node scripts/render-mascots.mjs` + the gallery image so
+  people who scrolled past the body still see it.
