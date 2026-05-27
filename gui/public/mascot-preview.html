@@ -4,11 +4,13 @@
 <meta charset="utf-8" />
 <title>AgentForge · mascot animation preview</title>
 <meta name="color-scheme" content="dark" />
-<link rel="stylesheet" href="../gui/public/arena/styles.css" />
+<link rel="stylesheet" href="/arena/styles.css" />
 <style>
   /* Local layout — each mascot is rendered once per state so every named
      animation (idle / listening / thinking / typing / working / reading /
-     success / warning / error / celebrating) is visible in one place.   */
+     success / warning / error / celebrating) is visible in one place.
+     Served at /mascot-preview.html alongside the live cockpit so the
+     same mascots.js + styles.css power both views.                       */
   body { background:#04060c; color:#f1f5fb; font:13px/1.5 ui-sans-serif,system-ui;
          margin:0; padding:24px; }
   h1 { font:700 24px ui-sans-serif; margin:0 0 4px; }
@@ -41,7 +43,6 @@
   .state-card.flash { animation:flash 1s ease-out; }
   @keyframes flash { from { background:color-mix(in srgb, #f5b94a 25%, #0c1224); } }
 
-  /* Roster strip — small versions of all 12, just idle, for context */
   .roster {
     display:grid; grid-template-columns:repeat(12, 1fr); gap:8px;
     background:rgba(20,28,52,.4); border:1px solid #1a2540;
@@ -57,11 +58,11 @@
 <body>
   <h1><span class="a">AgentForge</span> · mascot animation preview</h1>
   <p class="lead">
-    Each mascot now has a state machine, not just an idle loop. The card
-    grid below shows every named state side-by-side so you can see what
-    each one means visually. <b>One-shot states</b> (success, celebrating)
-    replay every few seconds via JS so they don't just play once and stop.
-    Honours <code>prefers-reduced-motion</code>.
+    Each mascot has a state machine, not just an idle loop. The grid
+    below shows every named state side-by-side so you can see what each
+    one means visually. <b>One-shot states</b> (success, celebrating)
+    replay every few seconds via JS. Honours
+    <code>prefers-reduced-motion</code>.
   </p>
 
   <h2>Roster <span class="meta">(all 12 specialists, idle pose)</span></h2>
@@ -70,21 +71,19 @@
   <div id="grid"></div>
 
   <script type="module">
-    import { renderMascot } from "../gui/public/arena/mascots.js";
-    import { SEED_AGENTS } from "../gui/public/arena/data.js";
+    import { renderMascot } from "/arena/mascots.js";
+    import { SEED_AGENTS } from "/arena/data.js";
 
     const STATES = [
       "idle", "listening", "thinking", "typing", "working",
       "reading", "success", "warning", "error", "celebrating",
     ];
 
-    /* Atlas Prime currently has the full state machine wired in CSS.
-       The remaining 11 specialists still fall back to their idle / working /
-       success / warning rules — they show as "WIP" tags so it's obvious
+    /* Specialists with the full 10-state CSS machine wired. The rest still
+       fall back to the simpler set — they show as "WIP" so it's obvious
        which ones still need the full treatment. */
-    const FULLY_WIRED = new Set(["atlas", "sentinel", "aurora"]);
+    const FULLY_WIRED = new Set(["atlas", "sentinel", "aurora", "forge", "prism", "echo"]);
 
-    // Roster strip
     const roster = document.getElementById("roster");
     for (const agent of SEED_AGENTS) {
       const item = document.createElement("div");
@@ -98,7 +97,6 @@
       roster.appendChild(item);
     }
 
-    // Per-agent state grid
     const grid = document.getElementById("grid");
     for (const agent of SEED_AGENTS) {
       const h2 = document.createElement("h2");
@@ -135,7 +133,6 @@
         const state = card.dataset.state;
         const cls = `state-${state}`;
         svg.classList.remove(cls);
-        // force reflow to restart the animation
         void svg.offsetWidth;
         svg.classList.add(cls);
         card.classList.add("flash");

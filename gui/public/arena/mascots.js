@@ -366,19 +366,26 @@ const SPRITES = {
       { c: "eye", x: 7, y: 14, w: 3, h: 1, f: "#3d2818" },
       // whiskers
       { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.8 },
-      // GIANT shovel claws (4-tone metal ramp)
+      // GIANT shovel claws (4-tone metal ramp), now split per finger so
+      // each one can strike at a slightly offset rhythm.
       { c: "claw-sh", x: 23, y: 18, w: 8, h: 1, f: "#475569" },     // top edge shadow
       { c: "claw",    x: 23, y: 19, w: 8, h: 3, f: "#cbd5e1" },     // main blade
       { c: "claw-hi", x: 23, y: 19, w: 8, h: 1, f: "#f1f5f9" },     // top highlight
       { c: "claw-sh", x: 23, y: 22, w: 8, h: 1, f: "#64748b" },     // under-edge
-      // claw fingers
-      { c: "claw",    x: 23, y: 22, w: 1, h: 2, f: "#cbd5e1" },
-      { c: "claw",    x: 26, y: 22, w: 1, h: 2, f: "#cbd5e1" },
-      { c: "claw",    x: 29, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      // claw fingers — three separate classes for individual strike
+      { c: "finger-1",    x: 23, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "finger-2",    x: 26, y: 22, w: 1, h: 2, f: "#cbd5e1" },
+      { c: "finger-3",    x: 29, y: 22, w: 1, h: 2, f: "#cbd5e1" },
       { c: "claw-tip", x: 30, y: 19, w: 1, h: 3, f: "#f1f5f9" },
+      // brow pixel (above eye) — animates to express focus/anger
+      { c: "brow", x: 6, y: 13, w: 4, h: 1, f: "#3d2818", o: 0 },
       // small back feet
       { c: "foot", x:  6, y: 26, w: 3, h: 1, f: "#3d2818" },
       { c: "foot", x: 22, y: 26, w: 3, h: 1, f: "#3d2818" },
+      // hidden working-state anvil (revealed in CSS when state-working)
+      { c: "anvil-base", x: 18, y: 25, w: 6, h: 1, f: "#475569", o: 0 },
+      { c: "anvil-top",  x: 19, y: 23, w: 4, h: 2, f: "#64748b", o: 0 },
+      { c: "anvil-hi",   x: 19, y: 23, w: 4, h: 1, f: "#94a3b8", o: 0 },
     ],
     evo: [
       [ { c: "spark", x: 28, y: 16, w: 1, h: 1, f: "currentColor" } ],
@@ -449,9 +456,16 @@ const SPRITES = {
       { c: "eye-ball", x: 3, y: 7, w: 5, h: 4, f: "#fef3c7" },
       { c: "eye-iris", x: 4, y: 8, w: 3, h: 2, f: "#0f172a" },
       { c: "eye-glint", x: 4, y: 8, w: 1, h: 1, f: "#fff" },
-      // mouth + tongue
+      // mouth + tongue (tip separated so it can dart independently)
       { c: "mouth", x: 3, y: 17, w: 4, h: 1, f: "#034a73" },
       { c: "tongue", x: 1, y: 17, w: 2, h: 1, f: "#f472b6" },
+      { c: "tongue-tip", x: 0, y: 17, w: 1, h: 1, f: "#f472b6", o: 0 },
+      // data glyphs — three small pixels above the body that appear only
+      // in reading state, scrolling like a tape of incoming bytes.
+      { c: "data-glyph", x: 8,  y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 12, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 16, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 20, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
     ],
     evo: [
       [ { c: "spot", x: 12, y: 16, w: 2, h: 2, f: "#f472b6" } ],
@@ -496,23 +510,32 @@ const SPRITES = {
       { c: "body-outline", x: 13, y: 24, w: 6, h: 1, f: "#0c0a26" },
       { c: "body", x: 12, y: 10, w: 8, h: 14, f: "#1e1b4b" },
       { c: "body-hi", x: 12, y: 10, w: 4, h: 1, f: "#312e81" },
-      // pointed ears
-      { c: "ear", x: 12, y: 7, w: 2, h: 3, f: "#1e1b4b" },
-      { c: "ear", x: 18, y: 7, w: 2, h: 3, f: "#1e1b4b" },
-      { c: "ear-outline", x: 12, y: 6, w: 1, h: 1, f: "#0c0a26" },
-      { c: "ear-outline", x: 19, y: 6, w: 1, h: 1, f: "#0c0a26" },
-      { c: "ear-in", x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
-      { c: "ear-in", x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
+      // pointed ears — taller, with separate tip pixel for perk animation
+      { c: "ear",         x: 12, y: 7, w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear",         x: 18, y: 7, w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear-tip",     x: 12, y: 6, w: 1, h: 1, f: "#0c0a26" },
+      { c: "ear-tip",     x: 19, y: 6, w: 1, h: 1, f: "#0c0a26" },
+      { c: "ear-in",      x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
+      { c: "ear-in",      x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.7 },
       // red eyes (white outline + red + black pupil pixel)
       { c: "eye-outline", x: 13, y: 12, w: 3, h: 3, f: "#0c0a26" },
       { c: "eye-outline", x: 16, y: 12, w: 3, h: 3, f: "#0c0a26" },
-      { c: "eye-w", x: 14, y: 13, w: 1, h: 1, f: "#fff" },
-      { c: "eye-w", x: 17, y: 13, w: 1, h: 1, f: "#fff" },
-      { c: "eye",   x: 14, y: 13, w: 1, h: 1, f: "#ef4444" },
-      { c: "eye",   x: 17, y: 13, w: 1, h: 1, f: "#ef4444" },
+      { c: "eye-w",       x: 14, y: 13, w: 1, h: 1, f: "#fff" },
+      { c: "eye-w",       x: 17, y: 13, w: 1, h: 1, f: "#fff" },
+      { c: "eye",         x: 14, y: 13, w: 1, h: 1, f: "#ef4444" },
+      { c: "eye",         x: 17, y: 13, w: 1, h: 1, f: "#ef4444" },
       // fangs
-      { c: "fang", x: 14, y: 17, w: 1, h: 2, f: "#fff" },
-      { c: "fang", x: 17, y: 17, w: 1, h: 2, f: "#fff" },
+      { c: "fang",        x: 14, y: 17, w: 1, h: 2, f: "#fff" },
+      { c: "fang",        x: 17, y: 17, w: 1, h: 2, f: "#fff" },
+      // tail — small below body, pointed
+      { c: "tail",        x: 15, y: 25, w: 2, h: 1, f: "#1e1b4b" },
+      { c: "tail",        x: 15, y: 26, w: 1, h: 1, f: "#0c0a26" },
+      // sonar dots radiating from the ears — hidden by default,
+      // CSS reveals + animates them in listening / thinking / working states.
+      { c: "sonar-dot", x:  7, y:  9, w: 2, h: 1, f: "currentColor", o: 0 },
+      { c: "sonar-dot", x:  3, y:  6, w: 2, h: 1, f: "currentColor", o: 0 },
+      { c: "sonar-dot", x: 23, y:  9, w: 2, h: 1, f: "currentColor", o: 0 },
+      { c: "sonar-dot", x: 27, y:  6, w: 2, h: 1, f: "currentColor", o: 0 },
     ],
     evo: [
       [ { c: "sonar s1", x: 8,  y: 5, w: 16, h: 1, f: "currentColor", o: 0.65 },
