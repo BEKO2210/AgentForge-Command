@@ -235,6 +235,45 @@ await it("unknown start-pty id surfaces an error event", async () => {
   assert.match(err.reason || "", /unknown pty id/);
   ws.close();
 });
+await it("start-pty WITHOUT a goal does NOT paste the role briefing (regression)", async () => {
+  // Bug found by the E2E sim: when the operator clicked "Launch" with no
+  // explicit goal, the server fell back to def.prompt and pasted the
+  // briefing text into the PTY, drowning the session in noise. This test
+  // pins the fix: a manual launch must leave the shell clean.
+  const ws = await openWS("/arena");
+  await nextMsg(ws, (m) => m.t === "hello");
+  // Pick scribe because no other test in this run starts it.
+  ws.send(JSON.stringify({ t: "start-pty", id: "scribe" })); // NO goal
+  await nextMsg(ws, (m) => m.t === "started" && m.id === "scribe");
+  // Settle window: collect every "o" frame for scribe over 1.2s and
+  // assert none of them contain prose from the briefing template.
+  const out = [];
+  const onMsg = (ev) => {
+    try { const m = JSON.parse(ev.data); if (m.t === "o" && m.id === "scribe") out.push(String(m.d || "")); } catch {}
+  };
+  ws.addEventListener("message", onMsg);
+  await new Promise((r) => setTimeout(r, 1200));
+  ws.removeEventListener("message", onMsg);
+  const joined = out.join("");
+  assert.ok(!/You are SCRIBE/.test(joined), `briefing leaked into PTY: ${joined.slice(0, 200)}`);
+  assert.ok(!/AgentForge swarm/.test(joined), "briefing template leaked into PTY");
+  ws.send(JSON.stringify({ t: "stop-pty", id: "scribe" }));
+  ws.close();
+});
+await it("start-pty WITH a goal pastes the role briefing once, then Enter", async () => {
+  // Mirror image: when a goal IS supplied (which is what atlas's
+  // auto-dispatch does), the briefing must still get pasted and run.
+  const ws = await openWS("/arena");
+  await nextMsg(ws, (m) => m.t === "hello");
+  ws.send(JSON.stringify({ t: "start-pty", id: "echo", goal: "test mission xyz" }));
+  await nextMsg(ws, (m) => m.t === "started" && m.id === "echo");
+  // Wait long enough for the 900ms deferred paste + the 150ms Enter.
+  const briefingFrame = await nextMsg(ws,
+    (m) => m.t === "o" && m.id === "echo" && /ECHO|test mission xyz/.test(String(m.d || "")), 3000);
+  assert.ok(briefingFrame, "briefing should have been pasted when a goal is supplied");
+  ws.send(JSON.stringify({ t: "stop-pty", id: "echo" }));
+  ws.close();
+});
 await it("input writes bytes into a running PTY (and PTY echoes them back)", async () => {
   const ws = await openWS("/arena");
   await nextMsg(ws, (m) => m.t === "hello");
