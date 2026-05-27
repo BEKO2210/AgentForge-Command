@@ -183,8 +183,13 @@ the swarm below.
 
 Each specialist has its own terminal card with:
 
-- An animated SVG mascot that reflects its current state
-  (`idle / thinking / working / success / warning`).
+- An animated SVG mascot that reflects its current state across the full
+  10-state vocabulary (`idle / listening / thinking / typing / working /
+  reading / success / warning / error / celebrating`). Every mascot has its
+  own keyframe set, so the same `working` reads differently on Sentinel
+  (security scan sweep), Forge (anvil sparks), Ledger (spinning coin),
+  Nova (mouth fire), etc. A side-by-side preview lives at
+  [`/mascot-preview.html`](gui/public/mascot-preview.html).
 - Channel callsign (`CH·01`), role badge, status pill with a pulsing dot.
 - Live terminal lines with a blinking cursor and a sweeping activity glow
   while the agent is busy.
@@ -219,6 +224,27 @@ so the operator sees exactly when and why it acted.
 
 Arm per agent with the **⏎ auto** card toggle, or hit **⏎ Auto · all** in the
 toolbar. The choice is persisted (see below) — turn it off any time.
+
+## Tool hooks
+
+The cockpit can be driven authoritatively by Claude Code's native hook system
+instead of inferring agent state from PTY stdout. The server exposes a single
+endpoint:
+
+```
+POST /api/hooks            { "agent": "<id>", "event": "<hook>", "tool": "<name>" }
+```
+
+The same payload is accepted as JSON body, `application/x-www-form-urlencoded`,
+or a GET query string — pick whichever is easiest from the hook script. The
+event + tool resolve to one of the 11 activity states (`reading`, `working`,
+`thinking`, `listening`, `success`, `warning`, `idle`, …) and propagate to the
+agent's mascot through the same WebSocket the cockpit already uses.
+
+Every spawned PTY sees `AGENTFORGE_AGENT_ID` and `AGENTFORGE_HOOK_URL` in its
+environment, so the bundled
+[`.claude/agentforge-hooks.example.json`](.claude/agentforge-hooks.example.json)
+template drops straight into a project's `settings.json` and just works.
 
 ## Persistence
 

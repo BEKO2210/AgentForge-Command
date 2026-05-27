@@ -283,19 +283,6 @@ echo "== JSON Schema sanity =="
 ( cd "$SRC" && node tests/validate-schema.mjs > /tmp/_schema.out 2>&1 ); rc=$?
 if [ "$rc" -eq 0 ]; then ok "schema: structural checks pass"; else no "schema: validate-schema.mjs failed (rc=$rc)"; sed 's/^/    /' /tmp/_schema.out; fi
 
-echo "== test-site smoke (#4) =="
-if [ -x "$SRC/test-site/tests/smoke.sh" ]; then
-  if OUT="$(bash "$SRC/test-site/tests/smoke.sh" 2>&1)"; then
-    ok "test-site smoke: returns 0"
-    printf '%s\n' "$OUT" | sed 's/^/    /'
-  else
-    no "test-site smoke: failed"
-    printf '%s\n' "$OUT" | sed 's/^/    /'
-  fi
-else
-  echo "  - test-site smoke: not present yet"
-fi
-
 # ---- AgentForge arena & server suites (Node 22) ------------------------------
 # The bash suite covers the .team coordination scaffold. These two Node suites
 # cover the cockpit (arena modules, server HTTP/WS protocol). We aggregate the

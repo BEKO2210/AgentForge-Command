@@ -13,7 +13,7 @@
 ## Checklist
 
 - [ ] `bash scripts/team-check.sh` is green locally
-- [ ] `bash tests/run.sh` is green locally (88 checks)
+- [ ] `bash tests/run.sh` is green locally (147 checks: 87 bash + 40 arena + 20 server)
 - [ ] If `mcp/` was touched: `cd mcp && node test.js` is green
 - [ ] If `gui/` was touched: smoke-tested with `AUTOSTART=0 TEST_CMD=bash node gui/server.js`
 - [ ] If `tools/forge-pulse/` was touched: `cargo build --release`, `cargo test --release`

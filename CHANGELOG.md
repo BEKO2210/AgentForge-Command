@@ -4,13 +4,70 @@ All notable changes to this project are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); the project does not yet publish to a
 package registry, so versions are git tags for now.
 
-## [Unreleased] — AgentForge Command
+## [Unreleased] — Mascot state machines + tool-hook receiver
+
+### Added — 10-state animation roster
+
+All 12 specialists (Atlas plus the 11 lieutenants) now ship a full 10-state
+animation machine: `idle / listening / thinking / typing / working / reading /
+success / warning / error / celebrating`. The states are not just colour-swaps —
+each specialist expresses its persona visually (Sentinel's eyes scan, Forge's
+anvil sparks, Ledger's coin spins, Raven's debug glitch lines run, Luma's
+lantern strobes morse, Nova breathes fire on success, etc.). One-shot states
+(`success`, `celebrating`) restart cleanly on each trigger so they read
+correctly when fired in rapid succession.
+
+A side-by-side preview at **`/mascot-preview.html`** renders every mascot in
+every state for quick visual regression. The headless screenshot harness at
+`scripts/sim-state-shots.mjs` captures each row as a PNG under
+`docs/state-shots/`, then exercises the `/api/hooks` → WebSocket → DOM-class
+pipeline end-to-end against a live server (8 / 8 round-trips per run).
+
+### Added — `POST /api/hooks` tool-hook receiver
+
+The cockpit can now be driven authoritatively by Claude Code's native
+hook system instead of inferring state from PTY stdout. The new endpoint
+accepts JSON body, form-urlencoded, or GET query-string payloads and maps the
+hook event + tool to one of the 11 activity states:
+
+| Event              | Tool(s)                                        | State        |
+|--------------------|------------------------------------------------|--------------|
+| `PreToolUse`       | `Read`, `Grep`, `Glob`, `WebFetch`, `WebSearch`| `reading`    |
+| `PreToolUse`       | `Edit`, `Write`, `MultiEdit`, `NotebookEdit`   | `working`    |
+| `PreToolUse`       | `Bash`, `BashOutput`                           | `working`    |
+| `PreToolUse`       | `Task`                                         | `thinking`   |
+| `PostToolUse`      | any (ok)                                       | `success` → idle |
+| `PostToolUse`      | any (error)                                    | `warning`    |
+| `Notification` / `SessionStart` / `UserPromptSubmit` |                                | `listening`  |
+| `Stop`             |                                                | `idle`       |
+
+Every spawned PTY now exports `AGENTFORGE_AGENT_ID` + `AGENTFORGE_HOOK_URL`
+so the bundled `.claude/agentforge-hooks.example.json` template can be
+dropped into a project's `settings.json` and Just Works. End-to-end smoke
+covers all three payload shapes plus 13 representative event/tool tuples.
+
+### Removed
+
+- **`test-site/`** worked-example demo directory and the matching smoke
+  block from `tests/run.sh`. The example lived on as a one-off from the
+  earlier 4-agent kit; the kit's own coordination scaffold + the new
+  cockpit are the only first-class surfaces now.
+
+### Tests
+
+- Full suite is now **147 / 147** green: **87** bash + **40** arena unit +
+  **20** server integration. The bash count drops by 1 from the previous
+  88 because the `test-site` smoke block is gone.
+
+---
+
+## [Earlier · Unreleased] — AgentForge Command
 
 The project has been re-framed as **AgentForge Command**, a local mission-control
 cockpit for a Claude Code swarm led by **ATLAS PRIME**. The 4-agent coordination
-kit that started it (the `.team/` scaffold, scripts, MCP server, 88-check test
-suite) stays in place and lives on at `/console` — the new cockpit sits on top
-of it as the default surface.
+kit that started it (the `.team/` scaffold, scripts, MCP server) stays in place
+and lives on at `/console` — the new cockpit sits on top of it as the default
+surface.
 
 ### Added — AgentForge Mission Control (`/`)
 
