@@ -74,7 +74,9 @@ if (persisted.spend) store.set("spend", persisted.spend);
 
 const engine = createSpawnEngine({ store, persisted });
 engine.bootstrap();
-openArenaSocket();
+// arenaSocket + openArenaSocket are declared further down; defer the WS open
+// to a microtask so the lexical binding has been initialised by then.
+queueMicrotask(() => openArenaSocket());
 
 /* Broadcast mode — toggles between "atlas" (talk to Atlas only — he dispatches
    the rest) and "swarm" (broadcast to every running specialist). */
@@ -427,11 +429,42 @@ function handleServerMessage(m) {
   } else if (m.t === "dispatch") {
     const a = engine.get(m.id);
     if (a) {
-      engine.appendLine(m.id, `[atlas] @${m.id}: ${m.task}`);
-      engine.setAnimationState(m.id, "thinking");
+      engine.appendLine(m.id, `[atlas] dispatched — sub-session starting…`);
+      engine.setAnimationState(m.id, "working");
     }
   } else if (m.t === "dispatch-skip") {
     engine.appendLine(LEAD_ID, `[atlas] could not dispatch @${m.id} — ${m.reason}`);
+  } else if (m.t === "specialist-brief-start") {
+    // Pass 2 has started for this specialist. Open a fresh "briefing"
+    // line on the card and switch to thinking — the next delta events
+    // will accumulate into this line.
+    const a = engine.get(m.id);
+    if (a) {
+      engine.appendLine(m.id, `[atlas → ${m.id}] ${m.task}`);
+      engine.appendLine(m.id, "[brief] ");
+      engine.setAnimationState(m.id, "thinking");
+    }
+  } else if (m.t === "specialist-brief-delta") {
+    // Append onto the last "[brief]" line so we get a live typing feel.
+    const a = engine.get(m.id);
+    if (a) {
+      const lines = a.terminalLines;
+      const last = lines[lines.length - 1] || "";
+      lines[lines.length - 1] = (last + m.d).slice(0, 240);
+      engine.publish();
+    }
+  } else if (m.t === "specialist-brief-end") {
+    const a = engine.get(m.id);
+    if (a) {
+      engine.appendLine(m.id,
+        `[brief done] ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
+      engine.setAnimationState(m.id, "success");
+      setTimeout(() => engine.setAnimationState(m.id, "working"), 1200);
+    }
+  } else if (m.t === "specialist-brief-error") {
+    engine.appendLine(m.id, `[brief failed] ${m.reason}`);
+    engine.setAnimationState(m.id, "warning");
+    setTimeout(() => engine.setAnimationState(m.id, "idle"), 1800);
   } else if (m.t === "spend-update") {
     store.set("spend", m.spend || {});
   } else if (m.t === "atlas-brief-error") {

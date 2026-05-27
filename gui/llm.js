@@ -111,10 +111,55 @@ export async function atlasBrief({ goal, roster, onDelta, signal }) {
     "2. A bulleted list 'BRIEFINGS:' where each bullet is `- <id>: <one-sentence task>`.",
     "Use only ids from the roster. Don't invent new agents.",
     "Keep the briefings concrete and small enough to fit in one PR.",
+    "The one-sentence task in the BRIEFINGS block is just a label — a separate",
+    "pass will turn each label into a full briefing for that specialist.",
   ].join("\n");
   return streamBrief({
     system,
     messages: [{ role: "user", content: `Mission goal: ${goal}` }],
+    onDelta, signal,
+  });
+}
+
+/**
+ * Pass 2: stream a full briefing for ONE specialist. Atlas takes the plan
+ * he just wrote plus the matching one-sentence task and expands it into a
+ * concrete, role-aware briefing the specialist will read at the top of its
+ * session. Streams the same way as atlasBrief — onDelta is called per text
+ * chunk, the returned promise resolves with usage + cost.
+ *
+ * @param {object} opt
+ * @param {{id, name, role, superSkill, lane, capabilities?}} opt.specialist
+ * @param {string} opt.goal      — the operator's original mission goal
+ * @param {string} opt.plan      — Atlas's paragraph plan from pass 1
+ * @param {string} opt.task      — one-sentence label from the BRIEFINGS block
+ * @param {(d:string)=>void} opt.onDelta
+ * @param {AbortSignal} [opt.signal]
+ */
+export async function specialistBrief({ specialist, goal, plan, task, onDelta, signal }) {
+  const system = [
+    `You are ATLAS PRIME briefing one specialist of the AgentForge swarm: ${specialist.name} (${specialist.id}).`,
+    `${specialist.name}'s role: ${specialist.role}.`,
+    `${specialist.name}'s super-skill: ${specialist.superSkill}.`,
+    specialist.lane ? `${specialist.name} writes into .team/log/${specialist.lane}.md.` : "",
+    "",
+    "Write the briefing this specialist will read AT THE TOP of its Claude Code session.",
+    "Constraints:",
+    "- 3 to 5 sentences, no preamble, no markdown headings.",
+    "- Mention the concrete artefact(s) the specialist must touch.",
+    "- Reference the green gate / .team/PROTOCOL.md / @atlas reporting where appropriate.",
+    "- End with a single sentence telling the specialist where to log its first @atlas report.",
+    "- Speak directly to the specialist (second person). Never narrate from a third-person view.",
+  ].filter(Boolean).join("\n");
+  const user = [
+    `Operator mission goal: ${goal}`,
+    plan ? `\nMy plan for the swarm: ${plan}` : "",
+    `\n${specialist.name}'s task in this mission: ${task}`,
+    `\nNow write ${specialist.name}'s briefing.`,
+  ].join("");
+  return streamBrief({
+    system,
+    messages: [{ role: "user", content: user }],
     onDelta, signal,
   });
 }

@@ -832,6 +832,45 @@ kbd {
 .ledger-recent .rb-tokens { color:var(--muted); font-size:11.5px; }
 .ledger-recent .rb-goal { color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+.ledger-forecast {
+  margin-top:8px; padding-top:8px; border-top:1px dashed var(--border2);
+}
+.ledger-forecast .label {
+  font:700 9.5px var(--mono); letter-spacing:.9px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:6px;
+}
+.ledger-forecast .trend-arrow {
+  font:700 13px var(--mono); padding:0 4px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:4px;
+}
+.ledger-forecast.trend-rising  .trend-arrow { color:var(--warn); }
+.ledger-forecast.trend-falling .trend-arrow { color:var(--good); }
+.ledger-forecast.trend-steady  .trend-arrow { color:var(--muted); }
+.ledger-forecast .forecast-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;
+}
+.ledger-forecast .fc {
+  border:1px solid var(--border2); border-radius:8px; padding:8px 10px;
+  background:rgba(0,0,0,.18);
+}
+.ledger-forecast .fc-k {
+  font:700 9.5px var(--mono); letter-spacing:.7px; text-transform:uppercase;
+  color:var(--muted);
+}
+.ledger-forecast .fc-v {
+  font:700 16px var(--mono); color:var(--fg); margin-top:2px; line-height:1.1;
+}
+.ledger-forecast .fc-v small {
+  font:600 10px var(--mono); color:var(--muted); margin-left:2px;
+}
+.ledger-forecast.trend-rising  .fc { border-color:color-mix(in srgb, var(--warn) 35%, var(--border2)); }
+.ledger-forecast.trend-falling .fc { border-color:color-mix(in srgb, var(--good) 35%, var(--border2)); }
+.ledger-forecast.empty { color:var(--muted); }
+@media (max-width: 640px) {
+  .ledger-grid, .ledger-forecast .forecast-grid { grid-template-columns:1fr 1fr; }
+}
+
 /* ----- Spawn-Builder modal ----- */
 .modal-backdrop {
   position:fixed; inset:0; background:rgba(2,4,9,.7);
@@ -887,174 +926,201 @@ kbd {
   display:flex; gap:8px; justify-content:flex-end;
 }
 
-/* ----- Mascot animations (per-character) ----- */
-.mascot { display:block; }
-.mascot .evo-spark {
-  fill:currentColor; opacity:.85;
-  transform-origin:center;
-}
+/* ----- Mascot animations (per-character) -----
+ *
+ * Pixel-art (`<rect>`) mascots animate via CSS transforms on classed body
+ * parts. Each species has a signature behaviour:
+ *
+ *   turtle      head pokes in/out, radar dot blinks
+ *   owl         pupils blink, eyes track left/right
+ *   fox         tail swishes, ears twitch
+ *   mole        claws hammer, sparks pop, snout twitches
+ *   chameleon   skin spots cycle colour, eye-turret rotates
+ *   bat         wings flap, sonar rings expand
+ *   hummingbird wings blur (very fast), trail particles fade
+ *   raven       wing twitches, scroll line draws in
+ *   raccoon     coin spins, tail flicks
+ *   darkRaven   glitch lines flash, eye-glow pulses red
+ *   firefly     lantern brightness modulates, sparks float
+ *   dragon      wings flap slowly, breath puffs, stars twinkle
+ *
+ * State classes (.state-thinking / working / success / warning) layer on
+ * top: thinking = slight head-bob, working = "active" speed-up, success =
+ * one-shot pop, warning = subtle shake.
+ */
+.mascot { display:block; image-rendering:pixelated; }
+
 @media (prefers-reduced-motion: no-preference) {
-  .mascot .evo-spark {
-    animation:sparkFloat 2.6s ease-in-out infinite;
-  }
+  /* Idle baseline — every body breathes a little (1px up/down). */
+  .mascot .mascot-body { animation: m-breathe 4.8s ease-in-out infinite; transform-origin:50% 60%; }
+  @keyframes m-breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.4px); } }
 
-  /* Idle baseline — every body breathes a little */
-  .mascot .mascot-body { animation:breathe 4.8s ease-in-out infinite; transform-origin:50% 60%; }
+  /* ---- TURTLE ---- head pops in/out, radar dot blinks */
+  .mascot-turtle .r-head     { animation: t-head 5.5s ease-in-out infinite; transform-origin:5px 16px; }
+  .mascot-turtle .r-neck     { animation: t-head 5.5s ease-in-out infinite; transform-origin:5px 17px; }
+  .mascot-turtle .r-eye      { animation: t-blink 5.5s steps(2) infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-radar    { animation: t-radar 1.8s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-shell-led{ animation: t-led 1.2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-turtle .r-shell-led + .r-shell-led { animation-delay:.6s; }
+  .mascot-turtle .r-antenna-tip { animation: t-led 1.4s ease-in-out infinite; }
+  .mascot-turtle.state-warning .r-head, .mascot-turtle.state-warning .r-neck { animation: t-hide 1.8s ease-in-out infinite; }
+  @keyframes t-head  { 0%,86%,100% { transform:translateX(0); } 90%,94% { transform:translateX(-1px); } }
+  @keyframes t-hide  { 0%,100% { transform:translateX(0); } 50% { transform:translateX(2px); opacity:.6; } }
+  @keyframes t-blink { 0%,90%,100% { transform:scaleY(1); } 92%,95% { transform:scaleY(.1); } }
+  @keyframes t-radar { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.4); } }
+  @keyframes t-led   { 0%,100% { opacity:.3; } 50% { opacity:1; } }
 
-  /* TURTLE — radar sweep + occasional head bob + shell-light cycle */
-  .mascot-turtle .m-radar     { animation:none; }
-  .mascot-turtle .m-radar-arm { animation:radarArm 4s linear infinite; transform-origin:50px 58px; }
-  .mascot-turtle .shell-light { animation:shellPulse 1.8s ease-in-out infinite; }
-  .mascot-turtle .shell-light.l1 { animation-delay:.0s; }
-  .mascot-turtle .shell-light.l2 { animation-delay:.5s; }
-  .mascot-turtle .shell-light.l3 { animation-delay:1s; }
-  .mascot-turtle .m-head      { animation:turtleHead 6s ease-in-out infinite; transform-origin:50px 38px; }
-  .mascot-turtle .m-eye       { animation:turtleEye 5.4s steps(2) infinite; }
-  .mascot-turtle .m-antenna-tip { animation:tipPulse 1.4s ease-in-out infinite; }
-  .mascot-turtle.state-working .m-radar-arm { animation-duration:1.4s; }
-  .mascot-turtle.state-thinking .m-head { animation:turtleHead 1.6s ease-in-out infinite; }
-  @keyframes radarArm { from { transform:rotate(0); } to { transform:rotate(360deg); } }
-  @keyframes shellPulse { 0%,100% { opacity:.3; r:1; } 50% { opacity:1; r:1.4; } }
-  @keyframes turtleHead { 0%,90%,100% { transform:none; } 45%,55% { transform:translateY(-1px) rotate(-3deg); } }
-  @keyframes turtleEye { 0%,93%,100% { transform:scaleY(1); } 95%,98% { transform:scaleY(.1); } }
-  @keyframes tipPulse { 0%,100% { opacity:.5; r:1.7; } 50% { opacity:1; r:2.1; } }
+  /* ---- OWL ---- pupils blink + track, scan line drifts */
+  .mascot-owl .r-eye-pupil { animation: o-track 4.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-owl .r-eye-bg    { animation: o-blink 4.5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-owl .r-scan      { animation: o-scan 3.5s linear infinite; }
+  .mascot-owl .r-tuft      { animation: o-tuft 6s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-owl.state-warning .r-eye-pupil { animation: o-track 1.1s ease-in-out infinite; }
+  .mascot-owl.state-warning { color:#fde047; }
+  @keyframes o-track { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(1px); } }
+  @keyframes o-blink { 0%,88%,100% { transform:scaleY(1); } 92%,96% { transform:scaleY(.1); } }
+  @keyframes o-scan  { 0% { transform:translateY(-4px); opacity:0; } 30%,70% { opacity:.6; } 100% { transform:translateY(4px); opacity:0; } }
+  @keyframes o-tuft  { 0%,90%,100% { transform:none; } 94%,96% { transform:scale(1.1); } }
 
-  /* OWL — slow blink, tracking pupil sweep */
-  .mascot-owl .m-owl-eye   { animation:owlBlink 5s steps(2) infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-owl .m-owl-pupil { animation:owlTrack 6s ease-in-out infinite; }
-  .mascot-owl .scan-line   { animation:scanV 2.6s linear infinite; }
-  .mascot-owl.state-warning .m-owl-pupil { animation:owlTrack 1.2s ease-in-out infinite; }
-  .mascot-owl.state-warning { color:var(--warn) !important; }
-  @keyframes owlBlink { 0%,90%,100% { transform:scaleY(1); } 92%,96% { transform:scaleY(.05); } }
-  @keyframes owlTrack { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(2px); } }
-  @keyframes scanV { 0% { transform:translateY(-12px); opacity:0; } 50% { opacity:.55; } 100% { transform:translateY(12px); opacity:0; } }
+  /* ---- FOX ---- tail swishes, ears twitch */
+  .mascot-fox .r-tail      { animation: f-tail 3.6s ease-in-out infinite; transform-origin:23px 17px; transform-box:fill-box; }
+  .mascot-fox .r-tail-tip  { animation: f-tail 3.6s ease-in-out infinite; transform-origin:23px 17px; transform-box:fill-box; }
+  .mascot-fox .r-ear       { animation: f-ear  3.2s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-fox .r-tail-glow { animation: f-glow 2.4s ease-in-out infinite; }
+  .mascot-fox .r-shimmer   { animation: f-shimmer 2s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-fox.state-working .r-tail, .mascot-fox.state-working .r-tail-tip { animation: f-tail-fast 1s ease-in-out infinite; transform-origin:23px 17px; transform-box:fill-box; }
+  @keyframes f-tail      { 0%,100% { transform:rotate(0); }   25% { transform:rotate(-7deg); } 75% { transform:rotate(5deg); } }
+  @keyframes f-tail-fast { 0%,100% { transform:rotate(-10deg); } 50% { transform:rotate(8deg); } }
+  @keyframes f-ear       { 0%,82%,100% { transform:none; } 86%,90% { transform:rotate(-10deg); } }
+  @keyframes f-glow      { 0%,100% { opacity:.4; } 50% { opacity:.95; } }
+  @keyframes f-shimmer   { 0%,100% { opacity:.3; transform:scale(.8); } 50% { opacity:1; transform:scale(1.3); } }
 
-  /* FOX — tail flick, ear twitch */
-  .mascot-fox .m-fox-tail      { animation:foxTail 4.5s ease-in-out infinite; transform-origin:24px 60px; }
-  .mascot-fox .m-fox-tail-glow { animation:tailPulse 2.6s ease-in-out infinite; transform-origin:24px 60px; }
-  .mascot-fox .m-fox-ear       { animation:foxEar 3.2s ease-in-out infinite; transform-origin:72px 41px; }
-  .mascot-fox .m-shimmer       { animation:shimmer 2s ease-in-out infinite; }
-  .mascot-fox.state-working .m-fox-tail { animation:foxTailFast 1s ease-in-out infinite; }
-  @keyframes foxTail { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-6deg); } 75% { transform:rotate(4deg); } }
-  @keyframes foxTailFast { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(6deg); } }
-  @keyframes tailPulse { 0%,100% { opacity:.18; } 50% { opacity:.55; } }
-  @keyframes foxEar { 0%,80%,100% { transform:none; } 85%,92% { transform:rotate(-12deg); } }
-  @keyframes shimmer { 0%,100% { opacity:.3; transform:scale(1); } 50% { opacity:1; transform:scale(1.5); } }
+  /* ---- MOLE ---- claws hammer, sparks pop */
+  .mascot-mole .r-claw       { animation: mo-hammer 1.2s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box; }
+  .mascot-mole .r-claw-tip   { animation: mo-hammer 1.2s ease-in-out infinite; transform-origin:24px 22px; transform-box:fill-box; }
+  .mascot-mole .r-snout      { animation: mo-snout 3.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole .r-spark      { animation: mo-spark 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-mole .r-spark:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-mole .r-spark:nth-of-type(3) { animation-delay:.6s; }
+  .mascot-mole.state-working .r-claw, .mascot-mole.state-working .r-claw-tip { animation-duration:.5s; }
+  @keyframes mo-hammer { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(8deg); } }
+  @keyframes mo-snout  { 0%,82%,100% { transform:none; } 86%,90% { transform:translateX(-1px); } }
+  @keyframes mo-spark  { 0%,100% { opacity:.2; transform:scale(.5); } 50% { opacity:1; transform:scale(1.6); } }
 
-  /* MOLE — anvil claw, sparks pop */
-  .mascot-mole .m-mole-claw { animation:moleClaw 1s ease-in-out infinite; transform-origin:70px 70px; }
-  .mascot-mole .spark.s1 { animation:sparkPop 1.1s ease-in-out .0s infinite; }
-  .mascot-mole .spark.s2 { animation:sparkPop 1.1s ease-in-out .35s infinite; }
-  .mascot-mole .spark.s3 { animation:sparkPop 1.1s ease-in-out .7s infinite; }
-  .mascot-mole .m-mole-whisker { animation:whiskerTwitch 4s ease-in-out infinite; transform-origin:24px 56px; }
-  .mascot-mole.state-idle .m-mole-claw { animation-duration:3s; }
-  @keyframes moleClaw { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(8deg); } }
-  @keyframes sparkPop { 0%,100% { opacity:.25; transform:scale(.6); } 50% { opacity:1; transform:scale(1.4); } }
-  @keyframes whiskerTwitch { 0%,75%,100% { transform:none; } 80%,90% { transform:rotate(8deg); } }
+  /* ---- CHAMELEON ---- skin spots cycle colour, eye rotates */
+  .mascot-chameleon .r-spot      { animation: c-cycle 4.5s linear infinite; }
+  .mascot-chameleon .r-spot:nth-of-type(2) { animation-delay:.7s; }
+  .mascot-chameleon .r-spot:nth-of-type(3) { animation-delay:1.4s; }
+  .mascot-chameleon .r-eye-iris  { animation: c-eye 3.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-chameleon .r-tongue    { animation: c-tongue 2s ease-in-out infinite; transform-box:fill-box; transform-origin:right; }
+  .mascot-chameleon .r-crest     { animation: c-crest 2s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-chameleon.state-working .r-spot { animation-duration:1.2s; }
+  @keyframes c-cycle  { 0%,100% { fill:#f472b6; } 33% { fill:#fcd34d; } 66% { fill:#22d3ee; } }
+  @keyframes c-eye    { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(2px); } }
+  @keyframes c-tongue { 0%,100% { transform:scaleX(.2); opacity:.5; } 50% { transform:scaleX(1.2); opacity:1; } }
+  @keyframes c-crest  { 0%,100% { transform:scaleY(.85); } 50% { transform:scaleY(1.15); } }
 
-  /* CHAMELEON — colour cycle on body + eye turret */
-  .mascot-chameleon .m-cham-eye-outer { animation:chamEye 4s ease-in-out infinite; transform-origin:26px 48px; }
-  .mascot-chameleon .m-cham-spot { animation:colorCycle 5.5s linear infinite; }
-  .mascot-chameleon.state-working .m-cham-body { animation:colorCycleStroke 1.4s linear infinite; }
-  .mascot-chameleon .m-cham-tail-curl { animation:tailCurl 5s ease-in-out infinite; }
-  @keyframes chamEye { 0%,100% { transform:rotate(-12deg); } 50% { transform:rotate(20deg); } }
-  @keyframes tailCurl { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-12deg); } }
-  @keyframes colorCycle {
-    0%, 100% { fill:#c084fc; }
-    25% { fill:#22d3ee; }
-    50% { fill:#fde047; }
-    75% { fill:#f472b6; }
-  }
-  @keyframes colorCycleStroke {
-    0%, 100% { stroke:#c084fc; }
-    50% { stroke:#22d3ee; }
-  }
+  /* ---- BAT ---- wings flap, sonar rings expand */
+  .mascot-bat .r-wing-l    { animation: b-flap-l 1.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat .r-wing-r    { animation: b-flap-r 1.4s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
+  .mascot-bat .r-wing-bone { animation: b-flap-l 1.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat .r-ear       { animation: b-ear 3s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-bat .sonar       { animation: b-sonar 2.2s ease-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-bat .s2          { animation-delay:.55s; }
+  @keyframes b-flap-l { 0%,100% { transform:rotate(-5deg) scaleY(1); }  50% { transform:rotate(15deg) scaleY(.6); } }
+  @keyframes b-flap-r { 0%,100% { transform:rotate(5deg)  scaleY(1); }  50% { transform:rotate(-15deg) scaleY(.6); } }
+  @keyframes b-ear    { 0%,84%,100% { transform:none; } 88%,92% { transform:scale(1.15); } }
+  @keyframes b-sonar  { 0% { opacity:.9; transform:scaleX(.4); } 100% { opacity:0; transform:scaleX(1.5); } }
 
-  /* BAT — sonar rings, wing flap */
-  .mascot-bat .sonar.s1 { animation:sonarRing 2.4s ease-out infinite; transform-origin:50px 54px; }
-  .mascot-bat .sonar.s2 { animation:sonarRing 2.4s ease-out .5s infinite; transform-origin:50px 54px; }
-  .mascot-bat .sonar.s3 { animation:sonarRing 2.4s ease-out 1s infinite; transform-origin:50px 54px; }
-  .mascot-bat .sonar.s4 { animation:sonarRing 2.4s ease-out 1.5s infinite; transform-origin:50px 54px; }
-  .mascot-bat .m-bat-wing.l { animation:wingFlap 1.6s ease-in-out infinite; transform-origin:50px 54px; }
-  .mascot-bat .m-bat-wing.r { animation:wingFlap 1.6s ease-in-out infinite reverse; transform-origin:50px 54px; }
-  .mascot-bat .m-bat-ear   { animation:batEar 3.4s ease-in-out infinite; transform-origin:50px 44px; }
-  @keyframes sonarRing { 0% { transform:scale(.4); opacity:.9; } 100% { transform:scale(1.5); opacity:0; } }
-  @keyframes wingFlap { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(.5); } }
-  @keyframes batEar { 0%,80%,100% { transform:none; } 88%,94% { transform:scale(1.1); } }
+  /* ---- HUMMINGBIRD ---- ultra-fast wings, trail particles */
+  .mascot-hummingbird .r-wing-t { animation: h-wing .08s linear infinite; transform-origin:15px 12px; transform-box:fill-box; }
+  .mascot-hummingbird .r-wing-b { animation: h-wing .08s linear infinite reverse; transform-origin:15px 19px; transform-box:fill-box; }
+  .mascot-hummingbird .r-trail  { animation: h-trail 1.2s linear infinite; }
+  .mascot-hummingbird .r-trail:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-hummingbird .r-trail2 { animation: h-trail 1.2s linear .6s infinite; }
+  .mascot-hummingbird .r-beak-tip { animation: h-tip 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes h-wing  { 0%,100% { transform:scaleY(.3); } 50% { transform:scaleY(1.2); } }
+  @keyframes h-trail { 0% { opacity:0; transform:translateX(4px); } 30% { opacity:.8; } 100% { opacity:0; transform:translateX(-6px); } }
+  @keyframes h-tip   { 0%,100% { opacity:.4; } 50% { opacity:1; } }
 
-  /* HUMMINGBIRD — blur wings + trail fade */
-  .mascot-hummingbird .m-hb-wing { animation:wingBlur .12s linear infinite; transform-origin:46px 55px; }
-  .mascot-hummingbird .m-trail.t1 { animation:trailFade 1.6s linear .0s infinite; }
-  .mascot-hummingbird .m-trail.t2 { animation:trailFade 1.6s linear .3s infinite; }
-  .mascot-hummingbird .m-trail.t3 { animation:trailFade 1.6s linear .6s infinite; }
-  .mascot-hummingbird .m-hb-tongue { animation:tongueDart 1.4s ease-in-out infinite; transform-origin:82px 49px; }
-  @keyframes wingBlur { 0%,100% { transform:scaleY(.4); } 50% { transform:scaleY(1.1); } }
-  @keyframes trailFade { 0% { opacity:0; transform:translateX(4px); } 50% { opacity:.7; } 100% { opacity:0; transform:translateX(-8px); } }
-  @keyframes tongueDart { 0%,100% { transform:scaleX(0); } 50% { transform:scaleX(1); } }
+  /* ---- RAVEN (scribe) ---- quill bobs writing, ink blinks */
+  .mascot-raven .r-quill-shaft, .mascot-raven .r-quill-feather { animation: rv-write 1.6s ease-in-out infinite; transform-origin:18px 24px; transform-box:fill-box; }
+  .mascot-raven .r-ink   { animation: rv-ink 1.6s steps(2) infinite; }
+  .mascot-raven .r-line  { animation: rv-line 2.4s linear infinite; }
+  .mascot-raven .r-eye   { animation: rv-eye 5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raven.state-working .r-quill-shaft, .mascot-raven.state-working .r-quill-feather { animation-duration:.7s; }
+  @keyframes rv-write { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(10deg); } }
+  @keyframes rv-ink   { 50% { opacity:.3; } }
+  @keyframes rv-line  { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+  @keyframes rv-eye   { 0%,90%,100% { transform:scaleY(1); } 93%,96% { transform:scaleY(.1); } }
 
-  /* SCRIBE RAVEN — quill bob, cursor blink, glyph dash */
-  .mascot-raven .m-quill  { animation:quillBob 1.6s ease-in-out infinite; transform-origin:28px 50px; }
-  .mascot-raven .m-cursor { animation:scribeCursor 1s steps(2) infinite; }
-  .mascot-raven .m-glyph  { animation:glyphDraw 2.4s linear infinite; }
-  .mascot-raven.state-working .m-quill { animation-duration:.7s; }
-  @keyframes quillBob { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-10deg); } }
-  @keyframes scribeCursor { 50% { opacity:.15; } }
-  @keyframes glyphDraw { 0%,100% { stroke-dashoffset:0; } 50% { stroke-dashoffset:8; } }
+  /* ---- RACCOON ---- coin spins, tail flicks */
+  .mascot-raccoon .r-coin       { animation: rc-spin 2.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raccoon .r-coin2      { animation: rc-spin 2.4s ease-in-out .6s infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raccoon .r-tail       { animation: rc-tail 3.5s ease-in-out infinite; transform-origin:22px 22px; transform-box:fill-box; }
+  .mascot-raccoon .r-eye-pupil  { animation: rc-glance 5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raccoon .r-bar-fill   { animation: rc-bar 3s ease-in-out infinite; transform-origin:left; transform-box:fill-box; }
+  .mascot-raccoon .r-tick       { animation: rc-tick 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-raccoon .r-tick:nth-of-type(2) { animation-delay:.4s; }
+  .mascot-raccoon .r-tick:nth-of-type(3) { animation-delay:.8s; }
+  @keyframes rc-spin   { 0%,100% { transform:scaleX(1); } 50% { transform:scaleX(.15); } }
+  @keyframes rc-tail   { 0%,100% { transform:rotate(-4deg); } 50% { transform:rotate(6deg); } }
+  @keyframes rc-glance { 0%,100% { transform:translateX(-.5px); } 50% { transform:translateX(.5px); } }
+  @keyframes rc-bar    { 0% { transform:scaleX(.3); } 60% { transform:scaleX(1); } 100% { transform:scaleX(.3); } }
+  @keyframes rc-tick   { 0%,100% { opacity:.3; transform:translateY(0); } 50% { opacity:1; transform:translateY(-1px); } }
 
-  /* RACCOON LEDGER — coins spin, bar fills, tick rises */
-  .mascot-raccoon .m-coin { animation:coinFlip 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-raccoon .m-coin.c2 { animation-delay:.4s; }
-  .mascot-raccoon .m-tick { animation:tickRise 1.6s ease-in-out infinite; }
-  .mascot-raccoon .m-bar-fill { animation:barGrow 3.2s ease-in-out infinite; transform-origin:left; }
-  .mascot-raccoon .m-rc-tail  { animation:raccoonTail 4s ease-in-out infinite; transform-origin:64px 64px; }
-  @keyframes coinFlip { 0%,100% { transform:scaleX(1); } 50% { transform:scaleX(.15); } }
-  @keyframes tickRise { 0%,100% { transform:translateY(0); opacity:.85; } 50% { transform:translateY(-2px); opacity:1; } }
-  @keyframes barGrow { 0% { transform:scaleX(.25); } 60% { transform:scaleX(1); } 100% { transform:scaleX(.25); } }
-  @keyframes raccoonTail { 0%,100% { transform:rotate(-2deg); } 50% { transform:rotate(5deg); } }
+  /* ---- DARK RAVEN (debug) ---- glitch lines flash, red eye-glow pulses */
+  .mascot-darkRaven .r-eye      { animation: drv-eye 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-darkRaven .r-eye-glow { animation: drv-glow 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-darkRaven .r-glitch   { animation: drv-glitch .8s steps(2) infinite; }
+  .mascot-darkRaven .r-trace    { animation: drv-trace 1.4s ease-in-out infinite; }
+  .mascot-darkRaven .r-trace:nth-of-type(2) { animation-delay:.2s; }
+  .mascot-darkRaven .r-trace:nth-of-type(3) { animation-delay:.4s; }
+  .mascot-darkRaven .r-trace:nth-of-type(4) { animation-delay:.6s; }
+  .mascot-darkRaven.state-warning .r-eye, .mascot-darkRaven.state-warning .r-eye-glow { animation-duration:.5s; }
+  @keyframes drv-eye    { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+  @keyframes drv-glow   { 0%,100% { opacity:.15; transform:scale(1); } 50% { opacity:.6; transform:scale(1.4); } }
+  @keyframes drv-glitch { 0%,100% { transform:translateX(0); opacity:.7; } 50% { transform:translateX(2px); opacity:1; } }
+  @keyframes drv-trace  { 0%,100% { opacity:.3; } 50% { opacity:1; } }
 
-  /* DEBUG RAVEN — glitch + trace */
-  .mascot-darkRaven .m-glitch  { animation:glitchPulse 1.2s steps(2) infinite; }
-  .mascot-darkRaven .m-trace   { animation:traceMove 2.6s linear infinite; }
-  .mascot-darkRaven .m-drv-glow { animation:errorPulse 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-darkRaven.state-warning { color:var(--bad) !important; }
-  @keyframes glitchPulse { 50% { transform:translateX(2px); opacity:1; } }
-  @keyframes traceMove { 0% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-30; } }
-  @keyframes errorPulse { 0%,100% { opacity:.15; transform:scale(1); } 50% { opacity:.45; transform:scale(1.5); } }
+  /* ---- FIREFLY ---- lantern strongly modulates, sparks float */
+  .mascot-firefly .r-lantern-glow { animation: ff-glow 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-firefly .r-lantern-mid  { animation: ff-mid 1.8s ease-in-out infinite; }
+  .mascot-firefly .r-lantern-core { animation: ff-core 1.8s ease-in-out infinite; }
+  .mascot-firefly .r-antenna-tip  { animation: ff-antenna 1.8s ease-in-out infinite; }
+  .mascot-firefly .r-wing-l, .mascot-firefly .r-wing-r { animation: ff-wing 1.2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-firefly .r-spark        { animation: ff-spark 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-firefly .s2  { animation-delay:.5s; }
+  .mascot-firefly .s3  { animation-delay:1s; }
+  @keyframes ff-glow    { 0%,100% { opacity:.25; transform:scale(.85); } 50% { opacity:.7; transform:scale(1.2); } }
+  @keyframes ff-mid     { 0%,100% { opacity:.7; } 50% { opacity:1; } }
+  @keyframes ff-core    { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+  @keyframes ff-antenna { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+  @keyframes ff-wing    { 0%,100% { opacity:.3; transform:scaleY(.6); } 50% { opacity:.55; transform:scaleY(1.2); } }
+  @keyframes ff-spark   { 0%,100% { opacity:.2; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-2px) scale(1.2); } }
 
-  /* FIREFLY LUMA — lantern glow */
-  .mascot-firefly .m-ff-glow      { animation:fireflyGlow 1.7s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-firefly .m-ff-glow-core { animation:fireflyCore 1.7s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-firefly .m-ff-wing     { animation:wingFlap 1.2s ease-in-out infinite; transform-origin:50px 46px; }
-  .mascot-firefly .m-spark.sp1 { animation:fireflySpark 2.6s ease-in-out .0s infinite; }
-  .mascot-firefly .m-spark.sp2 { animation:fireflySpark 2.6s ease-in-out .5s infinite; }
-  .mascot-firefly .m-spark.sp3 { animation:fireflySpark 2.6s ease-in-out 1s infinite; }
-  .mascot-firefly .m-spark.sp4 { animation:fireflySpark 2.6s ease-in-out 1.5s infinite; }
-  @keyframes fireflyGlow { 0%,100% { opacity:.4; transform:scale(.85); } 50% { opacity:.9; transform:scale(1.3); } }
-  @keyframes fireflyCore { 0%,100% { opacity:.7; } 50% { opacity:1; } }
-  @keyframes fireflySpark { 0%,100% { opacity:.1; transform:scale(.7); } 50% { opacity:1; transform:scale(1.25); } }
+  /* ---- DRAGON ---- wings slow flap, breath puffs, stars twinkle */
+  .mascot-dragon .r-wing, .mascot-dragon .r-wing-membrane { animation: d-wing 2.4s ease-in-out infinite; transform-origin:16px 12px; transform-box:fill-box; }
+  .mascot-dragon .r-breath { animation: d-breath 2.6s ease-in-out infinite; }
+  .mascot-dragon .r-fire   { animation: d-breath 2.6s ease-in-out infinite; }
+  .mascot-dragon .r-tail   { animation: d-tail 4s ease-in-out infinite; transform-origin:24px 20px; transform-box:fill-box; }
+  .mascot-dragon .r-star   { animation: d-star 2s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-dragon .r-star:nth-of-type(2) { animation-delay:.4s; }
+  .mascot-dragon .r-star:nth-of-type(3) { animation-delay:.8s; }
+  .mascot-dragon .r-eye    { animation: d-eye 5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes d-wing   { 0%,100% { transform:rotate(0) scaleY(1); } 50% { transform:rotate(-8deg) scaleY(.85); } }
+  @keyframes d-breath { 0%,80%,100% { opacity:.2; transform:translateX(0); } 30%,55% { opacity:.9; transform:translateX(-1px); } }
+  @keyframes d-tail   { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(4deg); } }
+  @keyframes d-star   { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.3); } }
+  @keyframes d-eye    { 0%,93%,100% { transform:scaleY(1); } 95%,98% { transform:scaleY(.1); } }
 
-  /* DRAGON NOVA — wing flap, breath spark, orbit, star twinkle */
-  .mascot-dragon .m-dr-wing  { animation:dragonWing 2s ease-in-out infinite; transform-origin:54px 42px; }
-  .mascot-dragon .m-dr-breath { animation:breath 2.4s ease-in-out infinite; }
-  .mascot-dragon .m-orbit    { animation:orbitSpin 14s linear infinite; transform-origin:50px 56px; }
-  .mascot-dragon .m-star.s1 { animation:starTwinkle 1.8s ease-in-out .0s infinite; }
-  .mascot-dragon .m-star.s2 { animation:starTwinkle 1.8s ease-in-out .4s infinite; }
-  .mascot-dragon .m-star.s3 { animation:starTwinkle 1.8s ease-in-out .8s infinite; }
-  .mascot-dragon .m-dr-tail-tip { animation:tailCurl 3.6s ease-in-out infinite; }
-  @keyframes dragonWing { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-14deg); } }
-  @keyframes breath { 0%,90%,100% { opacity:.2; transform:translateX(0); } 30%,55% { opacity:.9; transform:translateX(-2px); } }
-  @keyframes orbitSpin { from { transform:rotate(0); } to { transform:rotate(360deg); } }
-  @keyframes starTwinkle { 0%,100% { opacity:.45; transform:scale(.8); } 50% { opacity:1; transform:scale(1.25); } }
-
-  /* State overrides — universal */
-  .mascot.state-working   .mascot-body { animation:work .9s ease-in-out infinite alternate; }
-  .mascot.state-success   .mascot-body { animation:successPop .55s ease-out 1; }
-  .mascot.state-warning   .mascot-body { animation:warnShake .25s ease-in-out infinite; }
-  @keyframes breathe      { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.5px); } }
-  @keyframes work         { from { transform:translateY(0); } to { transform:translateY(-1.7px); } }
-  @keyframes successPop   { 0% { transform:scale(.92); } 60% { transform:scale(1.08); } 100% { transform:none; } }
-  @keyframes warnShake    { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1px); } }
-  @keyframes sparkFloat   { 0%,100% { opacity:.45; transform:translateY(0); } 50% { opacity:1; transform:translateY(-2px); } }
+  /* ---- Shared state overrides ---- */
+  .mascot.state-working   .mascot-body { animation: m-work .8s ease-in-out infinite alternate; }
+  .mascot.state-success   .mascot-body { animation: m-pop .55s ease-out 1; }
+  .mascot.state-warning   .mascot-body { animation: m-shake .25s ease-in-out infinite; }
+  @keyframes m-work  { from { transform:translateY(0); } to { transform:translateY(-1.2px); } }
+  @keyframes m-pop   { 0% { transform:scale(.92); } 60% { transform:scale(1.08); } 100% { transform:none; } }
+  @keyframes m-shake { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1px); } }
 }
 
 /* ----- Reduced motion: kill animations cleanly ----- */

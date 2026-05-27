@@ -24,7 +24,7 @@ import path from "node:path";
 import { spawn as spawnProc } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildState } from "../lib/state.mjs";
-import { atlasBrief, llmConfig } from "./llm.js";
+import { atlasBrief, specialistBrief, llmConfig } from "./llm.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -109,7 +109,50 @@ function spendSnapshot() {
     remainingUsd: spend.budgetUsd > 0 ? Math.max(0, spend.budgetUsd - spend.totalUsd) : null,
     overBudget: spend.budgetUsd > 0 && spend.totalUsd >= spend.budgetUsd,
     startedAt: spend.startedAt,
+    forecast: spendForecast(),
   };
+}
+
+/** Burn-rate + projected spend based on the briefs observed so far.
+ *
+ *   - `avgCost`     — mean USD per brief (last 10)
+ *   - `windowSec`   — width of the observation window used
+ *   - `burnPerMin`  — derived as totalCostInWindow / windowMinutes
+ *   - `nextHourUsd` — burnPerMin * 60 (only if we have at least 2 briefs)
+ *   - `timeToBudgetSec` — if a budget is set, seconds until it's exhausted
+ *   - `trend`       — "rising" | "falling" | "steady" by comparing the most
+ *                     recent half of the window to the older half.
+ *
+ *   Returns nulls for fields we don't have enough data for, so the UI can
+ *   stay honest (no fake forecast from a single sample). */
+function spendForecast() {
+  const last = spend.briefs.slice(-10);
+  if (last.length === 0) {
+    return { avgCost: null, windowSec: 0, burnPerMin: 0, nextHourUsd: 0,
+             timeToBudgetSec: null, trend: "steady", samples: 0 };
+  }
+  const avgCost = last.reduce((s, b) => s + b.cost, 0) / last.length;
+  const samples = last.length;
+  if (samples < 2) {
+    return { avgCost, windowSec: 0, burnPerMin: 0, nextHourUsd: 0,
+             timeToBudgetSec: null, trend: "steady", samples };
+  }
+  const windowSec = Math.max(1, Math.round((last[last.length - 1].ts - last[0].ts) / 1000));
+  const windowMin = windowSec / 60;
+  const cumulative = last.reduce((s, b) => s + b.cost, 0);
+  const burnPerMin = windowMin > 0 ? cumulative / windowMin : 0;
+  const nextHourUsd = burnPerMin * 60;
+  const remaining = spend.budgetUsd > 0 ? Math.max(0, spend.budgetUsd - spend.totalUsd) : null;
+  const timeToBudgetSec = (remaining !== null && burnPerMin > 0)
+    ? Math.round((remaining / burnPerMin) * 60) : null;
+  // Trend: compare the second half of the window to the first half.
+  const mid = Math.floor(samples / 2);
+  const oldHalf = last.slice(0, mid).reduce((s, b) => s + b.cost, 0) / Math.max(1, mid);
+  const newHalf = last.slice(mid).reduce((s, b) => s + b.cost, 0) / Math.max(1, samples - mid);
+  let trend = "steady";
+  if (newHalf > oldHalf * 1.2) trend = "rising";
+  else if (newHalf < oldHalf * 0.8) trend = "falling";
+  return { avgCost, windowSec, burnPerMin, nextHourUsd, timeToBudgetSec, trend, samples };
 }
 function arenaBroadcastSafe(msg) {
   const s = JSON.stringify(msg);
@@ -511,10 +554,13 @@ arenaWss.on("connection", (ws) => {
             autoDispatch,
           });
           if (autoDispatch && parsed.briefings.length) {
-            // For every briefing line Atlas produced, start the matching
-            // specialist PTY (if it isn't already running) with the sub-
-            // briefing as the goal. Atlas's own line is skipped — he doesn't
-            // delegate to himself.
+            // Pass 2 — for every specialist Atlas tagged, fire a *parallel*
+            // LLM stream that expands the one-sentence label into a full
+            // role-aware briefing. The deltas land on the specialist's card
+            // live; when the stream completes the server pastes the full
+            // text into the specialist's PTY (starting it if needed) and
+            // presses Enter as a separate write.
+            const roster = Array.isArray(m.roster) ? m.roster : [];
             for (const b of parsed.briefings) {
               if (b.id === "atlas") continue;
               const def = ptyIndex.get(b.id);
@@ -522,28 +568,54 @@ arenaWss.on("connection", (ws) => {
                 arenaBroadcastSafe({ t: "dispatch-skip", id: b.id, reason: "unknown specialist" });
                 continue;
               }
+              const specMeta = roster.find((r) => r.id === b.id) || {
+                id: b.id, name: def.name || b.id, role: def.label || b.id,
+                superSkill: def.prompt || "(no super-skill metadata)",
+                lane: def.lane,
+              };
+              arenaBroadcastSafe({ t: "specialist-brief-start", reqId, id: b.id, task: b.task });
               const wasRunning = agents.has(b.id) && agents.get(b.id).alive;
-              if (!wasRunning) startAgent(def);
-              const promptText = def.prompt ? def.prompt.replace("{{GOAL}}", b.task) : b.task;
-              // Defer the paste so the PTY is ready (newly started) or so
-              // the running session sees a clean newline before the new task.
-              setTimeout(() => {
-                const rec2 = agents.get(def.id); if (!rec2) return;
-                try {
-                  if (!wasRunning) {
-                    rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
-                  } else {
+              let specAccum = "";
+              specialistBrief({
+                specialist: specMeta,
+                goal, plan: parsed.plan, task: b.task,
+                onDelta: (d) => {
+                  specAccum += d;
+                  arenaBroadcastSafe({ t: "specialist-brief-delta", reqId, id: b.id, d });
+                },
+              }).then(({ usage, cost, model }) => {
+                recordSpend({ usage, cost, model, goal: `[${b.id}] ${b.task}` });
+                arenaBroadcastSafe({
+                  t: "specialist-brief-end", reqId, id: b.id, usage, cost, model,
+                });
+                // Now paste the full briefing into the specialist's PTY and
+                // press Enter as a separate write 150ms later.
+                if (!wasRunning) startAgent(def);
+                setTimeout(() => {
+                  const rec2 = agents.get(def.id); if (!rec2) return;
+                  try {
+                    rec2.term.write("\x1b[200~" + specAccum + "\x1b[201~");
+                    setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
+                  } catch {}
+                }, wasRunning ? 200 : 900);
+                arenaBroadcastSafe({
+                  t: "dispatch", reqId, id: b.id, task: b.task, started: !wasRunning,
+                });
+              }).catch((e) => {
+                arenaBroadcastSafe({
+                  t: "specialist-brief-error", reqId, id: b.id,
+                  reason: String(e.message || e),
+                });
+                // Best-effort fallback: paste the original short task so the
+                // dispatch isn't lost when the expansion call fails.
+                if (!wasRunning) startAgent(def);
+                setTimeout(() => {
+                  const rec2 = agents.get(def.id); if (!rec2) return;
+                  try {
                     rec2.term.write("\x1b[200~" + b.task + "\x1b[201~");
-                  }
-                  // Send Enter separately, ~150ms later — many TUIs (Claude
-                  // Code included) drop Enter when it's bundled with the
-                  // paste. The same pattern rmux uses.
-                  setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
-                } catch {}
-              }, wasRunning ? 200 : 900);
-              arenaBroadcastSafe({
-                t: "dispatch", reqId, id: b.id, task: b.task,
-                started: !wasRunning,
+                    setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
+                  } catch {}
+                }, wasRunning ? 200 : 900);
               });
             }
           }

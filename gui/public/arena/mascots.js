@@ -1,317 +1,654 @@
-// SVG mascot library for the AgentForge Arena.
+// AgentForge mascots — pixel-art primitives.
 //
-// Each mascot is hand-built character work — not a generic emoji. The same
-// SVG renders at every size; CSS state classes (idle / thinking / working /
-// success / warning) drive the animations so a single mascot can convey what
-// the agent is doing without changing markup.
+// Every mascot is built from `<rect>` elements only — no paths, no curves.
+// Same approach Claude's own mascot animations use ([Codrops, May 2026]).
+// That choice has three concrete payoffs:
 //
-// Evolution levels (1..5) layer additional ornaments on top of the base —
-// antennae, scanlines, sonar rings, particle trails, etc. — so a higher level
-// reads instantly as "more capable" without becoming chaotic.
+// 1. **Recognisability.** A pixel silhouette reads as the animal almost
+//    immediately — turtles get shells, owls get giant eye pairs, foxes get
+//    sharp ear triangles. Where the previous line-art primitives had to be
+//    studied, the silhouette here is the whole point.
+// 2. **Animation cost.** Animating individual `<rect>`s with CSS transforms
+//    (translate / scaleY / rotate) costs nothing and reads as deliberate
+//    animation: wing flap = two rects scaleY 1 ↔ 0.4, blink = pupil scaleY
+//    1 ↔ 0.1, breath = body translateY ±1px.
+// 3. **Theme fit.** Pixel-art matches a terminal cockpit — anything painterly
+//    would fight the rest of the UI.
+//
+// SVG `viewBox` is 32×32 for every species. Evolution levels (1..5) add
+// ornament rects on top of the base — see SPRITES[*].evo[].
+//
+// Naming: each rect carries the class `r-<id>` where <id> is the body-part
+// it belongs to. CSS targets these classes for per-part animation.
 
-const STROKE = "currentColor";
+const RECTS = (rects) =>
+  rects.map((r) => {
+    const cls = r.c ? ` class="r-${r.c}"` : "";
+    const op = r.o !== undefined ? ` opacity="${r.o}"` : "";
+    return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.f}"${cls}${op}/>`;
+  }).join("");
 
 /**
+ * Render a mascot.
  * @param {object} opt
- * @param {string} opt.mascot
- * @param {number} [opt.level]
- * @param {string} [opt.color]
+ * @param {string} opt.mascot   - turtle, owl, fox, mole, chameleon, bat,
+ *                                 hummingbird, raven, raccoon, darkRaven,
+ *                                 firefly, dragon
+ * @param {number} [opt.level]  - 1..5 evolution level
+ * @param {string} [opt.color]  - accent colour used by the halo + sparks
  * @param {string} [opt.state]  - idle | thinking | working | success | warning
  * @param {("xs"|"sm"|"md"|"lg"|"xl")} [opt.size]
  */
 export function renderMascot({ mascot, level = 1, color = "#5b8cff", state = "idle", size = "md" }) {
   const dim = { xs: 40, sm: 64, md: 96, lg: 160, xl: 240 }[size] || 96;
   const lvl = Math.max(1, Math.min(5, level | 0));
-  const tpl = MASCOTS[mascot] || MASCOTS.turtle;
-  const body = tpl(lvl);
+  const spec = SPRITES[mascot] || SPRITES.turtle;
+  const base = RECTS(spec.base);
+  // Evolution layers stack additively — at level 3 the level-1, -2, -3
+  // ornaments are all on. Each layer is rendered above the base body.
+  let evo = "";
+  for (let i = 0; i < lvl - 1 && spec.evo && spec.evo[i]; i++) {
+    evo += RECTS(spec.evo[i]);
+  }
   return `
     <svg class="mascot mascot-${mascot} state-${state} lvl-${lvl} size-${size}"
-         data-mascot="${mascot}" viewBox="0 0 100 100"
+         data-mascot="${mascot}" viewBox="0 0 32 32"
          width="${dim}" height="${dim}"
+         shape-rendering="crispEdges"
          style="color:${color}"
-         role="img" aria-label="${mascot} mascot, evolution level ${lvl}, state ${state}">
-      <defs>
-        <radialGradient id="halo-${mascot}-${lvl}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stop-color="currentColor" stop-opacity="${0.05 + lvl * 0.045}"/>
-          <stop offset="60%" stop-color="currentColor" stop-opacity="0.02"/>
-          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="glow-${mascot}-${lvl}" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="${0.9 + lvl * 0.32}" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle class="mascot-halo" cx="50" cy="52" r="46" fill="url(#halo-${mascot}-${lvl})"/>
-      <g class="mascot-body" filter="url(#glow-${mascot}-${lvl})">${body}</g>
-      ${renderEvoOrnaments(mascot, lvl)}
+         role="img" aria-label="${spec.label || mascot} mascot, evolution level ${lvl}, state ${state}">
+      <rect class="halo" x="2" y="2" width="28" height="28" fill="currentColor" opacity="${0.04 + lvl * 0.025}" rx="4"/>
+      <g class="mascot-body">${base}</g>
+      <g class="mascot-evo">${evo}</g>
     </svg>
   `;
 }
 
-/** Lightweight floating ornaments shared by every mascot above level 1. */
-function renderEvoOrnaments(_mascot, level) {
-  if (level <= 1) return "";
-  const count = (level - 1) * 2;
-  let out = "";
-  for (let i = 0; i < count; i++) {
-    const cx = 14 + ((i * 13 + 7) % 72);
-    const cy =  8 + ((i * 19 + 5) % 16);
-    const r  = 0.7 + (i % 3) * 0.25;
-    const d  = 1.6 + (i % 4) * 0.45;
-    out += `<circle class="evo-spark" cx="${cx}" cy="${cy}" r="${r}" style="animation-duration:${d}s;animation-delay:${i * 0.21}s"/>`;
-  }
-  return out;
-}
+/* ----------------------------------------------------------------------- *
+ *  Sprite library
+ *
+ *  Each species is a base body + up to 4 evolution layers. All coordinates
+ *  fit in a 32×32 grid. The first level is the bare silhouette; layers add
+ *  accessories, glow, and identity markers.
+ * ----------------------------------------------------------------------- */
 
-/* ----- Mascot library ---------------------------------------------------- */
+const SPRITES = {
 
-const MASCOTS = {
-  // ATLAS PRIME — Cyber Turtle with a command-bridge shell.
-  // Breathing belly · radar sweep · shell lights · subtle head bob.
-  turtle: (lvl) => `
-    <g class="m-turtle">
-      <ellipse class="m-belly" cx="50" cy="62" rx="22" ry="4" fill="currentColor" opacity=".08"/>
-      <path class="m-shell" d="M28 58q22 -24 44 0q-2 22 -22 22q-20 0 -22 -22z"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path class="m-shell-line" d="M50 36v40M30 58q20 14 40 0" stroke="${STROKE}" stroke-width="0.7" fill="none" opacity=".4"/>
-      <circle class="m-radar"     cx="50" cy="58" r="11" fill="none" stroke="${STROKE}" stroke-width="1" opacity=".55"/>
-      <path   class="m-radar-arm" d="M50 58 L60 52" stroke="${STROKE}" stroke-width="1.2" opacity=".9"/>
-      <circle class="m-radar-dot" cx="50" cy="58" r="1.6" fill="${STROKE}"/>
-      ${lvl >= 2 ? '<circle class="shell-light l1" cx="38" cy="54" r="1.2" fill="currentColor"/>' : ""}
-      ${lvl >= 2 ? '<circle class="shell-light l2" cx="62" cy="54" r="1.2" fill="currentColor"/>' : ""}
-      ${lvl >= 3 ? '<circle class="shell-light l3" cx="50" cy="46" r="1.2" fill="currentColor"/>' : ""}
-      ${lvl >= 4 ? '<path class="shell-bridge" d="M38 56h24" stroke="currentColor" stroke-width="0.7" opacity=".55"/>' : ""}
-      <path class="m-neck" d="M44 38 Q50 30 56 38" stroke="${STROKE}" stroke-width="2" fill="none"/>
-      <ellipse class="m-head" cx="50" cy="30" rx="9" ry="8" fill="none" stroke="${STROKE}" stroke-width="2.2"/>
-      <circle  class="m-eye left"  cx="47.5" cy="29" r="1.3" fill="${STROKE}"/>
-      <circle  class="m-eye right" cx="52.5" cy="29" r="1.3" fill="${STROKE}"/>
-      <path    class="m-cheek"  d="M44 33q3 2 6 0" stroke="${STROKE}" stroke-width="0.7" fill="none" opacity=".5"/>
-      <rect class="m-foot l" x="25" y="74" width="9" height="4" rx="1.5" fill="none" stroke="${STROKE}" stroke-width="1.5"/>
-      <rect class="m-foot r" x="66" y="74" width="9" height="4" rx="1.5" fill="none" stroke="${STROKE}" stroke-width="1.5"/>
-      ${lvl >= 5 ? '<path class="m-antenna" d="M50 22v-8" stroke="currentColor" stroke-width="1.3"/><circle class="m-antenna-tip" cx="50" cy="13" r="1.7" fill="currentColor"/>' : ""}
-    </g>
-  `,
+  /* ── ATLAS — Cyber Turtle ─────────────────────────────────────────── *
+   * Iconic green shell (with hex pattern), small head with two pixel
+   * eyes, four stubby legs, short tail. Antenna at evolution 5.            */
+  turtle: {
+    label: "cyber turtle",
+    base: [
+      // shadow strip
+      { c: "shadow", x: 6,  y: 25, w: 20, h: 1,  f: "#000", o: 0.35 },
+      // four legs
+      { c: "leg",  x: 6,  y: 21, w: 3, h: 4, f: "#3f6c45" },
+      { c: "leg",  x: 23, y: 21, w: 3, h: 4, f: "#3f6c45" },
+      { c: "leg",  x: 9,  y: 22, w: 3, h: 3, f: "#3f6c45" },
+      { c: "leg",  x: 20, y: 22, w: 3, h: 3, f: "#3f6c45" },
+      // shell shadow / underside
+      { c: "shell-base", x: 5, y: 14, w: 22, h: 8, f: "#2a4530" },
+      // shell main dome
+      { c: "shell", x: 6,  y: 11, w: 20, h: 10, f: "#4a8a55" },
+      { c: "shell", x: 7,  y: 10, w: 18, h: 1,  f: "#4a8a55" },
+      { c: "shell", x: 8,  y: 9,  w: 16, h: 1,  f: "#4a8a55" },
+      // shell highlight
+      { c: "shell-light", x: 8, y: 11, w: 5, h: 1, f: "#7bbd8a" },
+      { c: "shell-light", x: 7, y: 12, w: 3, h: 1, f: "#7bbd8a" },
+      // shell pattern (hex tiles)
+      { c: "shell-pattern", x: 11, y: 13, w: 3, h: 3, f: "#3f6c45" },
+      { c: "shell-pattern", x: 16, y: 13, w: 3, h: 3, f: "#3f6c45" },
+      { c: "shell-pattern", x: 13, y: 17, w: 3, h: 3, f: "#3f6c45" },
+      { c: "shell-pattern", x: 18, y: 16, w: 3, h: 2, f: "#3f6c45" },
+      // tail
+      { c: "tail", x: 26, y: 17, w: 2, h: 2, f: "#5fa86d" },
+      { c: "tail", x: 28, y: 18, w: 1, h: 1, f: "#5fa86d" },
+      // head + neck
+      { c: "neck", x: 3,  y: 16, w: 3, h: 3, f: "#5fa86d" },
+      { c: "head", x: 1,  y: 14, w: 5, h: 5, f: "#5fa86d" },
+      // eyes (two black pixels)
+      { c: "eye",  x: 2,  y: 16, w: 1, h: 1, f: "#000" },
+      { c: "eye",  x: 4,  y: 16, w: 1, h: 1, f: "#000" },
+    ],
+    evo: [
+      // lvl 2 — radar dot on shell
+      [ { c: "radar", x: 15, y: 9, w: 2, h: 2, f: "currentColor" } ],
+      // lvl 3 — shell lights blink
+      [ { c: "shell-led", x: 10, y: 14, w: 1, h: 1, f: "currentColor" },
+        { c: "shell-led", x: 20, y: 14, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 4 — command-bridge bar
+      [ { c: "bridge", x: 8,  y: 8, w: 16, h: 1, f: "currentColor", o: 0.7 } ],
+      // lvl 5 — antenna
+      [ { c: "antenna",     x: 15, y: 3, w: 2, h: 6, f: "currentColor" },
+        { c: "antenna-tip", x: 14, y: 1, w: 4, h: 2, f: "currentColor" } ],
+    ],
+  },
 
-  // SENTINEL — Guardian Owl. Tracks left/right · slow blink · tuft tufts.
-  owl: (lvl) => `
-    <g class="m-owl">
-      <path class="m-owl-body" d="M30 32q20 -22 40 0v32q0 16 -20 16q-20 0 -20 -16z"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path class="m-owl-chest" d="M36 48q14 -10 28 0v18q0 12 -14 12q-14 0 -14 -12z"
-            stroke="${STROKE}" stroke-width="0.8" fill="currentColor" opacity=".07"/>
-      <g class="m-owl-eyes">
-        <circle class="m-owl-eye left"  cx="42" cy="44" r="6" fill="none" stroke="${STROKE}" stroke-width="1.8"/>
-        <circle class="m-owl-eye right" cx="58" cy="44" r="6" fill="none" stroke="${STROKE}" stroke-width="1.8"/>
-        <circle class="m-owl-pupil left"  cx="42" cy="44" r="2.2" fill="${STROKE}"/>
-        <circle class="m-owl-pupil right" cx="58" cy="44" r="2.2" fill="${STROKE}"/>
-        <circle class="m-owl-glint left"  cx="40.5" cy="42.5" r=".7" fill="#fff" opacity=".7"/>
-        <circle class="m-owl-glint right" cx="56.5" cy="42.5" r=".7" fill="#fff" opacity=".7"/>
-      </g>
-      <path class="m-beak" d="M48 50l2 4l2 -4z" fill="${STROKE}"/>
-      ${lvl >= 2 ? '<path class="scan-line" d="M30 62h40" stroke="currentColor" stroke-width=".7" opacity=".5"/>' : ""}
-      ${lvl >= 3 ? '<path class="m-tuft l" d="M32 30l3 -6l3 6" fill="none" stroke="currentColor" stroke-width="1.4"/><path class="m-tuft r" d="M62 30l3 -6l3 6" fill="none" stroke="currentColor" stroke-width="1.4"/>' : ""}
-      ${lvl >= 4 ? '<path class="m-feather l" d="M34 70q4 -3 8 0" stroke="currentColor" stroke-width=".7" fill="none" opacity=".5"/><path class="m-feather r" d="M58 70q4 -3 8 0" stroke="currentColor" stroke-width=".7" fill="none" opacity=".5"/>' : ""}
-      ${lvl >= 5 ? '<circle class="m-aura" cx="50" cy="50" r="34" fill="none" stroke="currentColor" stroke-width="0.5" opacity=".25"/>' : ""}
-      <path class="m-talon" d="M40 80v6M50 80v6M60 80v6" stroke="${STROKE}" stroke-width="1.3"/>
-    </g>
-  `,
+  /* ── SENTINEL — Guardian Owl ──────────────────────────────────────── *
+   * Stout body, big yellow eyes that fill half the head, tiny triangular
+   * beak, two ear tufts, talon row. Pupils blink. Scan-line at evo 2.       */
+  owl: {
+    label: "guardian owl",
+    base: [
+      // body
+      { c: "body", x: 7,  y: 11, w: 18, h: 14, f: "#5e3f2d" },
+      { c: "body", x: 8,  y: 10, w: 16, h: 1,  f: "#5e3f2d" },
+      // chest
+      { c: "chest", x: 10, y: 16, w: 12, h: 9, f: "#a07655" },
+      // head
+      { c: "head", x: 6,  y: 6,  w: 20, h: 8,  f: "#5e3f2d" },
+      { c: "head", x: 7,  y: 5,  w: 18, h: 1,  f: "#5e3f2d" },
+      { c: "head", x: 9,  y: 4,  w: 14, h: 1,  f: "#5e3f2d" },
+      // ear tufts
+      { c: "tuft",  x: 6,  y: 3, w: 2, h: 2,  f: "#5e3f2d" },
+      { c: "tuft",  x: 24, y: 3, w: 2, h: 2,  f: "#5e3f2d" },
+      // face disc (light feather ring)
+      { c: "face",  x: 8,  y: 7, w: 16, h: 7, f: "#c7a37f" },
+      // huge eyes — yellow ring + black pupil + white glint
+      { c: "eye-bg",   x: 9,  y: 8, w: 5, h: 5, f: "#fcd34d" },
+      { c: "eye-bg",   x: 18, y: 8, w: 5, h: 5, f: "#fcd34d" },
+      { c: "eye-pupil",x: 10, y: 9, w: 3, h: 3, f: "#000" },
+      { c: "eye-pupil",x: 19, y: 9, w: 3, h: 3, f: "#000" },
+      { c: "eye-glint",x: 11, y: 9, w: 1, h: 1, f: "#fff" },
+      { c: "eye-glint",x: 20, y: 9, w: 1, h: 1, f: "#fff" },
+      // beak
+      { c: "beak", x: 15, y: 13, w: 2, h: 2, f: "#f59e0b" },
+      { c: "beak", x: 16, y: 15, w: 1, h: 1, f: "#f59e0b" },
+      // talons
+      { c: "talon", x: 9,  y: 25, w: 2, h: 2, f: "#f59e0b" },
+      { c: "talon", x: 14, y: 25, w: 2, h: 2, f: "#f59e0b" },
+      { c: "talon", x: 19, y: 25, w: 2, h: 2, f: "#f59e0b" },
+    ],
+    evo: [
+      // lvl 2 — scan line under eyes
+      [ { c: "scan", x: 6, y: 14, w: 20, h: 1, f: "currentColor", o: 0.7 } ],
+      // lvl 3 — chest feather pattern
+      [ { c: "feather", x: 12, y: 18, w: 2, h: 1, f: "#5e3f2d" },
+        { c: "feather", x: 16, y: 18, w: 2, h: 1, f: "#5e3f2d" },
+        { c: "feather", x: 14, y: 20, w: 2, h: 1, f: "#5e3f2d" } ],
+      // lvl 4 — wing edges
+      [ { c: "wing", x: 5,  y: 14, w: 2, h: 7, f: "#3a261a" },
+        { c: "wing", x: 25, y: 14, w: 2, h: 7, f: "#3a261a" } ],
+      // lvl 5 — aura halo
+      [ { c: "aura", x: 4, y: 5, w: 24, h: 22, f: "currentColor", o: 0.12 } ],
+    ],
+  },
 
-  // AURORA — Neon Fox. Tail-flick · ear-twitch · iridescent stripe.
-  fox: (lvl) => `
-    <g class="m-fox">
-      <path class="m-fox-tail" d="M22 70q-14 -10 -8 -28q10 12 16 22"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path class="m-fox-tail-tip" d="M16 44q-4 4 -2 8" stroke="${STROKE}" stroke-width="2" fill="none"/>
-      <path class="m-fox-body" d="M30 70q14 -22 42 -16q4 14 -10 22q-16 8 -32 -6z"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path class="m-fox-belly" d="M34 70q12 -14 32 -10" stroke="currentColor" stroke-width=".7" fill="none" opacity=".4"/>
-      <path class="m-fox-head" d="M58 50l16 -12l-4 14l-12 -2z"
-            fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path class="m-fox-ear" d="M70 41l5 -10l-1 8z" fill="currentColor" opacity=".55"/>
-      <circle class="m-fox-eye" cx="64" cy="48" r="1.4" fill="${STROKE}"/>
-      <circle class="m-fox-glint" cx="63.4" cy="47.5" r=".5" fill="#fff" opacity=".8"/>
-      <path class="m-fox-mouth" d="M62 53q3 1 6 0" stroke="${STROKE}" stroke-width=".7" fill="none" opacity=".55"/>
-      ${lvl >= 2 ? '<path class="m-fox-tail-glow" d="M22 70q-14 -10 -8 -28q10 12 16 22" stroke="currentColor" stroke-width="3.6" fill="none" opacity=".25"/>' : ""}
-      ${lvl >= 3 ? '<circle class="m-shimmer" cx="46" cy="58" r="1.5" fill="currentColor"/>' : ""}
-      ${lvl >= 4 ? '<path class="m-fox-stripe" d="M36 62q14 -8 26 -4" stroke="currentColor" stroke-width="0.9" fill="none" opacity=".65"/>' : ""}
-      ${lvl >= 5 ? '<path class="m-fox-aura" d="M30 70q14 -22 42 -16" stroke="currentColor" stroke-width="6" fill="none" opacity=".18"/>' : ""}
-    </g>
-  `,
+  /* ── AURORA — Neon Fox ────────────────────────────────────────────── *
+   * Pointy triangular head, big ears, white muzzle + chest, long bushy
+   * tail with WHITE tip, four legs. Glow stripe on tail at evo 2.          */
+  fox: {
+    label: "neon fox",
+    base: [
+      // legs
+      { c: "leg", x: 10, y: 24, w: 2, h: 4, f: "#c2410c" },
+      { c: "leg", x: 16, y: 24, w: 2, h: 4, f: "#c2410c" },
+      { c: "leg", x: 20, y: 24, w: 2, h: 4, f: "#c2410c" },
+      // tail (orange) with white tip
+      { c: "tail", x: 22, y: 14, w: 3, h: 2, f: "#e85a1c" },
+      { c: "tail", x: 24, y: 15, w: 3, h: 3, f: "#e85a1c" },
+      { c: "tail", x: 26, y: 17, w: 3, h: 4, f: "#e85a1c" },
+      { c: "tail-tip", x: 27, y: 20, w: 3, h: 3, f: "#fff" },
+      // body
+      { c: "body", x: 8,  y: 16, w: 16, h: 9, f: "#e85a1c" },
+      { c: "body", x: 9,  y: 15, w: 14, h: 1, f: "#e85a1c" },
+      // belly (white)
+      { c: "belly", x: 10, y: 21, w: 12, h: 3, f: "#fff" },
+      // head — triangular shape via stacked rects
+      { c: "head", x: 6,  y: 10, w: 8,  h: 7, f: "#e85a1c" },
+      { c: "head", x: 7,  y: 9,  w: 6,  h: 1, f: "#e85a1c" },
+      { c: "head", x: 4,  y: 13, w: 2,  h: 3, f: "#e85a1c" },   // muzzle taper
+      // ears (orange triangles)
+      { c: "ear",   x: 5,  y: 6, w: 3, h: 4, f: "#e85a1c" },
+      { c: "ear",   x: 12, y: 6, w: 3, h: 4, f: "#e85a1c" },
+      // inner ear (pink)
+      { c: "ear-in", x: 6,  y: 8, w: 1, h: 2, f: "#fda4af" },
+      { c: "ear-in", x: 13, y: 8, w: 1, h: 2, f: "#fda4af" },
+      // muzzle (white)
+      { c: "muzzle", x: 3,  y: 14, w: 4, h: 2, f: "#fff" },
+      // black nose tip
+      { c: "nose",   x: 2,  y: 14, w: 2, h: 2, f: "#111" },
+      // eyes
+      { c: "eye",    x: 8,  y: 12, w: 1, h: 1, f: "#111" },
+      { c: "eye",    x: 12, y: 12, w: 1, h: 1, f: "#111" },
+    ],
+    evo: [
+      // lvl 2 — tail glow stripe
+      [ { c: "tail-glow", x: 22, y: 13, w: 8, h: 1, f: "currentColor", o: 0.7 } ],
+      // lvl 3 — cheek shimmer (sparkle pixel near tail)
+      [ { c: "shimmer", x: 17, y: 12, w: 1, h: 1, f: "currentColor" },
+        { c: "shimmer", x: 19, y: 14, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 4 — back stripe (darker accent)
+      [ { c: "stripe", x: 12, y: 16, w: 10, h: 1, f: "#9a2f0a" } ],
+      // lvl 5 — outer aura ring
+      [ { c: "aura", x: 1, y: 8, w: 30, h: 18, f: "currentColor", o: 0.1 } ],
+    ],
+  },
 
-  // FORGE — Mole. Hammer-cycle · sparks · pulsing forge glow.
-  mole: (lvl) => `
-    <g class="m-mole">
-      <ellipse class="m-mole-shadow" cx="50" cy="80" rx="22" ry="3" fill="currentColor" opacity=".1"/>
-      <ellipse class="m-mole-body" cx="50" cy="60" rx="24" ry="16" fill="none" stroke="${STROKE}" stroke-width="2.2"/>
-      <path    class="m-mole-fur" d="M30 50q20 -8 40 0" stroke="${STROKE}" stroke-width=".7" fill="none" opacity=".4"/>
-      <circle  class="m-mole-head" cx="34" cy="56" r="11" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <ellipse class="m-mole-nose" cx="25" cy="56" rx="2.6" ry="2" fill="${STROKE}"/>
-      <path    class="m-mole-whisker" d="M22 56h-6M22 58q-4 1 -7 3" stroke="${STROKE}" stroke-width=".6" fill="none" opacity=".6"/>
-      <line    class="m-mole-eye" x1="32" y1="54" x2="34" y2="54" stroke="${STROKE}" stroke-width="1.4"/>
-      <path    class="m-mole-claw" d="M70 70l6 6M66 74l4 6M72 64l6 4" stroke="${STROKE}" stroke-width="1.6" fill="none"/>
-      <path    class="m-mole-anvil" d="M14 78h12l-2 -4h-8z" stroke="${STROKE}" stroke-width="1.2" fill="none" opacity=".55"/>
-      ${lvl >= 2 ? '<circle class="spark s1" cx="78" cy="74" r="1.3" fill="currentColor"/>' : ""}
-      ${lvl >= 3 ? '<circle class="spark s2" cx="74" cy="80" r="1.5" fill="currentColor"/>' : ""}
-      ${lvl >= 4 ? '<circle class="spark s3" cx="82" cy="64" r="1.1" fill="currentColor"/>' : ""}
-      ${lvl >= 5 ? '<path class="m-mole-hammer" d="M20 30l-6 -6l10 -4l4 10z" fill="currentColor" opacity=".6"/><path class="m-mole-haft" d="M22 32l8 8" stroke="currentColor" stroke-width="1.2" opacity=".6"/>' : ""}
-    </g>
-  `,
+  /* ── FORGE — Forge Mole ───────────────────────────────────────────── *
+   * Almost blind mole — tiny eye slit, big pink snout, two GIANT shovel
+   * claws on the front. Body brown, fur tufts at evo 3. Anvil at lvl 4.   */
+  mole: {
+    label: "forge mole",
+    base: [
+      // body
+      { c: "body", x: 5,  y: 12, w: 22, h: 14, f: "#5a4030" },
+      { c: "body", x: 6,  y: 11, w: 20, h: 1,  f: "#5a4030" },
+      { c: "body", x: 4,  y: 14, w: 1,  h: 10, f: "#5a4030" },
+      { c: "body", x: 27, y: 14, w: 1,  h: 10, f: "#5a4030" },
+      // belly highlight
+      { c: "belly", x: 7,  y: 18, w: 18, h: 6, f: "#7a5a44" },
+      // snout (pink)
+      { c: "snout", x: 1,  y: 16, w: 4, h: 3, f: "#fb7185" },
+      // tiny eye slit
+      { c: "eye",   x: 7,  y: 15, w: 2, h: 1, f: "#111" },
+      // whiskers
+      { c: "whisker", x: 0, y: 14, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
+      { c: "whisker", x: 0, y: 19, w: 1, h: 1, f: "#a78bfa", o: 0.7 },
+      // two BIG shovel claws on front
+      { c: "claw",  x: 24, y: 19, w: 6, h: 3, f: "#cbd5e1" },
+      { c: "claw",  x: 25, y: 22, w: 5, h: 1, f: "#cbd5e1" },
+      { c: "claw",  x: 26, y: 23, w: 4, h: 1, f: "#94a3b8" },
+      // claw tips (silver)
+      { c: "claw-tip", x: 29, y: 19, w: 1, h: 1, f: "#fff" },
+      { c: "claw-tip", x: 29, y: 21, w: 1, h: 1, f: "#fff" },
+      // back feet
+      { c: "foot",  x: 6,  y: 26, w: 3, h: 1, f: "#3d2a20" },
+      { c: "foot",  x: 22, y: 26, w: 3, h: 1, f: "#3d2a20" },
+    ],
+    evo: [
+      // lvl 2 — first spark
+      [ { c: "spark", x: 26, y: 16, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 3 — more sparks + fur tuft on head
+      [ { c: "spark", x: 28, y: 14, w: 1, h: 1, f: "currentColor" },
+        { c: "spark", x: 24, y: 14, w: 1, h: 1, f: "currentColor" },
+        { c: "fur",   x: 10, y: 10, w: 1, h: 1, f: "#3d2a20" },
+        { c: "fur",   x: 14, y: 10, w: 1, h: 1, f: "#3d2a20" } ],
+      // lvl 4 — anvil behind the mole
+      [ { c: "anvil",     x: 12, y: 26, w: 8, h: 1, f: "#475569" },
+        { c: "anvil-top", x: 14, y: 24, w: 4, h: 2, f: "#64748b" } ],
+      // lvl 5 — hammer floating above
+      [ { c: "hammer-head",  x: 22, y: 5, w: 4, h: 3, f: "#94a3b8" },
+        { c: "hammer-shaft", x: 23, y: 8, w: 1, h: 4, f: "#5a4030" } ],
+    ],
+  },
 
-  // PRISM — Chameleon. Eye turret · iridescent skin spots · crest.
-  chameleon: (lvl) => `
-    <g class="m-cham">
-      <path class="m-cham-tail" d="M76 70q14 -2 10 14q-12 -2 -16 -6"
-            fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path class="m-cham-tail-curl" d="M86 84q-3 4 1 7" stroke="${STROKE}" stroke-width="1.4" fill="none" opacity=".7"/>
-      <path class="m-cham-body" d="M20 60q4 -16 28 -16q22 0 28 18q-4 12 -20 12q-22 0 -36 -14z"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <circle class="m-cham-eye-outer" cx="26" cy="48" r="5.5" fill="none" stroke="${STROKE}" stroke-width="1.6"/>
-      <circle class="m-cham-eye-inner" cx="26" cy="48" r="2"  fill="${STROKE}"/>
-      <circle class="m-cham-eye-glint" cx="25" cy="46.5" r=".6" fill="#fff" opacity=".8"/>
-      <path   class="m-cham-mouth" d="M16 60q6 2 12 0" stroke="${STROKE}" stroke-width=".7" fill="none" opacity=".55"/>
-      <path   class="m-cham-toes" d="M28 78l-2 6m12 -6l-2 6m12 -6l-2 6m12 -6l-2 6" stroke="${STROKE}" stroke-width="1.4"/>
-      ${lvl >= 2 ? '<circle class="m-cham-spot s1" cx="44" cy="56" r="1.5" fill="currentColor" opacity=".7"/>' : ""}
-      ${lvl >= 3 ? '<circle class="m-cham-spot s2" cx="54" cy="50" r="1.5" fill="currentColor" opacity=".65"/>' : ""}
-      ${lvl >= 4 ? '<circle class="m-cham-spot s3" cx="62" cy="58" r="1.5" fill="currentColor" opacity=".6"/>' : ""}
-      ${lvl >= 5 ? '<path class="m-cham-crest" d="M40 38l4 -8l4 6l4 -8l4 6l4 -8l4 6" stroke="currentColor" stroke-width="1.2" fill="none"/>' : ""}
-    </g>
-  `,
+  /* ── PRISM — Prism Chameleon ──────────────────────────────────────── *
+   * Long body, curly tail, one HUGE turret eye, tongue stub.
+   * Spots cycle colour. Crest at lvl 5.                                    */
+  chameleon: {
+    label: "prism chameleon",
+    base: [
+      // tail (curls)
+      { c: "tail", x: 24, y: 16, w: 5, h: 2, f: "#0ea5e9" },
+      { c: "tail", x: 27, y: 18, w: 2, h: 5, f: "#0ea5e9" },
+      { c: "tail", x: 25, y: 22, w: 3, h: 2, f: "#0ea5e9" },
+      // body main
+      { c: "body", x: 6,  y: 14, w: 20, h: 9, f: "#0ea5e9" },
+      { c: "body", x: 7,  y: 13, w: 18, h: 1, f: "#0ea5e9" },
+      // belly highlight
+      { c: "belly", x: 8,  y: 18, w: 16, h: 4, f: "#38bdf8" },
+      // feet (claws)
+      { c: "foot",  x: 8,  y: 23, w: 2, h: 3, f: "#0369a1" },
+      { c: "foot",  x: 14, y: 23, w: 2, h: 3, f: "#0369a1" },
+      { c: "foot",  x: 20, y: 23, w: 2, h: 3, f: "#0369a1" },
+      // toe pixels
+      { c: "toe", x: 8,  y: 26, w: 1, h: 1, f: "#0369a1" },
+      { c: "toe", x: 10, y: 26, w: 1, h: 1, f: "#0369a1" },
+      { c: "toe", x: 14, y: 26, w: 1, h: 1, f: "#0369a1" },
+      { c: "toe", x: 16, y: 26, w: 1, h: 1, f: "#0369a1" },
+      { c: "toe", x: 20, y: 26, w: 1, h: 1, f: "#0369a1" },
+      { c: "toe", x: 22, y: 26, w: 1, h: 1, f: "#0369a1" },
+      // head (squarish)
+      { c: "head", x: 3,  y: 12, w: 6,  h: 7, f: "#0ea5e9" },
+      // turret eye (the big one on top)
+      { c: "eye-cone", x: 2,  y: 9,  w: 4, h: 4, f: "#0ea5e9" },
+      { c: "eye-ball", x: 2,  y: 9,  w: 4, h: 4, f: "#fef3c7" },
+      { c: "eye-iris", x: 3,  y: 10, w: 2, h: 2, f: "#111" },
+      { c: "eye-glint",x: 3,  y: 10, w: 1, h: 1, f: "#fff" },
+      // mouth + tongue stub
+      { c: "mouth", x: 2,  y: 16, w: 4, h: 1, f: "#0369a1" },
+      { c: "tongue",x: 1,  y: 16, w: 1, h: 1, f: "#f472b6" },
+    ],
+    evo: [
+      // lvl 2 — colour-cycling spot
+      [ { c: "spot", x: 12, y: 16, w: 2, h: 2, f: "#f472b6" } ],
+      // lvl 3 — more spots
+      [ { c: "spot", x: 17, y: 15, w: 2, h: 2, f: "#fcd34d" },
+        { c: "spot", x: 21, y: 17, w: 2, h: 2, f: "#a78bfa" } ],
+      // lvl 4 — back stripes
+      [ { c: "stripe", x: 14, y: 13, w: 1, h: 3, f: "#0369a1" },
+        { c: "stripe", x: 19, y: 13, w: 1, h: 3, f: "#0369a1" } ],
+      // lvl 5 — crest spikes
+      [ { c: "crest", x: 12, y: 11, w: 1, h: 2, f: "currentColor" },
+        { c: "crest", x: 15, y: 10, w: 1, h: 3, f: "currentColor" },
+        { c: "crest", x: 18, y: 11, w: 1, h: 2, f: "currentColor" },
+        { c: "crest", x: 21, y: 12, w: 1, h: 1, f: "currentColor" } ],
+    ],
+  },
 
-  // ECHO — Signal Bat. Sonar rings · flap · ear-twitch.
-  bat: (lvl) => `
-    <g class="m-bat">
-      <path class="m-bat-wing l" d="M50 50l-32 -8l14 30z" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path class="m-bat-wing-rib l" d="M50 50l-22 -4M50 50l-12 18" stroke="${STROKE}" stroke-width=".6" opacity=".5"/>
-      <path class="m-bat-wing r" d="M50 50l32 -8l-14 30z" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path class="m-bat-wing-rib r" d="M50 50l22 -4M50 50l12 18" stroke="${STROKE}" stroke-width=".6" opacity=".5"/>
-      <ellipse class="m-bat-body" cx="50" cy="54" rx="6" ry="9" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <circle  class="m-bat-eye"  cx="48" cy="50" r="1.1" fill="${STROKE}"/>
-      <circle  class="m-bat-eye"  cx="52" cy="50" r="1.1" fill="${STROKE}"/>
-      <path    class="m-bat-fang" d="M48 56l1 3M52 56l-1 3" stroke="${STROKE}" stroke-width=".8"/>
-      <path    class="m-bat-ear l" d="M46 44l-2 -7l4 4z" fill="${STROKE}"/>
-      <path    class="m-bat-ear r" d="M54 44l2 -7l-4 4z" fill="${STROKE}"/>
-      ${lvl >= 2 ? '<circle class="sonar s1" cx="50" cy="54" r="14" fill="none" stroke="currentColor" stroke-width="0.6" opacity=".55"/>' : ""}
-      ${lvl >= 3 ? '<circle class="sonar s2" cx="50" cy="54" r="22" fill="none" stroke="currentColor" stroke-width="0.5" opacity=".4"/>' : ""}
-      ${lvl >= 4 ? '<circle class="sonar s3" cx="50" cy="54" r="32" fill="none" stroke="currentColor" stroke-width="0.4" opacity=".3"/>' : ""}
-      ${lvl >= 5 ? '<circle class="sonar s4" cx="50" cy="54" r="42" fill="none" stroke="currentColor" stroke-width="0.35" opacity=".22"/>' : ""}
-    </g>
-  `,
+  /* ── ECHO — Signal Bat ────────────────────────────────────────────── *
+   * Triangular body, two big wings with finger bones, pointed ears,
+   * tiny fangs. Sonar rings at evo 2+.                                     */
+  bat: {
+    label: "signal bat",
+    base: [
+      // wings — left
+      { c: "wing-l", x: 1,  y: 12, w: 9, h: 7, f: "#312e81" },
+      { c: "wing-l", x: 3,  y: 11, w: 7, h: 1, f: "#312e81" },
+      // wing finger bones
+      { c: "wing-bone", x: 4, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      { c: "wing-bone", x: 6, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      // wings — right
+      { c: "wing-r", x: 22, y: 12, w: 9, h: 7, f: "#312e81" },
+      { c: "wing-r", x: 22, y: 11, w: 7, h: 1, f: "#312e81" },
+      { c: "wing-bone", x: 26, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      { c: "wing-bone", x: 28, y: 13, w: 1, h: 5, f: "#1e1b4b" },
+      // body (dark triangle)
+      { c: "body", x: 12, y: 10, w: 8,  h: 12, f: "#1e1b4b" },
+      { c: "body", x: 13, y: 22, w: 6,  h: 2,  f: "#1e1b4b" },
+      { c: "body", x: 14, y: 24, w: 4,  h: 1,  f: "#1e1b4b" },
+      // ears (pointy)
+      { c: "ear", x: 12, y: 7,  w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear", x: 18, y: 7,  w: 2, h: 3, f: "#1e1b4b" },
+      { c: "ear-in", x: 12, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
+      { c: "ear-in", x: 19, y: 8, w: 1, h: 2, f: "#7c3aed", o: 0.6 },
+      // eyes (red)
+      { c: "eye", x: 14, y: 13, w: 1, h: 1, f: "#fca5a5" },
+      { c: "eye", x: 17, y: 13, w: 1, h: 1, f: "#fca5a5" },
+      // tiny fangs
+      { c: "fang", x: 14, y: 16, w: 1, h: 2, f: "#fff" },
+      { c: "fang", x: 17, y: 16, w: 1, h: 2, f: "#fff" },
+    ],
+    evo: [
+      // lvl 2 — first sonar ring
+      [ { c: "sonar s1", x: 8, y: 6, w: 16, h: 1, f: "currentColor", o: 0.6 },
+        { c: "sonar s1", x: 8, y: 25, w: 16, h: 1, f: "currentColor", o: 0.6 } ],
+      // lvl 3 — wider sonar
+      [ { c: "sonar s2", x: 5, y: 3, w: 22, h: 1, f: "currentColor", o: 0.4 },
+        { c: "sonar s2", x: 5, y: 28, w: 22, h: 1, f: "currentColor", o: 0.4 } ],
+      // lvl 4 — wing tips highlight
+      [ { c: "wing-tip", x: 1, y: 19, w: 2, h: 1, f: "currentColor" },
+        { c: "wing-tip", x: 29, y: 19, w: 2, h: 1, f: "currentColor" } ],
+      // lvl 5 — aura
+      [ { c: "aura", x: 0, y: 0, w: 32, h: 32, f: "currentColor", o: 0.08 } ],
+    ],
+  },
 
-  // VEGA — Hummingbird. Hyper-fast wings · trail · tongue darting.
-  hummingbird: (lvl) => `
-    <g class="m-hb">
-      <ellipse class="m-hb-body" cx="50" cy="56" rx="13" ry="7" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <circle  class="m-hb-head" cx="64" cy="50" r="6" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path    class="m-hb-beak" d="M70 50l14 -1l-14 3z" fill="${STROKE}"/>
-      <path    class="m-hb-tongue" d="M82 49h4" stroke="${STROKE}" stroke-width=".8"/>
-      <path    class="m-hb-wing top" d="M36 50q-4 -16 10 -8q4 4 -2 14" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path    class="m-hb-wing bot" d="M36 60q-4 16 10 8q4 -4 -2 -14" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <circle  class="m-hb-eye" cx="65" cy="49" r="1.1" fill="${STROKE}"/>
-      <circle  class="m-hb-glint" cx="64.4" cy="48.5" r=".5" fill="#fff" opacity=".8"/>
-      ${lvl >= 2 ? '<circle class="m-trail t1" cx="42" cy="54" r="1.2" fill="currentColor" opacity=".7"/>' : ""}
-      ${lvl >= 3 ? '<circle class="m-trail t2" cx="32" cy="56" r="1" fill="currentColor" opacity=".55"/>' : ""}
-      ${lvl >= 4 ? '<circle class="m-trail t3" cx="22" cy="58" r="0.8" fill="currentColor" opacity=".35"/>' : ""}
-      ${lvl >= 5 ? '<path class="m-hb-tail" d="M36 56l-12 -2l4 4l-4 4l12 -2" stroke="currentColor" stroke-width="0.8" fill="none" opacity=".7"/>' : ""}
-    </g>
-  `,
+  /* ── VEGA — Neon Hummingbird ──────────────────────────────────────── *
+   * Tiny streamlined body, long needle beak, rapidly-flapping wings,
+   * forked tail. Motion trail rects at evo 2+.                             */
+  hummingbird: {
+    label: "neon hummingbird",
+    base: [
+      // motion trail (always present, base layer)
+      { c: "trail",  x: 3,  y: 14, w: 2, h: 1, f: "#34d399", o: 0.4 },
+      { c: "trail",  x: 6,  y: 14, w: 2, h: 1, f: "#34d399", o: 0.6 },
+      // body (chest pink, back green)
+      { c: "back",   x: 11, y: 12, w: 9,  h: 4, f: "#10b981" },
+      { c: "back",   x: 11, y: 11, w: 7,  h: 1, f: "#10b981" },
+      { c: "chest",  x: 12, y: 15, w: 8,  h: 3, f: "#f472b6" },
+      // head
+      { c: "head",   x: 17, y: 9,  w: 5,  h: 5, f: "#10b981" },
+      // eye
+      { c: "eye",    x: 19, y: 11, w: 1, h: 1, f: "#111" },
+      // long needle beak
+      { c: "beak",   x: 22, y: 11, w: 8, h: 1, f: "#fcd34d" },
+      // wings (top + bottom, animated)
+      { c: "wing-t", x: 11, y: 8,  w: 8, h: 4, f: "#6ee7b7", o: 0.85 },
+      { c: "wing-b", x: 11, y: 17, w: 8, h: 4, f: "#6ee7b7", o: 0.85 },
+      // forked tail
+      { c: "tail",   x: 7,  y: 15, w: 4, h: 1, f: "#10b981" },
+      { c: "tail",   x: 7,  y: 17, w: 4, h: 1, f: "#10b981" },
+    ],
+    evo: [
+      // lvl 2 — extra trail particles
+      [ { c: "trail2", x: 1, y: 14, w: 1, h: 1, f: "currentColor", o: 0.7 } ],
+      // lvl 3 — chest shimmer
+      [ { c: "shimmer", x: 14, y: 16, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 4 — beak tip glow
+      [ { c: "beak-tip", x: 30, y: 11, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 5 — orbit halo
+      [ { c: "orbit", x: 4, y: 6, w: 26, h: 18, f: "currentColor", o: 0.1 } ],
+    ],
+  },
 
-  // SCRIBE — Raven with quill, parchment, glyph-lines.
-  raven: (lvl) => `
-    <g class="m-rv">
-      <ellipse class="m-rv-body" cx="50" cy="58" rx="14" ry="10" fill="none" stroke="${STROKE}" stroke-width="2.2"/>
-      <circle  class="m-rv-head" cx="62" cy="48" r="7" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path    class="m-rv-beak" d="M68 48l10 -1l-10 4z" fill="${STROKE}"/>
-      <path    class="m-rv-wing" d="M40 56q4 -8 18 -8q -8 6 -16 12z" fill="none" stroke="${STROKE}" stroke-width="1.6"/>
-      <path    class="m-rv-wing-detail" d="M44 56q4 -4 12 -4" stroke="${STROKE}" stroke-width=".6" opacity=".5"/>
-      <circle  class="m-rv-eye" cx="63" cy="47" r="1.2" fill="${STROKE}"/>
-      <circle  class="m-rv-glint" cx="62.5" cy="46.5" r=".5" fill="#fff" opacity=".8"/>
-      <path    class="m-rv-leg" d="M44 68v8M52 68v8" stroke="${STROKE}" stroke-width="1.4"/>
-      ${lvl >= 2 ? '<path class="m-quill" d="M28 36l-8 14l12 -4z" fill="none" stroke="currentColor" stroke-width="1.4"/>' : ""}
-      ${lvl >= 3 ? '<path class="m-cursor" d="M22 56h6" stroke="currentColor" stroke-width="2"/>' : ""}
-      ${lvl >= 4 ? '<path class="m-paper" d="M14 70h20v14h-20z" fill="none" stroke="currentColor" stroke-width="0.8" opacity=".5"/>' : ""}
-      ${lvl >= 5 ? '<path class="m-glyph" d="M16 76h16M16 80h12" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 3" opacity=".75"/>' : ""}
-    </g>
-  `,
+  /* ── SCRIBE — Scribe Raven ────────────────────────────────────────── *
+   * Black raven on a perch with a feather quill in claw. Yellow beak.    */
+  raven: {
+    label: "scribe raven",
+    base: [
+      // perch (paper) under feet — base level scroll
+      { c: "scroll", x: 4,  y: 26, w: 24, h: 2, f: "#fef3c7" },
+      { c: "scroll-edge", x: 4, y: 26, w: 24, h: 1, f: "#d4a574" },
+      // body (black)
+      { c: "body",   x: 8,  y: 12, w: 14, h: 13, f: "#0f172a" },
+      { c: "body",   x: 9,  y: 11, w: 12, h: 1,  f: "#0f172a" },
+      // belly highlight
+      { c: "belly",  x: 11, y: 18, w: 8, h: 6,  f: "#1e293b" },
+      // wing (folded)
+      { c: "wing",   x: 9,  y: 13, w: 6, h: 9, f: "#020617" },
+      // head
+      { c: "head",   x: 17, y: 7,  w: 8, h: 7, f: "#0f172a" },
+      // beak (yellow, pointed)
+      { c: "beak",   x: 25, y: 10, w: 5, h: 1, f: "#fcd34d" },
+      { c: "beak",   x: 25, y: 11, w: 4, h: 1, f: "#fcd34d" },
+      { c: "beak",   x: 25, y: 12, w: 3, h: 1, f: "#fcd34d" },
+      // eye
+      { c: "eye",    x: 22, y: 10, w: 2, h: 2, f: "#fcd34d" },
+      { c: "eye",    x: 23, y: 11, w: 1, h: 1, f: "#000" },
+      // legs / claws
+      { c: "leg",    x: 12, y: 25, w: 2, h: 2, f: "#fcd34d" },
+      { c: "leg",    x: 18, y: 25, w: 2, h: 2, f: "#fcd34d" },
+    ],
+    evo: [
+      // lvl 2 — quill in front of body
+      [ { c: "quill-shaft",   x: 18, y: 16, w: 1, h: 8, f: "#fcd34d" },
+        { c: "quill-feather", x: 16, y: 13, w: 5, h: 3, f: "#fcd34d" } ],
+      // lvl 3 — ink dot pixel on scroll
+      [ { c: "ink", x: 16, y: 27, w: 2, h: 1, f: "#1e293b" } ],
+      // lvl 4 — script lines on scroll
+      [ { c: "line", x: 6,  y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 },
+        { c: "line", x: 19, y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 } ],
+      // lvl 5 — second quill behind ear
+      [ { c: "feather-tuft", x: 14, y: 6, w: 1, h: 3, f: "#fcd34d" } ],
+    ],
+  },
 
-  // LEDGER — Raccoon. Coins spin · bar fills · tick-tape rises.
-  raccoon: (lvl) => `
-    <g class="m-rc">
-      <ellipse class="m-rc-body" cx="50" cy="58" rx="16" ry="12" fill="none" stroke="${STROKE}" stroke-width="2.2"/>
-      <circle  class="m-rc-head" cx="36" cy="44" r="10" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path    class="m-rc-mask" d="M26 44q4 -5 20 0" stroke="${STROKE}" stroke-width="2.2" fill="none"/>
-      <path    class="m-rc-mask-fill" d="M26 44q4 -5 20 0v2q-10 4 -20 0z" fill="${STROKE}" opacity=".55"/>
-      <circle  class="m-rc-eye" cx="31" cy="44.5" r="1.4" fill="#fff"/>
-      <circle  class="m-rc-eye" cx="41" cy="44.5" r="1.4" fill="#fff"/>
-      <circle  class="m-rc-pupil" cx="31" cy="44.5" r=".8" fill="${STROKE}"/>
-      <circle  class="m-rc-pupil" cx="41" cy="44.5" r=".8" fill="${STROKE}"/>
-      <path    class="m-rc-ear l" d="M30 34l-2 -6l5 4z" fill="${STROKE}"/>
-      <path    class="m-rc-ear r" d="M42 34l2 -6l-5 4z" fill="${STROKE}"/>
-      <path    class="m-rc-tail" d="M64 64q14 -2 16 14" stroke="${STROKE}" stroke-width="2" fill="none"/>
-      <path    class="m-rc-stripe s1" d="M64 64q3 4 6 9" stroke="${STROKE}" stroke-width="1.2" opacity=".7"/>
-      <path    class="m-rc-stripe s2" d="M70 70q3 4 4 9" stroke="${STROKE}" stroke-width="1.2" opacity=".55"/>
-      ${lvl >= 2 ? '<circle class="m-coin c1" cx="74" cy="44" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><text x="74" y="46" text-anchor="middle" font-size="4" fill="currentColor" font-family="monospace">¤</text>' : ""}
-      ${lvl >= 3 ? '<circle class="m-coin c2" cx="82" cy="52" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/>' : ""}
-      ${lvl >= 4 ? '<rect class="m-bar" x="16" y="78" width="28" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="0.8" opacity=".55"/><rect class="m-bar-fill" x="16" y="78" width="12" height="4" rx="1" fill="currentColor" opacity=".75"/>' : ""}
-      ${lvl >= 5 ? '<text x="74" y="68" font-size="6" font-family="monospace" fill="currentColor" opacity=".85" class="m-tick">+0.42</text>' : ""}
-    </g>
-  `,
+  /* ── LEDGER — Accountant Raccoon ──────────────────────────────────── *
+   * Grey body, BLACK bandit mask across eyes, striped tail (light/dark),
+   * little hands holding a coin.                                           */
+  raccoon: {
+    label: "accountant raccoon",
+    base: [
+      // tail (striped)
+      { c: "tail",       x: 22, y: 18, w: 3, h: 3, f: "#94a3b8" },
+      { c: "tail",       x: 24, y: 20, w: 4, h: 3, f: "#1e293b" },
+      { c: "tail",       x: 26, y: 22, w: 4, h: 3, f: "#94a3b8" },
+      { c: "tail",       x: 28, y: 24, w: 3, h: 2, f: "#1e293b" },
+      // body
+      { c: "body",       x: 7,  y: 14, w: 16, h: 12, f: "#94a3b8" },
+      { c: "body",       x: 8,  y: 13, w: 14, h: 1,  f: "#94a3b8" },
+      // chest light
+      { c: "chest",      x: 10, y: 18, w: 10, h: 7,  f: "#cbd5e1" },
+      // legs
+      { c: "leg",        x: 9,  y: 26, w: 3, h: 2,  f: "#475569" },
+      { c: "leg",        x: 18, y: 26, w: 3, h: 2,  f: "#475569" },
+      // head
+      { c: "head",       x: 6,  y: 7,  w: 14, h: 8, f: "#94a3b8" },
+      { c: "head",       x: 7,  y: 6,  w: 12, h: 1, f: "#94a3b8" },
+      // ears
+      { c: "ear",        x: 6,  y: 4,  w: 3, h: 3, f: "#94a3b8" },
+      { c: "ear",        x: 17, y: 4,  w: 3, h: 3, f: "#94a3b8" },
+      { c: "ear-in",     x: 7,  y: 5,  w: 1, h: 1, f: "#1e293b" },
+      { c: "ear-in",     x: 18, y: 5,  w: 1, h: 1, f: "#1e293b" },
+      // BANDIT MASK
+      { c: "mask",       x: 6,  y: 9,  w: 14, h: 3, f: "#1e293b" },
+      // eyes (white inside mask)
+      { c: "eye",        x: 8,  y: 10, w: 2, h: 2, f: "#fff" },
+      { c: "eye",        x: 16, y: 10, w: 2, h: 2, f: "#fff" },
+      { c: "eye-pupil",  x: 9,  y: 11, w: 1, h: 1, f: "#000" },
+      { c: "eye-pupil",  x: 17, y: 11, w: 1, h: 1, f: "#000" },
+      // nose
+      { c: "nose",       x: 12, y: 13, w: 2, h: 1, f: "#1e293b" },
+      // little hands
+      { c: "hand",       x: 5,  y: 18, w: 2, h: 2, f: "#475569" },
+      { c: "hand",       x: 21, y: 18, w: 2, h: 2, f: "#475569" },
+    ],
+    evo: [
+      // lvl 2 — coin in hand
+      [ { c: "coin", x: 22, y: 16, w: 3, h: 3, f: "#fcd34d" },
+        { c: "coin", x: 23, y: 17, w: 1, h: 1, f: "#a16207" } ],
+      // lvl 3 — second coin floating
+      [ { c: "coin2", x: 26, y: 6, w: 2, h: 2, f: "currentColor" } ],
+      // lvl 4 — budget bar at bottom
+      [ { c: "bar-bg",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
+        { c: "bar-fill", x: 2,  y: 30, w: 14, h: 1, f: "#fcd34d" } ],
+      // lvl 5 — tick numbers
+      [ { c: "tick", x: 25, y: 10, w: 1, h: 1, f: "currentColor" },
+        { c: "tick", x: 27, y: 12, w: 1, h: 1, f: "currentColor" },
+        { c: "tick", x: 29, y: 10, w: 1, h: 1, f: "currentColor" } ],
+    ],
+  },
 
-  // RAVEN debug — black/silhouette, glitch lines.
-  darkRaven: (lvl) => `
-    <g class="m-drv">
-      <ellipse class="m-drv-body" cx="50" cy="60" rx="16" ry="11" fill="none" stroke="${STROKE}" stroke-width="2.2"/>
-      <path    class="m-drv-wing" d="M30 60q6 -12 22 -10q -8 10 -16 14z" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <circle  class="m-drv-head" cx="66" cy="48" r="8" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path    class="m-drv-beak" d="M74 48l10 -2l-10 5z" fill="${STROKE}"/>
-      <circle  class="m-drv-eye" cx="67" cy="46" r="1.5" fill="${STROKE}"/>
-      <circle  class="m-drv-glow" cx="67" cy="46" r="3" fill="currentColor" opacity=".15"/>
-      <path    class="m-drv-leg" d="M44 70v8M54 70v8" stroke="${STROKE}" stroke-width="1.6"/>
-      ${lvl >= 2 ? '<path class="m-glitch g1" d="M30 50h6M40 52h4" stroke="currentColor" stroke-width="1" opacity=".7"/>' : ""}
-      ${lvl >= 3 ? '<path class="m-glitch g2" d="M20 64h10M58 70h6" stroke="currentColor" stroke-width="1" opacity=".7"/>' : ""}
-      ${lvl >= 4 ? '<path class="m-trace" d="M14 86l20 -4l16 6l20 -10" stroke="currentColor" stroke-width="0.7" fill="none" opacity=".55" stroke-dasharray="3 2"/>' : ""}
-      ${lvl >= 5 ? '<text x="50" y="92" text-anchor="middle" font-size="5" font-family="monospace" fill="currentColor" opacity=".85" class="m-stack">stack#0xE3</text>' : ""}
-    </g>
-  `,
+  /* ── RAVEN (debug) — Dark Raven ───────────────────────────────────── *
+   * Black raven silhouette with GLITCH-RED eye, glitch lines.            */
+  darkRaven: {
+    label: "debug raven",
+    base: [
+      // body
+      { c: "body",  x: 8,  y: 12, w: 14, h: 13, f: "#000" },
+      { c: "body",  x: 9,  y: 11, w: 12, h: 1,  f: "#000" },
+      // belly
+      { c: "belly", x: 11, y: 18, w: 8, h: 6,  f: "#171717" },
+      // wing
+      { c: "wing",  x: 9,  y: 13, w: 6, h: 9, f: "#0a0a0a" },
+      // head
+      { c: "head",  x: 17, y: 7,  w: 8, h: 7, f: "#000" },
+      // beak (sharp + dark red)
+      { c: "beak",  x: 25, y: 10, w: 5, h: 1, f: "#7f1d1d" },
+      { c: "beak",  x: 25, y: 11, w: 4, h: 1, f: "#7f1d1d" },
+      { c: "beak",  x: 25, y: 12, w: 3, h: 1, f: "#7f1d1d" },
+      // ERROR-RED eye
+      { c: "eye",   x: 22, y: 10, w: 2, h: 2, f: "#ef4444" },
+      { c: "eye-glow", x: 21, y: 9, w: 4, h: 4, f: "#ef4444", o: 0.25 },
+      // legs
+      { c: "leg",   x: 12, y: 25, w: 2, h: 3, f: "#7f1d1d" },
+      { c: "leg",   x: 18, y: 25, w: 2, h: 3, f: "#7f1d1d" },
+    ],
+    evo: [
+      // lvl 2 — glitch lines
+      [ { c: "glitch", x: 5,  y: 16, w: 4, h: 1, f: "#ef4444", o: 0.7 },
+        { c: "glitch", x: 24, y: 22, w: 5, h: 1, f: "#ef4444", o: 0.7 } ],
+      // lvl 3 — more glitches
+      [ { c: "glitch", x: 1,  y: 9,  w: 6, h: 1, f: "#ef4444", o: 0.5 },
+        { c: "glitch", x: 22, y: 16, w: 8, h: 1, f: "#ef4444", o: 0.5 } ],
+      // lvl 4 — trace dashes at bottom
+      [ { c: "trace", x: 4,  y: 30, w: 2, h: 1, f: "currentColor" },
+        { c: "trace", x: 8,  y: 30, w: 2, h: 1, f: "currentColor" },
+        { c: "trace", x: 12, y: 30, w: 2, h: 1, f: "currentColor" },
+        { c: "trace", x: 16, y: 30, w: 2, h: 1, f: "currentColor" } ],
+      // lvl 5 — stack frame box
+      [ { c: "stack",       x: 0,  y: 0, w: 8, h: 5, f: "#7f1d1d", o: 0.5 },
+        { c: "stack-text",  x: 1,  y: 2, w: 6, h: 1, f: "currentColor" } ],
+    ],
+  },
 
-  // LUMA — Firefly. Glow lantern · sparks · gentle wing-blur.
-  firefly: (lvl) => `
-    <g class="m-ff">
-      <ellipse class="m-ff-body" cx="50" cy="52" rx="9" ry="6" fill="none" stroke="${STROKE}" stroke-width="1.8"/>
-      <circle  class="m-ff-head" cx="42" cy="50" r="4" fill="none" stroke="${STROKE}" stroke-width="1.8"/>
-      <circle  class="m-ff-eye" cx="41" cy="50" r="0.9" fill="${STROKE}"/>
-      <path    class="m-ff-antenna" d="M42 47l-3 -6M44 46l-1 -5" stroke="${STROKE}" stroke-width=".7" fill="none"/>
-      <path    class="m-ff-wing l" d="M50 46q-5 -14 -2 0z" fill="${STROKE}" opacity=".5"/>
-      <path    class="m-ff-wing r" d="M50 46q5 -14 2 0z" fill="${STROKE}" opacity=".5"/>
-      <circle  class="m-ff-glow" cx="58" cy="54" r="6" fill="currentColor" opacity=".55"/>
-      <circle  class="m-ff-glow-core" cx="58" cy="54" r="2.5" fill="currentColor" opacity="1"/>
-      ${lvl >= 2 ? '<circle class="m-spark sp1" cx="32" cy="34" r="1.4" fill="currentColor"/>' : ""}
-      ${lvl >= 3 ? '<circle class="m-spark sp2" cx="72" cy="38" r="1.2" fill="currentColor"/>' : ""}
-      ${lvl >= 4 ? '<circle class="m-spark sp3" cx="78" cy="68" r="1.3" fill="currentColor"/>' : ""}
-      ${lvl >= 5 ? '<circle class="m-spark sp4" cx="22" cy="72" r="1.4" fill="currentColor"/>' : ""}
-    </g>
-  `,
+  /* ── LUMA — Firefly ───────────────────────────────────────────────── *
+   * Small insect body. Translucent wings. BIG glowing lantern on tail.    */
+  firefly: {
+    label: "firefly",
+    base: [
+      // wings (translucent)
+      { c: "wing-l", x: 4,  y: 7,  w: 8, h: 5, f: "#fde047", o: 0.4 },
+      { c: "wing-r", x: 14, y: 7,  w: 8, h: 5, f: "#fde047", o: 0.4 },
+      // body segments
+      { c: "head",    x: 10, y: 14, w: 4, h: 3, f: "#713f12" },
+      { c: "thorax",  x: 12, y: 17, w: 5, h: 3, f: "#854d0e" },
+      { c: "abdomen", x: 13, y: 20, w: 6, h: 4, f: "#a16207" },
+      // antennae
+      { c: "antenna", x: 9,  y: 11, w: 1, h: 3, f: "#713f12" },
+      { c: "antenna", x: 14, y: 11, w: 1, h: 3, f: "#713f12" },
+      { c: "antenna-tip", x: 8,  y: 10, w: 1, h: 1, f: "#fde047" },
+      { c: "antenna-tip", x: 15, y: 10, w: 1, h: 1, f: "#fde047" },
+      // eyes
+      { c: "eye",     x: 11, y: 15, w: 1, h: 1, f: "#000" },
+      // legs (six small pixels)
+      { c: "leg", x: 11, y: 23, w: 1, h: 2, f: "#713f12" },
+      { c: "leg", x: 14, y: 23, w: 1, h: 2, f: "#713f12" },
+      { c: "leg", x: 17, y: 23, w: 1, h: 2, f: "#713f12" },
+      // LANTERN (the big glow)
+      { c: "lantern-glow", x: 17, y: 21, w: 8, h: 6, f: "#fde047", o: 0.4 },
+      { c: "lantern-mid",  x: 18, y: 22, w: 6, h: 4, f: "#fef08a" },
+      { c: "lantern-core", x: 19, y: 23, w: 4, h: 2, f: "#fff" },
+    ],
+    evo: [
+      // lvl 2 — sparkle particles
+      [ { c: "spark s1", x: 2,  y: 4,  w: 1, h: 1, f: "currentColor" } ],
+      // lvl 3 — more sparks
+      [ { c: "spark s2", x: 28, y: 6,  w: 1, h: 1, f: "currentColor" },
+        { c: "spark s3", x: 4,  y: 28, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 4 — wing veins
+      [ { c: "vein", x: 6,  y: 9, w: 4, h: 1, f: "#a16207", o: 0.5 },
+        { c: "vein", x: 16, y: 9, w: 4, h: 1, f: "#a16207", o: 0.5 } ],
+      // lvl 5 — outer aura
+      [ { c: "aura", x: 14, y: 18, w: 14, h: 12, f: "currentColor", o: 0.15 } ],
+    ],
+  },
 
-  // NOVA — Tiny star dragon. Star-orbit · breath-spark · wing flap.
-  dragon: (lvl) => `
-    <g class="m-dr">
-      <path class="m-dr-tail" d="M76 70q14 4 12 16q-14 -2 -18 -8"
-            fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path class="m-dr-tail-tip" d="M88 86q3 2 1 6" stroke="${STROKE}" stroke-width="1.4" fill="none" opacity=".7"/>
-      <path class="m-dr-body" d="M22 60q8 -18 30 -18q22 0 26 16q-4 14 -22 14q-22 0 -34 -12z"
-            fill="none" stroke="${STROKE}" stroke-width="2.2" stroke-linejoin="round"/>
-      <circle class="m-dr-head" cx="22" cy="54" r="7" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <circle class="m-dr-eye" cx="20" cy="52" r="1.3" fill="${STROKE}"/>
-      <path   class="m-dr-breath" d="M14 56l-6 -2l6 1l-6 -1" stroke="${STROKE}" stroke-width="0.9" fill="none" opacity=".55"/>
-      <path   class="m-dr-wing" d="M48 42l8 -18l4 20z" fill="none" stroke="${STROKE}" stroke-width="2"/>
-      <path   class="m-dr-wing-detail" d="M52 30l2 8M56 28l1 9" stroke="${STROKE}" stroke-width=".6" opacity=".5"/>
-      <path   class="m-dr-spike" d="M30 42l4 -6l4 6M44 38l4 -6l4 6M58 38l4 -6l4 6"
-              stroke="${STROKE}" stroke-width="1.4" fill="none"/>
-      ${lvl >= 2 ? '<circle class="m-star s1" cx="78" cy="22" r="1.6" fill="currentColor"/>' : ""}
-      ${lvl >= 3 ? '<circle class="m-star s2" cx="68" cy="14" r="1.2" fill="currentColor"/>' : ""}
-      ${lvl >= 4 ? '<circle class="m-star s3" cx="88" cy="32" r="1.4" fill="currentColor"/>' : ""}
-      ${lvl >= 5 ? '<circle class="m-orbit" cx="50" cy="56" r="40" fill="none" stroke="currentColor" stroke-width="0.4" stroke-dasharray="2 3" opacity=".55"/>' : ""}
-    </g>
-  `,
+  /* ── NOVA — Tiny Star Dragon ──────────────────────────────────────── *
+   * Coiled dragon body, two wings, three spikes on back, small head,
+   * smoke breath, stars around (level 2+).                                 */
+  dragon: {
+    label: "star dragon",
+    base: [
+      // tail curl
+      { c: "tail",  x: 22, y: 18, w: 4, h: 2, f: "#7c3aed" },
+      { c: "tail",  x: 25, y: 20, w: 2, h: 4, f: "#7c3aed" },
+      { c: "tail",  x: 23, y: 24, w: 3, h: 2, f: "#7c3aed" },
+      // body
+      { c: "body",  x: 6,  y: 14, w: 18, h: 8, f: "#7c3aed" },
+      { c: "body",  x: 7,  y: 13, w: 16, h: 1, f: "#7c3aed" },
+      // belly highlight (lighter)
+      { c: "belly", x: 8,  y: 18, w: 14, h: 4, f: "#a78bfa" },
+      // legs
+      { c: "leg",   x: 9,  y: 22, w: 2, h: 3, f: "#5b21b6" },
+      { c: "leg",   x: 14, y: 22, w: 2, h: 3, f: "#5b21b6" },
+      { c: "leg",   x: 19, y: 22, w: 2, h: 3, f: "#5b21b6" },
+      // wing
+      { c: "wing",  x: 12, y: 8,  w: 8, h: 5, f: "#5b21b6" },
+      { c: "wing",  x: 14, y: 7,  w: 4, h: 1, f: "#5b21b6" },
+      { c: "wing-membrane", x: 13, y: 11, w: 1, h: 2, f: "#a78bfa" },
+      { c: "wing-membrane", x: 16, y: 11, w: 1, h: 2, f: "#a78bfa" },
+      { c: "wing-membrane", x: 19, y: 11, w: 1, h: 2, f: "#a78bfa" },
+      // back spikes
+      { c: "spike", x: 10, y: 12, w: 1, h: 2, f: "#fcd34d" },
+      { c: "spike", x: 13, y: 12, w: 1, h: 2, f: "#fcd34d" },
+      { c: "spike", x: 17, y: 12, w: 1, h: 2, f: "#fcd34d" },
+      // head
+      { c: "head",  x: 2,  y: 13, w: 6, h: 5, f: "#7c3aed" },
+      // horns
+      { c: "horn",  x: 3,  y: 11, w: 1, h: 2, f: "#fcd34d" },
+      { c: "horn",  x: 5,  y: 11, w: 1, h: 2, f: "#fcd34d" },
+      // eye
+      { c: "eye",   x: 3,  y: 15, w: 1, h: 1, f: "#fcd34d" },
+      // smoke breath
+      { c: "breath", x: 0,  y: 16, w: 2, h: 1, f: "currentColor", o: 0.6 },
+    ],
+    evo: [
+      // lvl 2 — first star
+      [ { c: "star", x: 26, y: 4, w: 2, h: 2, f: "#fcd34d" } ],
+      // lvl 3 — more stars
+      [ { c: "star", x: 22, y: 2, w: 2, h: 2, f: "#fcd34d" },
+        { c: "star", x: 29, y: 8, w: 1, h: 1, f: "#fcd34d" } ],
+      // lvl 4 — fire breath
+      [ { c: "fire", x: 0, y: 15, w: 1, h: 1, f: "#f97316" },
+        { c: "fire", x: 0, y: 17, w: 1, h: 1, f: "#fb923c" } ],
+      // lvl 5 — orbit ring
+      [ { c: "orbit", x: 0, y: 6, w: 32, h: 22, f: "currentColor", o: 0.08 } ],
+    ],
+  },
 };
 
-export const MASCOT_IDS = Object.keys(MASCOTS);
+export const MASCOT_IDS = Object.keys(SPRITES);
