@@ -1560,17 +1560,144 @@ kbd {
   @keyframes c-celeb-spot   { 0%,100% { transform:scale(.7); } 50% { transform:scale(1.4); } }
   @keyframes c-celeb-tongue { 0%,100% { transform:scaleX(.5); } 50% { transform:scaleX(1.6); } }
 
-  /* ---- BAT ---- wings flap, sonar rings expand */
-  .mascot-bat .r-wing-l    { animation: b-flap-l 1.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
-  .mascot-bat .r-wing-r    { animation: b-flap-r 1.4s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
-  .mascot-bat .r-wing-bone { animation: b-flap-l 1.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
-  .mascot-bat .r-ear       { animation: b-ear 3s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
-  .mascot-bat .r-sonar     { animation: b-sonar 2.2s ease-out infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-bat .r-sonar.s2  { animation-delay:.55s; }
-  @keyframes b-flap-l { 0%,100% { transform:rotate(-5deg) scaleY(1); }  50% { transform:rotate(15deg) scaleY(.6); } }
-  @keyframes b-flap-r { 0%,100% { transform:rotate(5deg)  scaleY(1); }  50% { transform:rotate(-15deg) scaleY(.6); } }
-  @keyframes b-ear    { 0%,84%,100% { transform:none; } 88%,92% { transform:scale(1.15); } }
-  @keyframes b-sonar  { 0% { opacity:.9; transform:scaleX(.4); } 100% { opacity:0; transform:scaleX(1.5); } }
+  /* ─────────────────────────────────────────────────────────────────── *
+   *  ECHO · SIGNAL BAT — 10-state animation machine
+   *
+   *  Echo subscribes to event streams, surfaces patterns, replays history.
+   *  Its language is sonar — every state plays with the ears and the
+   *  sonar dots radiating around them.
+   *
+   *    idle         soft wing breath, occasional ear twitch, dim sonar pulse
+   *    listening    BIG ears perk straight up, sonar-dots ripple outward
+   *    thinking     ears tilt forward, sonar pulses from each ear in sync
+   *    typing       wings flutter rapid + sonar in tap rhythm
+   *    working      FULL bat flight (big wing flap) + sonar rings expand fast
+   *    reading      eyes scan + ear-tips wiggle (locating data source)
+   *    success      green sonar burst from every direction + body bounce
+   *    warning      sonar dim, ears flatten back, eyes narrow
+   *    error        red eye glow, wings fold up, sonar dies (silent)
+   *    celebrating  body upward jump + multi-direction sonar rainbow burst
+   * ─────────────────────────────────────────────────────────────────── */
+
+  /* ---- IDLE (default) ---- */
+  .mascot-bat .r-wing-l, .mascot-bat .r-wing-bone:nth-of-type(1), .mascot-bat .r-wing-bone:nth-of-type(2) {
+    animation: b-idle-flap-l 2.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box;
+  }
+  .mascot-bat .r-wing-r, .mascot-bat .r-wing-bone:nth-of-type(3), .mascot-bat .r-wing-bone:nth-of-type(4) {
+    animation: b-idle-flap-r 2.4s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box;
+  }
+  .mascot-bat .r-ear { animation: b-idle-ear 4s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-bat .r-sonar { animation: b-sonar 3s ease-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-bat .r-sonar.s2 { animation-delay:.7s; }
+  @keyframes b-idle-flap-l { 0%,100% { transform:rotate(-2deg) scaleY(1); } 50% { transform:rotate(3deg) scaleY(.92); } }
+  @keyframes b-idle-flap-r { 0%,100% { transform:rotate(2deg) scaleY(1); } 50% { transform:rotate(-3deg) scaleY(.92); } }
+  @keyframes b-idle-ear    { 0%,90%,100% { transform:none; } 94%,96% { transform:scale(1.12); } }
+  @keyframes b-sonar       { 0% { opacity:.9; transform:scaleX(.4); } 100% { opacity:0; transform:scaleX(1.5); } }
+
+  /* ---- LISTENING ---- ears perk up + sonar-dots ripple outward */
+  .mascot-bat.state-listening .r-ear { animation: b-listen-ear 1.2s ease-in-out infinite; transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-listening .r-ear-in { animation: b-listen-ear 1.2s ease-in-out infinite; transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-listening .r-ear-tip { animation: b-listen-ear 1.2s ease-in-out infinite; transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-listening .r-sonar-dot { animation: b-listen-ping 1.2s ease-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-listening .r-sonar-dot:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-bat.state-listening .r-sonar-dot:nth-of-type(3) { animation-delay:.6s; }
+  .mascot-bat.state-listening .r-sonar-dot:nth-of-type(4) { animation-delay:.9s; }
+  .mascot-bat.state-listening .r-wing-l, .mascot-bat.state-listening .r-wing-r,
+  .mascot-bat.state-listening .r-wing-bone { animation:none; transform:rotate(0); }
+  @keyframes b-listen-ear  { 0%,100% { transform:scaleY(1) translateY(0); } 50% { transform:scaleY(1.4) translateY(-2px); } }
+  @keyframes b-listen-ping { 0% { opacity:1; transform:scale(.5); } 100% { opacity:0; transform:scale(2.4); } }
+
+  /* ---- THINKING ---- ears tilt forward + sonar pulses from each ear */
+  .mascot-bat.state-thinking .r-ear { transform:rotate(-15deg); transform-origin:bottom; transform-box:fill-box; animation:none; }
+  .mascot-bat.state-thinking .r-ear-in { transform:rotate(-15deg); transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-thinking .r-ear-tip { transform:rotate(-15deg); transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-thinking .r-sonar-dot { animation: b-listen-ping .7s ease-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-thinking .r-sonar-dot:nth-of-type(2) { animation-delay:.18s; }
+  .mascot-bat.state-thinking .r-sonar-dot:nth-of-type(3) { animation-delay:.35s; }
+  .mascot-bat.state-thinking .r-sonar-dot:nth-of-type(4) { animation-delay:.52s; }
+  .mascot-bat.state-thinking .r-eye { animation: b-think-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes b-think-eye { 0%,100% { transform:scale(1); } 50% { transform:scale(1.4); } }
+
+  /* ---- TYPING ---- wings flutter rapid + sonar tap rhythm */
+  .mascot-bat.state-typing .r-wing-l { animation: b-type-flap .25s steps(2) infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat.state-typing .r-wing-r { animation: b-type-flap-r .25s steps(2) infinite; transform-origin:21px 15px; transform-box:fill-box; }
+  .mascot-bat.state-typing .r-wing-bone { animation: b-type-flap .25s steps(2) infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat.state-typing .r-sonar { animation: b-sonar .8s ease-out infinite; }
+  .mascot-bat.state-typing .r-sonar.s2 { animation-delay:.2s; }
+  @keyframes b-type-flap   { 0% { transform:rotate(-8deg) scaleY(1); } 50% { transform:rotate(8deg) scaleY(.7); } }
+  @keyframes b-type-flap-r { 0% { transform:rotate(8deg) scaleY(1); } 50% { transform:rotate(-8deg) scaleY(.7); } }
+
+  /* ---- WORKING ---- full bat flight (big flap) + sonar fast */
+  .mascot-bat.state-working .r-wing-l { animation: b-work-flap .55s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat.state-working .r-wing-r { animation: b-work-flap-r .55s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
+  .mascot-bat.state-working .r-wing-bone:nth-of-type(1), .mascot-bat.state-working .r-wing-bone:nth-of-type(2) { animation: b-work-flap .55s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat.state-working .r-wing-bone:nth-of-type(3), .mascot-bat.state-working .r-wing-bone:nth-of-type(4) { animation: b-work-flap-r .55s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
+  .mascot-bat.state-working .r-sonar { animation: b-sonar 1.1s ease-out infinite; }
+  .mascot-bat.state-working .r-sonar.s2 { animation-delay:.27s; }
+  .mascot-bat.state-working .mascot-body { animation: b-work-bob .55s ease-in-out infinite; transform-origin:center; }
+  @keyframes b-work-flap   { 0%,100% { transform:rotate(-15deg) scaleY(1); } 50% { transform:rotate(28deg) scaleY(.4); } }
+  @keyframes b-work-flap-r { 0%,100% { transform:rotate(15deg) scaleY(1); } 50% { transform:rotate(-28deg) scaleY(.4); } }
+  @keyframes b-work-bob    { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px); } }
+
+  /* ---- READING ---- eyes scan, ear-tips wiggle, sonar from one direction */
+  .mascot-bat.state-reading .r-eye { animation: b-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-reading .r-eye-w { animation: b-read-eye 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-reading .r-ear-tip { animation: b-read-tip .6s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
+  .mascot-bat.state-reading .r-sonar-dot:nth-of-type(1),
+  .mascot-bat.state-reading .r-sonar-dot:nth-of-type(2) {
+    animation: b-listen-ping 1s ease-out infinite; transform-box:fill-box; transform-origin:center;
+  }
+  .mascot-bat.state-reading .r-sonar-dot:nth-of-type(2) { animation-delay:.3s; }
+  @keyframes b-read-eye { 0%,100% { transform:translateX(-1px); } 50% { transform:translateX(1px); } }
+  @keyframes b-read-tip { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.3); } }
+
+  /* ---- SUCCESS ---- green sonar burst all-direction + body bounce */
+  .mascot-bat.state-success .mascot-body { animation: b-success-pop .8s ease-out; transform-origin:center; }
+  .mascot-bat.state-success .r-sonar { animation: b-success-sonar .8s ease-out; opacity:1 !important; }
+  .mascot-bat.state-success .r-sonar.s2 { animation-delay:.2s; }
+  .mascot-bat.state-success .r-sonar-dot { animation: b-success-dot .8s ease-out; opacity:1 !important; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-success .r-sonar-dot:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-bat.state-success .r-sonar-dot:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-bat.state-success .r-sonar-dot:nth-of-type(4) { animation-delay:.3s; }
+  .mascot-bat.state-success .r-eye { fill:#54e6a8; }
+  @keyframes b-success-pop   { 0% { transform:scale(1); } 30% { transform:scale(1.12); } 60% { transform:scale(.96); } 100% { transform:scale(1); } }
+  @keyframes b-success-sonar { 0% { opacity:1; transform:scaleX(.4); stroke:#54e6a8; fill:#54e6a8; } 100% { opacity:0; transform:scaleX(2.2); fill:#54e6a8; } }
+  @keyframes b-success-dot   { 0% { opacity:1; transform:scale(.5); fill:#54e6a8; } 100% { opacity:0; transform:scale(3); fill:#54e6a8; } }
+
+  /* ---- WARNING ---- sonar dim, ears flatten back, eyes narrow */
+  .mascot-bat.state-warning .r-ear { transform:rotate(20deg); transform-origin:bottom; transform-box:fill-box; animation:none; }
+  .mascot-bat.state-warning .r-ear-in { transform:rotate(20deg); transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-warning .r-ear-tip { transform:rotate(20deg); transform-origin:bottom; transform-box:fill-box; }
+  .mascot-bat.state-warning .r-sonar { opacity:.2; animation:none; }
+  .mascot-bat.state-warning .r-sonar-dot { opacity:0; animation:none; }
+  .mascot-bat.state-warning .r-eye { transform:scaleY(.5); transform-box:fill-box; transform-origin:center; animation:none; fill:#fb923c; }
+  .mascot-bat.state-warning .r-eye-w { fill:#fb923c; }
+
+  /* ---- ERROR ---- red eye glow, wings fold, sonar dead */
+  .mascot-bat.state-error .mascot-body { animation: b-err-shake .18s ease-in-out infinite; }
+  .mascot-bat.state-error .r-wing-l { transform:rotate(35deg) scaleX(.7); transform-origin:11px 15px; transform-box:fill-box; animation:none; }
+  .mascot-bat.state-error .r-wing-r { transform:rotate(-35deg) scaleX(.7); transform-origin:21px 15px; transform-box:fill-box; animation:none; }
+  .mascot-bat.state-error .r-wing-bone { animation:none; }
+  .mascot-bat.state-error .r-sonar { opacity:0 !important; }
+  .mascot-bat.state-error .r-sonar-dot { opacity:0 !important; }
+  .mascot-bat.state-error .r-eye { fill:#ef4444; animation: b-err-eye .3s steps(2) infinite; transform:scale(1.4); transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-error .r-eye-w { fill:#7f1d1d; }
+  @keyframes b-err-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-.5px); } 75% { transform:translateX(.5px); } }
+  @keyframes b-err-eye   { 50% { opacity:.3; } }
+
+  /* ---- CELEBRATING ---- multi-direction sonar rainbow + upward jump */
+  .mascot-bat.state-celebrating .mascot-body { animation: b-celeb-jump .9s ease-in-out; transform-origin:center; }
+  .mascot-bat.state-celebrating .r-wing-l { animation: b-work-flap .3s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
+  .mascot-bat.state-celebrating .r-wing-r { animation: b-work-flap-r .3s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
+  .mascot-bat.state-celebrating .r-sonar { animation: b-celeb-sonar .5s ease-out infinite; opacity:1 !important; }
+  .mascot-bat.state-celebrating .r-sonar.s2 { animation-delay:.15s; }
+  .mascot-bat.state-celebrating .r-sonar-dot { animation: b-celeb-dot .4s ease-out infinite; opacity:1 !important; transform-box:fill-box; transform-origin:center; }
+  .mascot-bat.state-celebrating .r-sonar-dot:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-bat.state-celebrating .r-sonar-dot:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-bat.state-celebrating .r-sonar-dot:nth-of-type(4) { animation-delay:.3s; }
+  @keyframes b-celeb-jump  { 0% { transform:translateY(0); } 30% { transform:translateY(-3px) scale(1.08); } 60% { transform:translateY(.5px); } 100% { transform:translateY(0); } }
+  @keyframes b-celeb-sonar { 0% { opacity:1; transform:scaleX(.4); fill:#f472b6; } 33% { fill:#fcd34d; } 66% { fill:#22d3ee; } 100% { opacity:0; transform:scaleX(2.2); fill:#a78bfa; } }
+  @keyframes b-celeb-dot   { 0% { opacity:1; transform:scale(.5); fill:#f472b6; } 50% { fill:#fcd34d; } 100% { opacity:0; transform:scale(2.4); fill:#22d3ee; } }
 
   /* ---- HUMMINGBIRD ---- ultra-fast wings, trail particles */
   .mascot-hummingbird .r-wing-t { animation: h-wing .08s linear infinite; transform-origin:15px 12px; transform-box:fill-box; }
