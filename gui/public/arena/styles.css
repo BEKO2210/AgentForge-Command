@@ -776,6 +776,62 @@ kbd {
 .drawer .body section.chat .chat-input:disabled { opacity:.5; cursor:not-allowed; }
 .drawer .body .logs .line.empty { color:var(--muted); font-style:italic; }
 
+/* ----- Ledger card (cost panel inside the drawer) ----- */
+.ledger-card {
+  border:1px solid color-mix(in srgb, var(--warn) 35%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--warn) 10%, transparent), color-mix(in srgb, var(--warn) 3%, transparent)),
+    rgba(255,255,255,.02);
+  border-radius:10px; padding:12px 14px;
+}
+.ledger-card.warn { border-color:color-mix(in srgb, var(--warn) 55%, var(--border)); }
+.ledger-card.over { border-color:color-mix(in srgb, var(--bad)  60%, var(--border));
+                    background:linear-gradient(180deg, color-mix(in srgb, var(--bad) 10%, transparent), rgba(255,255,255,.02)); }
+.ledger-card h3 {
+  margin:0 0 8px; font:700 11px var(--mono); letter-spacing:1px;
+  text-transform:uppercase; color:var(--muted);
+}
+.ledger-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:10px;
+}
+.ledger-grid .stat { border:1px solid var(--border2); border-radius:8px; padding:8px 10px;
+                     background:rgba(0,0,0,.18); }
+.ledger-grid .stat .label { font:700 9.5px var(--mono); letter-spacing:.8px;
+                            text-transform:uppercase; color:var(--muted); }
+.ledger-grid .stat .value { font:700 17px var(--mono); color:var(--fg); margin-top:3px; line-height:1.05; }
+.ledger-bar {
+  height:7px; border-radius:5px; overflow:hidden; position:relative;
+  background:rgba(255,255,255,.06); border:1px solid var(--border2);
+  margin-bottom:8px;
+}
+.ledger-bar .fill {
+  position:absolute; inset:0 auto 0 0; width:0;
+  background:linear-gradient(90deg, var(--cta2), var(--warn));
+  transition:width .55s cubic-bezier(.4,0,.2,1);
+}
+.ledger-card.warn .ledger-bar .fill { background:linear-gradient(90deg, var(--warn), #f97316); }
+.ledger-card.over .ledger-bar .fill { background:linear-gradient(90deg, var(--bad), #b91c1c); }
+.dim.small { font-size:12px; }
+.dim code {
+  font:600 11px var(--mono); padding:1px 5px; border-radius:4px;
+  background:rgba(255,255,255,.05); border:1px solid var(--border2);
+  color:var(--fg);
+}
+.ledger-recent {
+  margin-top:8px; padding-top:8px; border-top:1px dashed var(--border2);
+}
+.ledger-recent .label { font:700 9.5px var(--mono); letter-spacing:.9px;
+                        text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.ledger-recent ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.ledger-recent li {
+  display:grid; grid-template-columns:74px 70px 1fr; gap:8px; align-items:baseline;
+  font:12px var(--mono); padding:3px 6px; border-radius:5px;
+  background:rgba(0,0,0,.18); border:1px solid var(--border2);
+}
+.ledger-recent .rb-cost { color:var(--lead, #f5b94a); font-weight:700; }
+.ledger-recent .rb-tokens { color:var(--muted); font-size:11.5px; }
+.ledger-recent .rb-goal { color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
 /* ----- Spawn-Builder modal ----- */
 .modal-backdrop {
   position:fixed; inset:0; background:rgba(2,4,9,.7);

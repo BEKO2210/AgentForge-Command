@@ -18,6 +18,7 @@ const store = createStore({
   agents: [], timeline: [], filter: "all",
   selectedId: null, modalOpen: false,
   connection: { ws: false, pulse: false, ptyIds: [], llmEnabled: false, leadId: LEAD_ID },
+  spend: { totalIn: 0, totalOut: 0, totalUsd: 0, briefCount: 0, recent: [], budgetUsd: 0, overBudget: false },
 });
 
 /* ----- Bootstrap ------------------------------------------------------- */
@@ -69,6 +70,7 @@ store.set("connection", {
   llmModel: persisted.llm && persisted.llm.model,
   leadId: persisted.leadId || LEAD_ID,
 });
+if (persisted.spend) store.set("spend", persisted.spend);
 
 const engine = createSpawnEngine({ store, persisted });
 engine.bootstrap();
@@ -93,8 +95,9 @@ function render() {
   const lead = agents.find((a) => a.id === LEAD_ID);
   const swarm = agents.length - (lead ? 1 : 0);
   const conn = store.get("connection") || {};
+  const spend = store.get("spend") || {};
 
-  renderHeroStats(heroRoot, { agents, timeline, conn });
+  renderHeroStats(heroRoot, { agents, timeline, conn, spend });
   renderLeadPanel(leadRoot, lead, swarm, timeline, conn);
   renderGrid(gridRoot, agents, {
     filter: store.get("filter"),
@@ -104,6 +107,7 @@ function render() {
     onNewAgent: () => store.set("modalOpen", true),
     onLaunchPty: (id) => launchPty(id),
     onStopPty:   (id) => stopPty(id),
+    spend,                       // ledger card reads this directly
   });
   renderTimeline(timelineRoot, timeline);
 
@@ -171,6 +175,7 @@ store.subscribe("timeline",   scheduleRender);
 store.subscribe("filter",     scheduleRender);
 store.subscribe("selectedId", scheduleRender);
 store.subscribe("modalOpen",  scheduleRender);
+store.subscribe("spend",      scheduleRender);
 store.subscribe("connection", () => {
   const c = store.get("connection") || {};
   if (connDot) {
@@ -413,8 +418,22 @@ function handleServerMessage(m) {
     }
   } else if (m.t === "atlas-brief-end") {
     engine.appendLine(LEAD_ID, `[atlas] done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
+    if (Array.isArray(m.briefings) && m.briefings.length) {
+      engine.appendLine(LEAD_ID,
+        `[atlas] dispatching ${m.briefings.length} specialist${m.briefings.length === 1 ? "" : "s"}: ${m.briefings.map((b) => b.id).join(", ")}`);
+    }
     engine.setAnimationState(LEAD_ID, "success");
     setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
+  } else if (m.t === "dispatch") {
+    const a = engine.get(m.id);
+    if (a) {
+      engine.appendLine(m.id, `[atlas] @${m.id}: ${m.task}`);
+      engine.setAnimationState(m.id, "thinking");
+    }
+  } else if (m.t === "dispatch-skip") {
+    engine.appendLine(LEAD_ID, `[atlas] could not dispatch @${m.id} — ${m.reason}`);
+  } else if (m.t === "spend-update") {
+    store.set("spend", m.spend || {});
   } else if (m.t === "atlas-brief-error") {
     engine.appendLine(LEAD_ID, `[atlas] ${m.reason || "live brief failed"}`);
     engine.setAnimationState(LEAD_ID, "warning");

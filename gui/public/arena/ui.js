@@ -21,21 +21,28 @@ const pad = (n) => String(n).padStart(2, "0");
 
 /* ----- Hero stats ------------------------------------------------------- */
 
-export function renderHeroStats(root, { agents, timeline, conn }) {
+export function renderHeroStats(root, { agents, timeline, conn, spend }) {
   const total = agents.length;
   const running = agents.filter((a) => a.ptyRunning).length;
   const warning = agents.filter((a) => a.animationState === "warning").length;
   const llm = conn && conn.llmEnabled ? "live" : "off";
   const reportEvts = timeline.filter((t) => t.kind === "report").length;
-  const risk = avg(agents.map((a) => a.risk));
-  const quality = avg(agents.map((a) => a.qualityScore));
+  const cost = (spend && spend.totalUsd) || 0;
+  const budget = (spend && spend.budgetUsd) || 0;
+  const overBudget = !!(spend && spend.overBudget);
+  const burnLabel = budget > 0
+    ? `$${cost.toFixed(4)} / $${budget.toFixed(2)}`
+    : `$${cost.toFixed(4)} spent`;
+  const burnClass = overBudget ? "delta bad"
+    : (budget > 0 && cost / budget > 0.7) ? "delta warn"
+    : "delta";
   root.innerHTML = `
     <div class="hero-stats" role="group" aria-label="Mission stats">
       ${stat("LIVE PTYS",  `${running}`,  `${Math.max(0, total - running)} dormant`, running > 0 ? "delta" : "delta warn")}
       ${stat("REPORTS",    `${reportEvts}`, "to Atlas", "delta")}
       ${stat("ATLAS",      llm.toUpperCase(), conn && conn.llmModel ? conn.llmModel : "configure key", conn && conn.llmEnabled ? "delta" : "delta warn")}
+      ${stat("SPEND",      `$${cost.toFixed(2)}`, burnLabel, burnClass)}
       ${stat("WARNINGS",   `${warning}`,  warning ? "needs attention" : "all clear", warning ? "delta bad" : "delta")}
-      ${stat("QUALITY",    `${pct(quality)}%`, `risk ${pct(risk)}%`, quality > 0.85 ? "delta" : "delta warn")}
     </div>
   `;
   function stat(label, value, deltaText, deltaClass) {
@@ -104,10 +111,14 @@ export function renderLeadPanel(root, lead, swarmSize, timeline, conn) {
 /** Map of card-id → DOM element, used so we can update in place. */
 const cardEls = new Map();
 let gridOpts = {};
+let ledgerSpend = {};
 
 export function renderGrid(root, agents, opts) {
   const { filter } = opts;
   gridOpts = opts;
+  // Stash spend on the ledger card so renderDrawer can pick it up when the
+  // ledger drawer is open (without each card needing its own spend prop).
+  ledgerSpend = opts.spend || ledgerSpend || {};
   // Filter: 'all' (default) excludes only Atlas; the lead panel renders the lead.
   const list = agents.filter((a) => {
     if (a.id === LEAD_ID) return false;
@@ -342,6 +353,9 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
     return;
   }
   drawer.setAttribute("aria-hidden", "false");
+  // Ledger gets a dedicated cost panel pulled from the spend ledger the
+  // server pushes to us.
+  const ledgerHTML = agent.id === "ledger" ? renderLedgerPanel(ledgerSpend) : "";
   drawer.innerHTML = `
     <header style="color:${agent.color}">
       <div class="mascot-large" aria-hidden="true">
@@ -354,6 +368,7 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
       <button class="close" data-action="close" aria-label="Close detail" title="Close (Esc)">ESC</button>
     </header>
     <div class="body">
+      ${ledgerHTML}
       <section>
         <h3>Super Skill</h3>
         <p>${escapeHTML(agent.superSkill)}</p>
@@ -454,6 +469,56 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
 }
 
 /* ----- Spawn-Builder modal --------------------------------------------- */
+
+function renderLedgerPanel(spend) {
+  if (!spend || typeof spend.totalUsd !== "number") {
+    return `<section class="ledger-card">
+      <h3>Ledger · cost & tokens</h3>
+      <p class="dim">No briefings recorded yet. Live spend appears here once Atlas runs.</p>
+    </section>`;
+  }
+  const budget = spend.budgetUsd || 0;
+  const total  = spend.totalUsd || 0;
+  const pctUsed = budget > 0 ? Math.min(100, (total / budget) * 100) : 0;
+  const burnClass = spend.overBudget ? "over"
+    : (budget > 0 && pctUsed > 70) ? "warn"
+    : "ok";
+  const recent = (spend.recent || []).slice(-5).reverse();
+  return `
+    <section class="ledger-card ${burnClass}">
+      <h3>Ledger · cost & tokens</h3>
+      <div class="ledger-grid">
+        <div class="stat"><div class="label">Spent</div><div class="value">$${total.toFixed(4)}</div></div>
+        <div class="stat"><div class="label">Budget</div><div class="value">${budget > 0 ? `$${budget.toFixed(2)}` : "—"}</div></div>
+        <div class="stat"><div class="label">Input tokens</div><div class="value">${(spend.totalIn || 0).toLocaleString()}</div></div>
+        <div class="stat"><div class="label">Output tokens</div><div class="value">${(spend.totalOut || 0).toLocaleString()}</div></div>
+      </div>
+      ${budget > 0 ? `
+        <div class="ledger-bar" role="progressbar" aria-valuenow="${pctUsed.toFixed(0)}" aria-valuemin="0" aria-valuemax="100" aria-label="Budget consumed">
+          <span class="fill" style="width:${pctUsed.toFixed(1)}%"></span>
+          <span class="ticks"></span>
+        </div>
+        <p class="dim small">
+          ${spend.overBudget
+            ? `<b style="color:var(--bad)">⚠ Over budget</b> — new Atlas briefings refused until <code>AGENTFORGE_BUDGET_USD</code> is raised.`
+            : `${pctUsed.toFixed(1)}% of budget consumed across ${spend.briefCount || 0} brief${spend.briefCount === 1 ? "" : "s"}.`}
+        </p>` : `
+        <p class="dim small">No budget guardrail — set <code>AGENTFORGE_BUDGET_USD</code> to cap spend.</p>`}
+      ${recent.length ? `
+        <div class="ledger-recent">
+          <div class="label">Recent briefings</div>
+          <ul>
+            ${recent.map((b) => `
+              <li>
+                <span class="rb-cost">$${b.cost.toFixed(4)}</span>
+                <span class="rb-tokens">${b.input}→${b.output}</span>
+                <span class="rb-goal">${escapeHTML(b.goal || "(no goal)")}</span>
+              </li>`).join("")}
+          </ul>
+        </div>` : ""}
+    </section>
+  `;
+}
 
 const SWATCHES = ["#5b8cff", "#f06bd2", "#f5b94a", "#34d399", "#a78bfa", "#36d6c3", "#fde047", "#ff6b7d", "#9aa5c4", "#60a5fa", "#7ee787", "#ff9a55"];
 

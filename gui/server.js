@@ -73,6 +73,69 @@ const agents = new Map(); // id -> { def, term, buf, alive, tail }
 const clients = new Set();
 const arenaClients = new Set();
 
+/* ----- Spend / budget tracking -----
+ * Every Atlas brief stream returns usage + cost. We aggregate them into a
+ * per-session ledger and broadcast updates so the arena's Ledger card can
+ * show live spend without polling. AGENTFORGE_BUDGET_USD enforces a soft cap:
+ * once exceeded, new briefs are refused with a clear error. 0 = unlimited. */
+const BUDGET_USD = Number(process.env.AGENTFORGE_BUDGET_USD || 0);
+const spend = {
+  totalIn: 0, totalOut: 0, totalUsd: 0, briefs: [],
+  startedAt: Date.now(), budgetUsd: BUDGET_USD,
+};
+function recordSpend(entry) {
+  spend.totalIn  += entry.usage?.input_tokens  || 0;
+  spend.totalOut += entry.usage?.output_tokens || 0;
+  spend.totalUsd += entry.cost || 0;
+  spend.briefs.push({
+    ts: Date.now(),
+    model: entry.model,
+    input: entry.usage?.input_tokens  || 0,
+    output: entry.usage?.output_tokens || 0,
+    cost: entry.cost || 0,
+    goal: (entry.goal || "").slice(0, 120),
+  });
+  if (spend.briefs.length > 100) spend.briefs.splice(0, spend.briefs.length - 100);
+  arenaBroadcastSafe({ t: "spend-update", spend: spendSnapshot() });
+}
+function spendSnapshot() {
+  return {
+    totalIn: spend.totalIn,
+    totalOut: spend.totalOut,
+    totalUsd: spend.totalUsd,
+    briefCount: spend.briefs.length,
+    recent: spend.briefs.slice(-10),
+    budgetUsd: spend.budgetUsd,
+    remainingUsd: spend.budgetUsd > 0 ? Math.max(0, spend.budgetUsd - spend.totalUsd) : null,
+    overBudget: spend.budgetUsd > 0 && spend.totalUsd >= spend.budgetUsd,
+    startedAt: spend.startedAt,
+  };
+}
+function arenaBroadcastSafe(msg) {
+  const s = JSON.stringify(msg);
+  for (const c of arenaClients) if (c.readyState === 1) { try { c.send(s); } catch {} }
+}
+
+/* ----- Atlas brief parser -----
+ * Atlas's system prompt asks for a paragraph plus a `BRIEFINGS:` block of
+ * `- <id>: <task>` lines. We pull those out so the server can autodispatch
+ * each specialist's PTY with the matching sub-briefing.  */
+function parseAtlasBrief(text) {
+  if (!text) return { plan: "", briefings: [] };
+  const lines = text.split(/\r?\n/);
+  let i = lines.findIndex((l) => /^\s*briefings\s*:?/i.test(l));
+  const plan = i > 0 ? lines.slice(0, i).join("\n").trim() : text.trim();
+  const briefings = [];
+  if (i >= 0) {
+    for (const raw of lines.slice(i + 1)) {
+      // Accept "- id: task" / "* id: task" / "id: task" / "@id task"
+      const m = raw.match(/^[\s*\-•]*@?([a-z][a-z0-9_-]*)\s*[:\-—]\s*(.+?)\s*$/i);
+      if (m && m[2].length > 0) briefings.push({ id: m[1].toLowerCase(), task: m[2] });
+    }
+  }
+  return { plan, briefings };
+}
+
 /* ----- Arena persistence ----- */
 
 function loadArenaState() {
@@ -259,6 +322,7 @@ const server = http.createServer((req, res) => {
       runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
       llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
+      spend: spendSnapshot(),
     }));
   }
 
@@ -331,8 +395,11 @@ arenaWss.on("connection", (ws) => {
     evolution: arenaState.evolution,
     customAgents: arenaState.customAgents,
     atlasMission: arenaState.atlasMission,
-    ptyAgents: config.agents.map((a) => a.id),
+    ptyAgents: swarm.map((a) => a.id),
+    leadId: LEAD ? LEAD.id : null,
     pulse: !!pulse,
+    llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
+    spend: spendSnapshot(),
   }));
   // Replay buffers for any live PTYs so a late-joining arena client sees state.
   for (const [id, rec] of agents) {
@@ -406,32 +473,83 @@ arenaWss.on("connection", (ws) => {
         break;
       }
       case "atlas-brief": {
-        // Stream a real Atlas briefing through the configured LLM, if a key
-        // is set. Falls back with an explicit error message that the arena
-        // shows in Atlas's terminal so the operator knows why nothing is
-        // happening live.
+        // Stream a real Atlas briefing through the configured LLM. The text
+        // is accumulated server-side so when the stream ends we can pull the
+        // `BRIEFINGS:` block out and auto-dispatch each specialist's PTY
+        // with its sub-briefing. Cost is recorded into the spend ledger.
         const goal = String(m.goal || "").slice(0, 4000);
         const roster = Array.isArray(m.roster) ? m.roster.slice(0, 32) : [];
+        const autoDispatch = m.autoDispatch !== false; // opt-out flag
         const cfg = llmConfig();
         if (!cfg.enabled) {
-          ws.send(JSON.stringify({ t: "atlas-brief-error", reason: "ANTHROPIC_API_KEY not set on the server — falling back to mock broadcast." }));
+          ws.send(JSON.stringify({ t: "atlas-brief-error", reason: "ANTHROPIC_API_KEY not set on the server." }));
+          break;
+        }
+        if (spend.budgetUsd > 0 && spend.totalUsd >= spend.budgetUsd) {
+          ws.send(JSON.stringify({ t: "atlas-brief-error",
+            reason: `Budget ceiling $${spend.budgetUsd.toFixed(2)} reached (spent $${spend.totalUsd.toFixed(4)}). Raise AGENTFORGE_BUDGET_USD to continue.` }));
           break;
         }
         const ac = new AbortController();
         const reqId = `b-${Date.now()}`;
+        let accum = "";
         ws.send(JSON.stringify({ t: "atlas-brief-start", reqId, model: cfg.model }));
         atlasBrief({
           goal, roster,
           signal: ac.signal,
           onDelta: (d) => {
+            accum += d;
             try { ws.send(JSON.stringify({ t: "atlas-brief-delta", reqId, d })); } catch {}
           },
         }).then(({ usage, cost, model }) => {
-          ws.send(JSON.stringify({ t: "atlas-brief-end", reqId, usage, cost, model }));
+          recordSpend({ usage, cost, model, goal });
+          const parsed = parseAtlasBrief(accum);
+          arenaBroadcastSafe({
+            t: "atlas-brief-end", reqId, usage, cost, model,
+            briefings: parsed.briefings,
+            plan: parsed.plan.slice(0, 400),
+            autoDispatch,
+          });
+          if (autoDispatch && parsed.briefings.length) {
+            // For every briefing line Atlas produced, start the matching
+            // specialist PTY (if it isn't already running) with the sub-
+            // briefing as the goal. Atlas's own line is skipped — he doesn't
+            // delegate to himself.
+            for (const b of parsed.briefings) {
+              if (b.id === "atlas") continue;
+              const def = ptyIndex.get(b.id);
+              if (!def) {
+                arenaBroadcastSafe({ t: "dispatch-skip", id: b.id, reason: "unknown specialist" });
+                continue;
+              }
+              const wasRunning = agents.has(b.id) && agents.get(b.id).alive;
+              if (!wasRunning) startAgent(def);
+              const promptText = def.prompt ? def.prompt.replace("{{GOAL}}", b.task) : b.task;
+              // Defer the paste so the PTY is ready (newly started) or so
+              // the running session sees a clean newline before the new task.
+              setTimeout(() => {
+                const rec2 = agents.get(def.id); if (!rec2) return;
+                try {
+                  if (!wasRunning) {
+                    rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
+                  } else {
+                    rec2.term.write("\x1b[200~" + b.task + "\x1b[201~");
+                  }
+                  // Send Enter separately, ~150ms later — many TUIs (Claude
+                  // Code included) drop Enter when it's bundled with the
+                  // paste. The same pattern rmux uses.
+                  setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
+                } catch {}
+              }, wasRunning ? 200 : 900);
+              arenaBroadcastSafe({
+                t: "dispatch", reqId, id: b.id, task: b.task,
+                started: !wasRunning,
+              });
+            }
+          }
         }).catch((e) => {
           ws.send(JSON.stringify({ t: "atlas-brief-error", reqId, reason: String(e.message || e) }));
         });
-        // Stash so we can abort later if needed
         ws._atlasAborts = ws._atlasAborts || new Map();
         ws._atlasAborts.set(reqId, ac);
         break;
@@ -439,6 +557,16 @@ arenaWss.on("connection", (ws) => {
       case "atlas-brief-abort": {
         const ac = ws._atlasAborts && ws._atlasAborts.get(m.reqId);
         if (ac) { try { ac.abort(); } catch {} }
+        break;
+      }
+      case "spend-reset": {
+        spend.totalIn = 0; spend.totalOut = 0; spend.totalUsd = 0;
+        spend.briefs.length = 0; spend.startedAt = Date.now();
+        ws.send(JSON.stringify({ t: "spend-update", spend: spendSnapshot() }));
+        break;
+      }
+      case "spend-get": {
+        ws.send(JSON.stringify({ t: "spend-update", spend: spendSnapshot() }));
         break;
       }
     }
