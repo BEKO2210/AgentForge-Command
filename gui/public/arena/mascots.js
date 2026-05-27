@@ -908,13 +908,15 @@ const SPRITES = {
   firefly: {
     label: "firefly",
     base: [
-      // wings (translucent yellow)
+      // wings (translucent yellow) + central vein for clear insect shape
       { c: "wing-l", x: 5,  y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
       { c: "wing-l", x: 7,  y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
       { c: "wing-l-edge", x: 5,  y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      { c: "wing-l-vein", x: 5,  y: 14, w: 8, h: 1, f: "#a16207", o: 0.7 },
       { c: "wing-r", x: 14, y: 12, w: 8, h: 6, f: "#fde047", o: 0.55 },
       { c: "wing-r", x: 15, y: 11, w: 5, h: 1, f: "#fde047", o: 0.3 },
       { c: "wing-r-edge", x: 14, y: 12, w: 8, h: 1, f: "#fde047", o: 0.8 },
+      { c: "wing-r-vein", x: 14, y: 14, w: 8, h: 1, f: "#a16207", o: 0.7 },
       // body segments (each with outline + highlight)
       { c: "head-outline", x: 8, y: 13, w: 6, h: 1, f: "#4a2906" },
       { c: "head-outline", x: 8, y: 18, w: 6, h: 1, f: "#4a2906" },
@@ -934,9 +936,10 @@ const SPRITES = {
       { c: "antenna", x: 11, y: 11, w: 1, h: 3, f: "#4a2906" },
       { c: "antenna-tip", x: 7, y: 10, w: 2, h: 1, f: "#fde047" },
       { c: "antenna-tip", x: 11, y: 10, w: 2, h: 1, f: "#fde047" },
-      // eye
+      // eye + small bright highlight (hidden until reading/listening)
       { c: "eye-w", x: 10, y: 15, w: 1, h: 1, f: "#fff" },
       { c: "eye",   x: 10, y: 15, w: 1, h: 1, f: "#000" },
+      { c: "eye-hi", x: 10, y: 15, w: 1, h: 1, f: "#fef9c3", o: 0 },
       // legs
       { c: "leg", x: 10, y: 18, w: 1, h: 3, f: "#4a2906" },
       { c: "leg", x: 13, y: 19, w: 1, h: 3, f: "#4a2906" },
@@ -947,6 +950,21 @@ const SPRITES = {
       { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 5, f: "#fef08a" },
       { c: "lantern-mid",  x: 21, y: 18, w: 6, h: 1, f: "#fef9c3" },
       { c: "lantern-core", x: 22, y: 19, w: 4, h: 3, f: "#fff" },
+      // lantern rim — small dark separator where the bulb meets the abdomen
+      { c: "lantern-rim", x: 20, y: 18, w: 1, h: 5, f: "#4a2906", o: 0.5 },
+      // ── LANTERN RAYS (hidden — fan out for success / celebrating) ──
+      { c: "ray", x: 24, y: 13, w: 1, h: 3, f: "#fef08a", o: 0 },
+      { c: "ray", x: 29, y: 14, w: 2, h: 2, f: "#fef08a", o: 0 },
+      { c: "ray", x: 30, y: 19, w: 2, h: 1, f: "#fef08a", o: 0 },
+      { c: "ray", x: 29, y: 24, w: 2, h: 2, f: "#fef08a", o: 0 },
+      { c: "ray", x: 24, y: 25, w: 1, h: 3, f: "#fef08a", o: 0 },
+      // ── ASH PARTICLES (hidden — fall during error) ──
+      { c: "ash", x: 22, y: 26, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      { c: "ash", x: 25, y: 28, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      { c: "ash", x: 28, y: 27, w: 1, h: 1, f: "#7f1d1d", o: 0 },
+      // ── WARNING BANG "!" (hidden — appears in warning) ──
+      { c: "bang", x: 25, y: 13, w: 1, h: 3, f: "#f59e0b", o: 0 },
+      { c: "bang", x: 25, y: 17, w: 1, h: 1, f: "#f59e0b", o: 0 },
     ],
     evo: [
       [ { c: "spark s1", x: 2,  y: 4,  w: 1, h: 1, f: "currentColor" } ],

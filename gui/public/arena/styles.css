@@ -2301,21 +2301,140 @@ kbd {
   @keyframes dr-glow-cycle  { 0% { fill:#22c55e; transform:scale(1.5); } 33% { fill:#f59e0b; transform:scale(1.2); } 66% { fill:#ef4444; transform:scale(1.8); } 100% { fill:#22c55e; transform:scale(1.5); } }
   @keyframes dr-trace-dance { 0%,100% { opacity:1; transform:translateY(0); } 50% { opacity:.3; transform:translateY(-1px); } }
 
-  /* ---- FIREFLY ---- lantern strongly modulates, sparks float */
-  .mascot-firefly .r-lantern-glow { animation: ff-glow 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-firefly .r-lantern-mid  { animation: ff-mid 1.8s ease-in-out infinite; }
-  .mascot-firefly .r-lantern-core { animation: ff-core 1.8s ease-in-out infinite; }
-  .mascot-firefly .r-antenna-tip  { animation: ff-antenna 1.8s ease-in-out infinite; }
-  .mascot-firefly .r-wing-l, .mascot-firefly .r-wing-r { animation: ff-wing 1.2s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-firefly .r-spark        { animation: ff-spark 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-firefly .s2  { animation-delay:.5s; }
-  .mascot-firefly .s3  { animation-delay:1s; }
-  @keyframes ff-glow    { 0%,100% { opacity:.25; transform:scale(.85); } 50% { opacity:.7; transform:scale(1.2); } }
-  @keyframes ff-mid     { 0%,100% { opacity:.7; } 50% { opacity:1; } }
-  @keyframes ff-core    { 0%,100% { opacity:.8; } 50% { opacity:1; } }
-  @keyframes ff-antenna { 0%,100% { opacity:.5; } 50% { opacity:1; } }
-  @keyframes ff-wing    { 0%,100% { opacity:.3; transform:scaleY(.6); } 50% { opacity:.55; transform:scaleY(1.2); } }
-  @keyframes ff-spark   { 0%,100% { opacity:.2; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-2px) scale(1.2); } }
+  /* ---- LUMA · FIREFLY (accessibility) ---- full 10-state machine
+     Parts: segmented body (head/thorax/abdomen) with wing veins, antennae,
+     lantern (glow/mid/core/rim), hidden rays (5 directions), hidden ash
+     particles, hidden warning bang. Naming: lm-<state>-<part>. */
+
+  /* ── shared transform origins ── */
+  .mascot-firefly .r-lantern-glow, .mascot-firefly .r-lantern-mid, .mascot-firefly .r-lantern-core,
+  .mascot-firefly .r-lantern-rim, .mascot-firefly .r-antenna-tip, .mascot-firefly .r-antenna,
+  .mascot-firefly .r-wing-l, .mascot-firefly .r-wing-l-vein, .mascot-firefly .r-wing-l-edge,
+  .mascot-firefly .r-wing-r, .mascot-firefly .r-wing-r-vein, .mascot-firefly .r-wing-r-edge,
+  .mascot-firefly .r-spark, .mascot-firefly .r-ray, .mascot-firefly .r-ash,
+  .mascot-firefly .r-bang, .mascot-firefly .r-eye, .mascot-firefly .r-eye-hi
+  { transform-box:fill-box; transform-origin:center; }
+  .mascot-firefly .r-wing-l, .mascot-firefly .r-wing-l-vein, .mascot-firefly .r-wing-l-edge { transform-origin:right center; }
+  .mascot-firefly .r-wing-r, .mascot-firefly .r-wing-r-vein, .mascot-firefly .r-wing-r-edge { transform-origin:left center; }
+
+  /* ── IDLE — lantern softly pulses, wings barely flutter, antennae idle ── */
+  .mascot-firefly .r-lantern-glow { animation: lm-glow-idle 2s ease-in-out infinite; }
+  .mascot-firefly .r-lantern-mid  { animation: lm-mid-idle  2s ease-in-out infinite; }
+  .mascot-firefly .r-lantern-core { animation: lm-core-idle 2s ease-in-out infinite; }
+  .mascot-firefly .r-antenna-tip  { animation: lm-antenna-idle 2.4s ease-in-out infinite; }
+  .mascot-firefly .r-wing-l, .mascot-firefly .r-wing-r,
+  .mascot-firefly .r-wing-l-edge, .mascot-firefly .r-wing-r-edge,
+  .mascot-firefly .r-wing-l-vein, .mascot-firefly .r-wing-r-vein
+  { animation: lm-wing-idle 1.4s ease-in-out infinite; }
+  .mascot-firefly .r-spark        { animation: lm-spark-idle 3s ease-in-out infinite; }
+  .mascot-firefly .s2 { animation-delay:.5s; }
+  .mascot-firefly .s3 { animation-delay:1s; }
+  @keyframes lm-glow-idle    { 0%,100% { opacity:.25; transform:scale(.85); } 50% { opacity:.7; transform:scale(1.2); } }
+  @keyframes lm-mid-idle     { 0%,100% { opacity:.7; } 50% { opacity:1; } }
+  @keyframes lm-core-idle    { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+  @keyframes lm-antenna-idle { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+  @keyframes lm-wing-idle    { 0%,100% { opacity:.4; transform:scaleY(.7); } 50% { opacity:.6; transform:scaleY(1.1); } }
+  @keyframes lm-spark-idle   { 0%,100% { opacity:.2; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-2px) scale(1.2); } }
+
+  /* ── LISTENING — antennae light up + lift, eye-hi appears, wings tilt ── */
+  .mascot-firefly.state-listening .r-antenna-tip { animation: lm-antenna-perk 1.2s ease-in-out infinite; }
+  .mascot-firefly.state-listening .r-antenna { animation: lm-antenna-tilt 1.2s ease-in-out infinite; transform-origin:bottom; }
+  .mascot-firefly.state-listening .r-eye-hi { opacity:.9; animation: lm-eye-blink 1.2s ease-in-out infinite; }
+  .mascot-firefly.state-listening .r-wing-l { transform:rotate(-6deg); }
+  .mascot-firefly.state-listening .r-wing-r { transform:rotate(6deg); }
+  @keyframes lm-antenna-perk { 0%,100% { opacity:.5; transform:scale(1); } 50% { opacity:1; transform:scale(1.4); } }
+  @keyframes lm-antenna-tilt { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(3deg); } }
+  @keyframes lm-eye-blink    { 0%,100% { opacity:.9; } 50% { opacity:.4; } }
+
+  /* ── THINKING — lantern strobes rhythmic, antennae tap ── */
+  .mascot-firefly.state-thinking .r-lantern-glow,
+  .mascot-firefly.state-thinking .r-lantern-mid,
+  .mascot-firefly.state-thinking .r-lantern-core { animation: lm-strobe 1s ease-in-out infinite; }
+  .mascot-firefly.state-thinking .r-antenna-tip { animation: lm-antenna-tap .6s steps(2) infinite; }
+  @keyframes lm-strobe       { 0%,40%,100% { opacity:.4; } 50% { opacity:1; } 60% { opacity:.4; } }
+  @keyframes lm-antenna-tap  { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.3; transform:scale(.7); } }
+
+  /* ── TYPING — fast morse-code strobe, wings vibrate, sparks dance ── */
+  .mascot-firefly.state-typing .r-lantern-core { animation: lm-strobe-fast .25s steps(2) infinite; }
+  .mascot-firefly.state-typing .r-lantern-mid  { animation: lm-strobe-fast .3s steps(2) infinite; }
+  .mascot-firefly.state-typing .r-lantern-glow { animation: lm-strobe-fast .4s steps(2) infinite; }
+  .mascot-firefly.state-typing .r-wing-l, .mascot-firefly.state-typing .r-wing-r,
+  .mascot-firefly.state-typing .r-wing-l-edge, .mascot-firefly.state-typing .r-wing-r-edge { animation: lm-wing-buzz .15s ease-in-out infinite; }
+  .mascot-firefly.state-typing .r-spark { animation: lm-spark-fast 1s ease-in-out infinite; }
+  @keyframes lm-strobe-fast { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+  @keyframes lm-wing-buzz   { 0%,100% { opacity:.3; transform:scaleY(.5); } 50% { opacity:.65; transform:scaleY(1.25); } }
+  @keyframes lm-spark-fast  { 0%,100% { opacity:.4; transform:translateY(0) scale(.8); } 50% { opacity:1; transform:translateY(-3px) scale(1.3); } }
+
+  /* ── WORKING — lantern STEADY brightest, wings flap fast, rays peek ── */
+  .mascot-firefly.state-working .r-lantern-glow { animation:none; opacity:.85; transform:scale(1.25); }
+  .mascot-firefly.state-working .r-lantern-mid  { animation:none; opacity:1; }
+  .mascot-firefly.state-working .r-lantern-core { animation:none; opacity:1; }
+  .mascot-firefly.state-working .r-wing-l, .mascot-firefly.state-working .r-wing-r,
+  .mascot-firefly.state-working .r-wing-l-edge, .mascot-firefly.state-working .r-wing-r-edge { animation: lm-wing-flap .25s ease-in-out infinite; }
+  .mascot-firefly.state-working .r-ray { opacity:.35; animation: lm-ray-pulse 1.4s ease-in-out infinite; }
+  .mascot-firefly.state-working .r-ray:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-firefly.state-working .r-ray:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-firefly.state-working .r-ray:nth-of-type(4) { animation-delay:.3s; }
+  .mascot-firefly.state-working .r-ray:nth-of-type(5) { animation-delay:.4s; }
+  @keyframes lm-wing-flap { 0%,100% { opacity:.35; transform:scaleY(.4); } 50% { opacity:.7; transform:scaleY(1.35); } }
+  @keyframes lm-ray-pulse { 0%,100% { opacity:.2; transform:scale(.7); } 50% { opacity:.7; transform:scale(1.1); } }
+
+  /* ── READING — lantern very dim, eye-hi tracks left-right, wings still ── */
+  .mascot-firefly.state-reading .r-lantern-glow { animation:none; opacity:.18; }
+  .mascot-firefly.state-reading .r-lantern-mid  { animation:none; opacity:.55; }
+  .mascot-firefly.state-reading .r-lantern-core { animation:none; opacity:.7; }
+  .mascot-firefly.state-reading .r-eye-hi       { opacity:1; animation: lm-eye-scan 2s ease-in-out infinite; }
+  .mascot-firefly.state-reading .r-wing-l, .mascot-firefly.state-reading .r-wing-r,
+  .mascot-firefly.state-reading .r-wing-l-edge, .mascot-firefly.state-reading .r-wing-r-edge { animation:none; opacity:.45; }
+  @keyframes lm-eye-scan { 0%,100% { transform:translateX(-.4px); } 50% { transform:translateX(.4px); } }
+
+  /* ── SUCCESS — lantern bursts WHITE, rays fan out, antennae flash ── */
+  .mascot-firefly.state-success .r-lantern-glow,
+  .mascot-firefly.state-success .r-lantern-mid,
+  .mascot-firefly.state-success .r-lantern-core { animation: lm-burst .65s ease-out 1; filter:drop-shadow(0 0 4px #fef9c3); }
+  .mascot-firefly.state-success .r-ray { animation: lm-ray-fan .7s ease-out 1 forwards; }
+  .mascot-firefly.state-success .r-ray:nth-of-type(2) { animation-delay:.05s; }
+  .mascot-firefly.state-success .r-ray:nth-of-type(3) { animation-delay:.1s; }
+  .mascot-firefly.state-success .r-ray:nth-of-type(4) { animation-delay:.15s; }
+  .mascot-firefly.state-success .r-ray:nth-of-type(5) { animation-delay:.2s; }
+  .mascot-firefly.state-success .r-antenna-tip { animation: lm-antenna-perk .5s ease-out 1; }
+  @keyframes lm-burst   { 0% { transform:scale(.7); opacity:.5; } 50% { transform:scale(1.5); opacity:1; } 100% { transform:scale(1); opacity:.9; } }
+  @keyframes lm-ray-fan { 0% { opacity:0; transform:scale(.3); } 60% { opacity:1; transform:scale(1.4); } 100% { opacity:.6; transform:scale(1); } }
+
+  /* ── WARNING — lantern AMBER, fast pulse, bang "!" appears ── */
+  .mascot-firefly.state-warning .r-lantern-glow { fill:#f59e0b !important; animation: lm-warn-pulse .45s ease-in-out infinite; }
+  .mascot-firefly.state-warning .r-lantern-mid  { fill:#fbbf24 !important; animation: lm-warn-pulse .45s ease-in-out infinite; }
+  .mascot-firefly.state-warning .r-lantern-core { fill:#fde68a !important; animation: lm-warn-pulse .45s ease-in-out infinite; }
+  .mascot-firefly.state-warning .r-bang { opacity:1; animation: lm-bang-flash .35s ease-in-out infinite; }
+  @keyframes lm-warn-pulse { 0%,100% { opacity:.5; transform:scale(.95); } 50% { opacity:1; transform:scale(1.15); } }
+  @keyframes lm-bang-flash { 0%,100% { opacity:1; transform:translateY(0); } 50% { opacity:.4; transform:translateY(-.5px); } }
+
+  /* ── ERROR — lantern RED, ash falls, antennae droop, body shake ── */
+  .mascot-firefly.state-error .r-lantern-glow { fill:#ef4444 !important; animation: lm-err-pulse .25s ease-in-out infinite; }
+  .mascot-firefly.state-error .r-lantern-mid  { fill:#dc2626 !important; }
+  .mascot-firefly.state-error .r-lantern-core { fill:#fca5a5 !important; }
+  .mascot-firefly.state-error .r-ash { animation: lm-ash-fall 1.2s ease-in infinite; }
+  .mascot-firefly.state-error .r-ash:nth-of-type(2) { animation-delay:.3s; }
+  .mascot-firefly.state-error .r-ash:nth-of-type(3) { animation-delay:.6s; }
+  .mascot-firefly.state-error .r-antenna-tip { fill:#ef4444 !important; opacity:.5; }
+  @keyframes lm-err-pulse { 0%,100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.3); } }
+  @keyframes lm-ash-fall  { 0% { opacity:0; transform:translateY(-2px); } 30% { opacity:1; } 100% { opacity:0; transform:translateY(3px); } }
+
+  /* ── CELEBRATING — lantern color-cycles, rays fountain, wings flap ── */
+  .mascot-firefly.state-celebrating .r-lantern-glow { animation: lm-celeb-cycle 1.2s steps(4) infinite; }
+  .mascot-firefly.state-celebrating .r-lantern-mid  { animation: lm-celeb-mid  1.2s steps(4) infinite; }
+  .mascot-firefly.state-celebrating .r-lantern-core { animation: lm-celeb-core 1.2s steps(4) infinite; }
+  .mascot-firefly.state-celebrating .r-ray { animation: lm-ray-fountain .7s ease-in-out infinite; }
+  .mascot-firefly.state-celebrating .r-ray:nth-of-type(2) { animation-delay:.12s; }
+  .mascot-firefly.state-celebrating .r-ray:nth-of-type(3) { animation-delay:.24s; }
+  .mascot-firefly.state-celebrating .r-ray:nth-of-type(4) { animation-delay:.36s; }
+  .mascot-firefly.state-celebrating .r-ray:nth-of-type(5) { animation-delay:.48s; }
+  .mascot-firefly.state-celebrating .r-wing-l, .mascot-firefly.state-celebrating .r-wing-r,
+  .mascot-firefly.state-celebrating .r-wing-l-edge, .mascot-firefly.state-celebrating .r-wing-r-edge { animation: lm-wing-flap .2s ease-in-out infinite; }
+  @keyframes lm-celeb-cycle    { 0% { fill:#fde047; } 25% { fill:#22c55e; } 50% { fill:#60a5fa; } 75% { fill:#f472b6; } 100% { fill:#fde047; } }
+  @keyframes lm-celeb-mid      { 0% { fill:#fef08a; } 25% { fill:#bbf7d0; } 50% { fill:#bfdbfe; } 75% { fill:#fbcfe8; } 100% { fill:#fef08a; } }
+  @keyframes lm-celeb-core     { 0% { fill:#fff; } 100% { fill:#fff; } }
+  @keyframes lm-ray-fountain   { 0% { opacity:0; transform:translateY(0) scale(.6); } 50% { opacity:1; transform:translateY(-2px) scale(1.3); } 100% { opacity:0; transform:translateY(-4px) scale(.5); } }
 
   /* ---- DRAGON ---- wings slow flap, breath puffs, stars twinkle */
   .mascot-dragon .r-wing, .mascot-dragon .r-wing-membrane { animation: d-wing 2.4s ease-in-out infinite; transform-origin:16px 12px; transform-box:fill-box; }
