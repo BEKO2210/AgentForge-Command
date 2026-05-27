@@ -2436,20 +2436,159 @@ kbd {
   @keyframes lm-celeb-core     { 0% { fill:#fff; } 100% { fill:#fff; } }
   @keyframes lm-ray-fountain   { 0% { opacity:0; transform:translateY(0) scale(.6); } 50% { opacity:1; transform:translateY(-2px) scale(1.3); } 100% { opacity:0; transform:translateY(-4px) scale(.5); } }
 
-  /* ---- DRAGON ---- wings slow flap, breath puffs, stars twinkle */
-  .mascot-dragon .r-wing, .mascot-dragon .r-wing-membrane { animation: d-wing 2.4s ease-in-out infinite; transform-origin:16px 12px; transform-box:fill-box; }
-  .mascot-dragon .r-breath { animation: d-breath 2.6s ease-in-out infinite; }
-  .mascot-dragon .r-fire   { animation: d-breath 2.6s ease-in-out infinite; }
-  .mascot-dragon .r-tail   { animation: d-tail 4s ease-in-out infinite; transform-origin:24px 20px; transform-box:fill-box; }
-  .mascot-dragon .r-star   { animation: d-star 2s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
-  .mascot-dragon .r-star:nth-of-type(2) { animation-delay:.4s; }
-  .mascot-dragon .r-star:nth-of-type(3) { animation-delay:.8s; }
-  .mascot-dragon .r-eye    { animation: d-eye 5s steps(2) infinite; transform-box:fill-box; transform-origin:center; }
-  @keyframes d-wing   { 0%,100% { transform:rotate(0) scaleY(1); } 50% { transform:rotate(-8deg) scaleY(.85); } }
-  @keyframes d-breath { 0%,80%,100% { opacity:.2; transform:translateX(0); } 30%,55% { opacity:.9; transform:translateX(-1px); } }
-  @keyframes d-tail   { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(4deg); } }
-  @keyframes d-star   { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.3); } }
-  @keyframes d-eye    { 0%,93%,100% { transform:scaleY(1); } 95%,98% { transform:scaleY(.1); } }
+  /* ---- NOVA · DRAGON (product story) ---- full 10-state machine
+     Parts: coiled body w/ belly scales, head + horns + nostril + gold eye,
+     three legs, three gold back spikes, wing (folded) + 3 membranes + pointed
+     wing-tip, curled tail. Hidden: mouth-fire layers, sparkles. Evo: stars,
+     fire (lvl 4), orbit halo (lvl 5). Naming: nv-<state>-<part>. */
+
+  /* ── shared transform origins ── */
+  .mascot-dragon .r-wing, .mascot-dragon .r-wing-hi, .mascot-dragon .r-wing-outline,
+  .mascot-dragon .r-wing-membrane, .mascot-dragon .r-wing-tip, .mascot-dragon .r-wing-tip-outline,
+  .mascot-dragon .r-tail, .mascot-dragon .r-tail-outline, .mascot-dragon .r-tail-hi,
+  .mascot-dragon .r-breath, .mascot-dragon .r-fire, .mascot-dragon .r-mouth-fire,
+  .mascot-dragon .r-star, .mascot-dragon .r-sparkle, .mascot-dragon .r-orbit,
+  .mascot-dragon .r-eye, .mascot-dragon .r-eye-w, .mascot-dragon .r-spike,
+  .mascot-dragon .r-nostril, .mascot-dragon .r-horn, .mascot-dragon .r-belly-scale
+  { transform-box:fill-box; transform-origin:center; }
+  .mascot-dragon .r-wing, .mascot-dragon .r-wing-hi, .mascot-dragon .r-wing-outline,
+  .mascot-dragon .r-wing-membrane, .mascot-dragon .r-wing-tip, .mascot-dragon .r-wing-tip-outline
+  { transform-origin:14px 13px; }
+  .mascot-dragon .r-tail, .mascot-dragon .r-tail-outline, .mascot-dragon .r-tail-hi { transform-origin:22px 20px; }
+  .mascot-dragon .r-breath, .mascot-dragon .r-mouth-fire, .mascot-dragon .r-fire { transform-origin:right center; }
+
+  /* ── IDLE — slow majestic wing rise/fall, smoke puffs, rare eye blink ── */
+  .mascot-dragon .r-wing, .mascot-dragon .r-wing-hi, .mascot-dragon .r-wing-outline,
+  .mascot-dragon .r-wing-membrane, .mascot-dragon .r-wing-tip, .mascot-dragon .r-wing-tip-outline
+  { animation: nv-wing-idle 2.8s ease-in-out infinite; }
+  .mascot-dragon .r-breath { animation: nv-breath-idle 3s ease-in-out infinite; }
+  .mascot-dragon .r-fire   { animation: nv-breath-idle 3s ease-in-out infinite; }
+  .mascot-dragon .r-tail, .mascot-dragon .r-tail-outline, .mascot-dragon .r-tail-hi
+  { animation: nv-tail-idle 4.5s ease-in-out infinite; }
+  .mascot-dragon .r-star   { animation: nv-star-twinkle 2.4s ease-in-out infinite; }
+  .mascot-dragon .r-star:nth-of-type(2) { animation-delay:.5s; }
+  .mascot-dragon .r-star:nth-of-type(3) { animation-delay:1s; }
+  .mascot-dragon .r-eye    { animation: nv-eye-blink 5.5s steps(2) infinite; }
+  @keyframes nv-wing-idle    { 0%,100% { transform:rotate(0) scaleY(1); } 50% { transform:rotate(-8deg) scaleY(.9); } }
+  @keyframes nv-breath-idle  { 0%,80%,100% { opacity:.2; transform:translateX(0) scaleX(1); } 30%,55% { opacity:.9; transform:translateX(-1px) scaleX(1.2); } }
+  @keyframes nv-tail-idle    { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(4deg); } }
+  @keyframes nv-star-twinkle { 0%,100% { opacity:.4; transform:scale(.8); } 50% { opacity:1; transform:scale(1.4); } }
+  @keyframes nv-eye-blink    { 0%,93%,100% { transform:scaleY(1); } 95%,98% { transform:scaleY(.1); } }
+
+  /* ── LISTENING — head lifts a touch, horns shimmer, eye widens ── */
+  .mascot-dragon.state-listening .r-horn { animation: nv-horn-shine 1.4s ease-in-out infinite; }
+  .mascot-dragon.state-listening .r-eye-w { animation: nv-eye-wide 1.4s ease-in-out infinite; }
+  .mascot-dragon.state-listening .r-nostril { animation: nv-nostril-flare 1.4s ease-in-out infinite; }
+  .mascot-dragon.state-listening .r-breath { opacity:.5; }
+  @keyframes nv-horn-shine    { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.5); } }
+  @keyframes nv-eye-wide      { 0%,100% { transform:scale(1); } 50% { transform:scale(1.3); } }
+  @keyframes nv-nostril-flare { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.4); opacity:.6; } }
+
+  /* ── THINKING — wing slow flap, breath into thought puffs (steps), spikes pulse ── */
+  .mascot-dragon.state-thinking .r-wing, .mascot-dragon.state-thinking .r-wing-tip,
+  .mascot-dragon.state-thinking .r-wing-hi, .mascot-dragon.state-thinking .r-wing-membrane,
+  .mascot-dragon.state-thinking .r-wing-outline, .mascot-dragon.state-thinking .r-wing-tip-outline
+  { animation: nv-wing-idle 1.8s ease-in-out infinite; }
+  .mascot-dragon.state-thinking .r-breath { animation: nv-think-puff 1.4s steps(3) infinite; }
+  .mascot-dragon.state-thinking .r-spike  { animation: nv-spike-pulse 1.6s ease-in-out infinite; }
+  .mascot-dragon.state-thinking .r-spike:nth-of-type(2) { animation-delay:.2s; }
+  .mascot-dragon.state-thinking .r-spike:nth-of-type(3) { animation-delay:.4s; }
+  @keyframes nv-think-puff   { 0% { opacity:0; transform:translateX(0); } 33% { opacity:.9; transform:translateX(-1px); } 66% { opacity:.5; transform:translateX(-2px); } 100% { opacity:0; transform:translateX(-3px); } }
+  @keyframes nv-spike-pulse  { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.4); } }
+
+  /* ── TYPING — wing flutters, breath as fast pulses, tail wags rhythmic ── */
+  .mascot-dragon.state-typing .r-wing, .mascot-dragon.state-typing .r-wing-tip,
+  .mascot-dragon.state-typing .r-wing-hi, .mascot-dragon.state-typing .r-wing-membrane,
+  .mascot-dragon.state-typing .r-wing-outline, .mascot-dragon.state-typing .r-wing-tip-outline
+  { animation: nv-wing-flutter .5s ease-in-out infinite; }
+  .mascot-dragon.state-typing .r-breath { animation: nv-type-pulse .35s steps(2) infinite; }
+  .mascot-dragon.state-typing .r-tail, .mascot-dragon.state-typing .r-tail-outline,
+  .mascot-dragon.state-typing .r-tail-hi { animation: nv-tail-wag 1s ease-in-out infinite; }
+  .mascot-dragon.state-typing .r-nostril { animation: nv-nostril-flare .5s ease-in-out infinite; }
+  @keyframes nv-wing-flutter { 0%,100% { transform:rotate(-2deg) scaleY(.95); } 50% { transform:rotate(-10deg) scaleY(1.05); } }
+  @keyframes nv-type-pulse   { 0%,100% { opacity:1; transform:translateX(0); } 50% { opacity:.3; transform:translateX(-1px); } }
+  @keyframes nv-tail-wag     { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(6deg); } }
+
+  /* ── WORKING — mouth fire lights, wings flap big, body bobs ── */
+  .mascot-dragon.state-working .r-mouth-fire { animation: nv-fire-flicker .35s steps(3) infinite; opacity:1; }
+  .mascot-dragon.state-working .r-mouth-fire:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-dragon.state-working .r-mouth-fire:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-dragon.state-working .r-wing, .mascot-dragon.state-working .r-wing-tip,
+  .mascot-dragon.state-working .r-wing-hi, .mascot-dragon.state-working .r-wing-membrane,
+  .mascot-dragon.state-working .r-wing-outline, .mascot-dragon.state-working .r-wing-tip-outline
+  { animation: nv-wing-flap .55s ease-in-out infinite; }
+  .mascot-dragon.state-working .r-breath { animation: nv-breath-idle 1.2s ease-in-out infinite; opacity:1; }
+  .mascot-dragon.state-working .r-fire   { animation: nv-fire-flicker .35s steps(3) infinite; opacity:1; }
+  .mascot-dragon.state-working .r-tail, .mascot-dragon.state-working .r-tail-outline,
+  .mascot-dragon.state-working .r-tail-hi { animation: nv-tail-wag 1.4s ease-in-out infinite; }
+  @keyframes nv-wing-flap    { 0%,100% { transform:rotate(0) scaleY(1); } 50% { transform:rotate(-16deg) scaleY(.75); } }
+  @keyframes nv-fire-flicker { 0%,100% { opacity:.9; transform:scaleX(1); } 33% { opacity:1; transform:scaleX(1.3); } 66% { opacity:.7; transform:scaleX(.85); } }
+
+  /* ── READING — quiet: wing folded, breath dim, eye in long focus ── */
+  .mascot-dragon.state-reading .r-wing, .mascot-dragon.state-reading .r-wing-tip,
+  .mascot-dragon.state-reading .r-wing-hi, .mascot-dragon.state-reading .r-wing-membrane,
+  .mascot-dragon.state-reading .r-wing-outline, .mascot-dragon.state-reading .r-wing-tip-outline
+  { animation:none; }
+  .mascot-dragon.state-reading .r-breath { opacity:.3; animation:none; }
+  .mascot-dragon.state-reading .r-eye { animation: nv-read-scan 2.4s ease-in-out infinite; }
+  .mascot-dragon.state-reading .r-tail, .mascot-dragon.state-reading .r-tail-outline,
+  .mascot-dragon.state-reading .r-tail-hi { animation:none; transform:rotate(-1deg); }
+  @keyframes nv-read-scan { 0%,100% { transform:translateX(-.4px); } 50% { transform:translateX(.5px); } }
+
+  /* ── SUCCESS — fire breath BURSTS, sparkles fan out, body lifts ── */
+  .mascot-dragon.state-success .r-mouth-fire { opacity:1; animation: nv-fire-burst .7s ease-out 1 forwards; filter:drop-shadow(0 0 4px #f97316); }
+  .mascot-dragon.state-success .r-mouth-fire:nth-of-type(2) { animation-delay:.08s; }
+  .mascot-dragon.state-success .r-mouth-fire:nth-of-type(3) { animation-delay:.16s; }
+  .mascot-dragon.state-success .r-fire { opacity:1; animation: nv-fire-burst .7s ease-out 1 forwards; }
+  .mascot-dragon.state-success .r-sparkle { animation: nv-sparkle-pop .8s ease-out 1 forwards; }
+  .mascot-dragon.state-success .r-sparkle:nth-of-type(2) { animation-delay:.1s; }
+  .mascot-dragon.state-success .r-sparkle:nth-of-type(3) { animation-delay:.2s; }
+  .mascot-dragon.state-success .r-sparkle:nth-of-type(4) { animation-delay:.3s; }
+  .mascot-dragon.state-success .r-eye-w { filter:brightness(1.5); }
+  @keyframes nv-fire-burst   { 0% { opacity:0; transform:scaleX(.4); } 50% { opacity:1; transform:scaleX(2); } 100% { opacity:.7; transform:scaleX(1.2); } }
+  @keyframes nv-sparkle-pop  { 0% { opacity:0; transform:scale(.3); } 60% { opacity:1; transform:scale(1.6); } 100% { opacity:.8; transform:scale(1); } }
+
+  /* ── WARNING — breath turns amber, wing droops, eye narrows ── */
+  .mascot-dragon.state-warning .r-breath { fill:#f59e0b !important; opacity:1; animation: nv-warn-puff .5s ease-in-out infinite; }
+  .mascot-dragon.state-warning .r-fire   { fill:#f59e0b !important; opacity:1; animation: nv-warn-puff .5s ease-in-out infinite; }
+  .mascot-dragon.state-warning .r-wing, .mascot-dragon.state-warning .r-wing-tip,
+  .mascot-dragon.state-warning .r-wing-hi, .mascot-dragon.state-warning .r-wing-membrane,
+  .mascot-dragon.state-warning .r-wing-outline, .mascot-dragon.state-warning .r-wing-tip-outline
+  { animation:none; transform:rotate(4deg); }
+  .mascot-dragon.state-warning .r-eye { transform:scaleY(.5); }
+  .mascot-dragon.state-warning .r-spike { animation: nv-warn-spike .4s ease-in-out infinite; }
+  @keyframes nv-warn-puff  { 0%,100% { opacity:.5; transform:translateX(0); } 50% { opacity:1; transform:translateX(-1px); } }
+  @keyframes nv-warn-spike { 0%,100% { fill:#fcd34d; } 50% { fill:#f59e0b; } }
+
+  /* ── ERROR — RED fire breath, wing droops, eye red, body shake (shared) ── */
+  .mascot-dragon.state-error .r-mouth-fire { fill:#ef4444 !important; opacity:1; animation: nv-err-flame .25s steps(2) infinite; }
+  .mascot-dragon.state-error .r-fire       { fill:#ef4444 !important; opacity:1; animation: nv-err-flame .25s steps(2) infinite; }
+  .mascot-dragon.state-error .r-breath     { fill:#ef4444 !important; opacity:1; animation: nv-err-flame .25s steps(2) infinite; }
+  .mascot-dragon.state-error .r-eye-w      { fill:#ef4444 !important; }
+  .mascot-dragon.state-error .r-wing, .mascot-dragon.state-error .r-wing-tip,
+  .mascot-dragon.state-error .r-wing-hi, .mascot-dragon.state-error .r-wing-membrane,
+  .mascot-dragon.state-error .r-wing-outline, .mascot-dragon.state-error .r-wing-tip-outline
+  { animation:none; transform:rotate(6deg) scaleY(.85); }
+  .mascot-dragon.state-error .r-spike { fill:#ef4444 !important; }
+  @keyframes nv-err-flame { 0%,100% { opacity:1; transform:scaleX(1.2); } 50% { opacity:.5; transform:scaleX(.7); } }
+
+  /* ── CELEBRATING — wings flap, fire BREATH, sparkles + stars + tail wags ── */
+  .mascot-dragon.state-celebrating .r-wing, .mascot-dragon.state-celebrating .r-wing-tip,
+  .mascot-dragon.state-celebrating .r-wing-hi, .mascot-dragon.state-celebrating .r-wing-membrane,
+  .mascot-dragon.state-celebrating .r-wing-outline, .mascot-dragon.state-celebrating .r-wing-tip-outline
+  { animation: nv-wing-flap .3s ease-in-out infinite; }
+  .mascot-dragon.state-celebrating .r-mouth-fire { opacity:1; animation: nv-fire-flicker .25s steps(3) infinite; filter:drop-shadow(0 0 3px #f97316); }
+  .mascot-dragon.state-celebrating .r-fire { opacity:1; animation: nv-fire-flicker .25s steps(3) infinite; }
+  .mascot-dragon.state-celebrating .r-tail, .mascot-dragon.state-celebrating .r-tail-outline,
+  .mascot-dragon.state-celebrating .r-tail-hi { animation: nv-tail-wag .35s ease-in-out infinite; }
+  .mascot-dragon.state-celebrating .r-sparkle { opacity:1; animation: nv-sparkle-cycle .7s ease-in-out infinite; }
+  .mascot-dragon.state-celebrating .r-sparkle:nth-of-type(2) { animation-delay:.15s; }
+  .mascot-dragon.state-celebrating .r-sparkle:nth-of-type(3) { animation-delay:.3s; }
+  .mascot-dragon.state-celebrating .r-sparkle:nth-of-type(4) { animation-delay:.45s; }
+  .mascot-dragon.state-celebrating .r-star { animation: nv-celeb-star .55s ease-in-out infinite; }
+  .mascot-dragon.state-celebrating .r-star:nth-of-type(2) { animation-delay:.2s; }
+  @keyframes nv-sparkle-cycle { 0% { opacity:0; transform:scale(.4); } 30% { opacity:1; transform:scale(1.6); } 70% { opacity:.8; transform:scale(1); } 100% { opacity:0; transform:scale(.4); } }
+  @keyframes nv-celeb-star    { 0% { opacity:.6; transform:scale(.8) rotate(0); fill:#fcd34d; } 50% { opacity:1; transform:scale(1.6) rotate(45deg); fill:#f472b6; } 100% { opacity:.6; transform:scale(.8) rotate(0); fill:#fcd34d; } }
 
   /* ---- Shared state overrides ---- */
   .mascot.state-working   .mascot-body { animation: m-work .8s ease-in-out infinite alternate; }

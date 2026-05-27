@@ -1012,7 +1012,7 @@ const SPRITES = {
       { c: "leg-hi", x: 9,  y: 22, w: 1, h: 1, f: "#7c3aed" },
       { c: "leg-hi", x: 14, y: 22, w: 1, h: 1, f: "#7c3aed" },
       { c: "leg-hi", x: 19, y: 22, w: 1, h: 1, f: "#7c3aed" },
-      // wing (folded back, with membranes)
+      // wing (folded back, with membranes) + pointed bat-like tip
       { c: "wing-outline", x: 11, y: 7, w: 10, h: 1, f: "#3b0764" },
       { c: "wing-outline", x: 11, y: 13, w: 10, h: 1, f: "#3b0764" },
       { c: "wing", x: 12, y: 8, w: 8, h: 5, f: "#5b21b6" },
@@ -1021,6 +1021,11 @@ const SPRITES = {
       { c: "wing-membrane", x: 13, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 16, y: 11, w: 1, h: 2, f: "#a78bfa" },
       { c: "wing-membrane", x: 19, y: 11, w: 1, h: 2, f: "#a78bfa" },
+      // wing tip — extra triangle of plumage poking up over the shoulder
+      { c: "wing-tip", x: 20, y: 9, w: 2, h: 2, f: "#5b21b6" },
+      { c: "wing-tip-outline", x: 20, y: 8, w: 2, h: 1, f: "#3b0764" },
+      { c: "wing-tip-outline", x: 22, y: 9, w: 1, h: 2, f: "#3b0764" },
+      { c: "wing-tip-outline", x: 20, y: 11, w: 2, h: 1, f: "#3b0764" },
       // back spikes (gold)
       { c: "spike", x: 10, y: 11, w: 1, h: 3, f: "#fcd34d" },
       { c: "spike", x: 10, y: 11, w: 1, h: 1, f: "#fde68a" },
@@ -1042,9 +1047,24 @@ const SPRITES = {
       // eye (gold)
       { c: "eye-w", x: 3, y: 15, w: 2, h: 2, f: "#fcd34d" },
       { c: "eye",   x: 3, y: 15, w: 1, h: 1, f: "#000" },
+      // nostril (a single dark snout pixel for character)
+      { c: "nostril", x: 2, y: 14, w: 1, h: 1, f: "#3b0764" },
+      // belly scales (subtle horizontal striping for reptile texture)
+      { c: "belly-scale", x: 10, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
+      { c: "belly-scale", x: 14, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
+      { c: "belly-scale", x: 18, y: 19, w: 2, h: 1, f: "#7c3aed", o: 0.6 },
       // smoke breath
       { c: "breath", x: 0, y: 16, w: 2, h: 1, f: "currentColor", o: 0.6 },
       { c: "breath", x: 0, y: 15, w: 1, h: 1, f: "currentColor", o: 0.4 },
+      // ── MOUTH FIRE LAYERS (hidden — flare up in working / success / celebrating) ──
+      { c: "mouth-fire", x: 0, y: 16, w: 2, h: 1, f: "#f97316", o: 0 },
+      { c: "mouth-fire", x: 0, y: 15, w: 1, h: 2, f: "#fb923c", o: 0 },
+      { c: "mouth-fire", x: 0, y: 17, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      // ── SPARKLES (hidden — appear in success / celebrating) ──
+      { c: "sparkle", x: 24, y: 3, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 30, y: 5, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 28, y: 11, w: 1, h: 1, f: "#fff", o: 0 },
+      { c: "sparkle", x: 1,  y: 7, w: 1, h: 1, f: "#fff", o: 0 },
     ],
     evo: [
       [ { c: "star", x: 26, y: 4, w: 2, h: 2, f: "#fcd34d" } ],
