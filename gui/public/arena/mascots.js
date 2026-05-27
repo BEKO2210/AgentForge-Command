@@ -845,24 +845,44 @@ const SPRITES = {
       { c: "body", x: 8, y: 12, w: 14, h: 13, f: "#0a0a0a" },
       // subtle highlight (very dark slate)
       { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#1f2937" },
+      // ── TAIL — feathered tail tuft sticking out at the back-bottom-left ──
+      { c: "tail-outline", x: 3,  y: 22, w: 1, h: 3, f: "#000" },
+      { c: "tail-outline", x: 4,  y: 21, w: 4, h: 1, f: "#000" },
+      { c: "tail-outline", x: 4,  y: 25, w: 4, h: 1, f: "#000" },
+      { c: "tail", x: 4, y: 22, w: 4, h: 3, f: "#0a0a0a" },
+      { c: "tail-hi", x: 4, y: 22, w: 2, h: 1, f: "#1f2937" },
       // wing
       { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#000" },
+      // ── WING FEATHER TEXTURE — horizontal slate bands ──
+      { c: "wing-feather", x: 10, y: 16, w: 5, h: 1, f: "#1f2937" },
+      { c: "wing-feather", x: 10, y: 19, w: 5, h: 1, f: "#1f2937" },
+      // ── WING PRIMARY-FEATHER TIPS — three pointed flight feathers ──
+      { c: "wing-tip", x: 10, y: 22, w: 1, h: 2, f: "#1f2937" },
+      { c: "wing-tip", x: 12, y: 22, w: 1, h: 2, f: "#1f2937" },
+      { c: "wing-tip", x: 14, y: 22, w: 1, h: 2, f: "#1f2937" },
       // head
       { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#000" },
       { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#000" },
       { c: "head-outline", x: 16, y: 7, w: 1, h: 7, f: "#000" },
       { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#000" },
       { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0a0a0a" },
+      // ── BROW RIDGE — menacing scowl above the eye ──
+      { c: "brow", x: 20, y: 8, w: 5, h: 1, f: "#1f2937" },
       // sharp beak (dark red, drips slightly)
       { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#450a0a" },
       { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#450a0a" },
       { c: "beak", x: 25, y: 10, w: 6, h: 1, f: "#7f1d1d" },
       { c: "beak", x: 25, y: 11, w: 5, h: 1, f: "#7f1d1d" },
       { c: "beak", x: 25, y: 12, w: 4, h: 1, f: "#7f1d1d" },
+      // ── BEAK HIGHLIGHT — sharp edge glint along the top ──
+      { c: "beak-hi", x: 26, y: 10, w: 3, h: 1, f: "#9f1239" },
       // ERROR-RED eye with glow halo
       { c: "eye-glow", x: 21, y: 9, w: 4, h: 4, f: "#ef4444", o: 0.3 },
       { c: "eye-w", x: 22, y: 10, w: 2, h: 2, f: "#ef4444" },
       { c: "eye", x: 22, y: 10, w: 1, h: 1, f: "#fca5a5" },
+      // ── BREATH PUFF (hidden — appears in error / celebrating) ──
+      { c: "breath", x: 30, y: 11, w: 2, h: 1, f: "#ef4444", o: 0 },
+      { c: "breath", x: 30, y: 13, w: 2, h: 1, f: "#ef4444", o: 0 },
       // legs
       { c: "leg", x: 12, y: 25, w: 2, h: 3, f: "#7f1d1d" },
       { c: "leg", x: 18, y: 25, w: 2, h: 3, f: "#7f1d1d" },
