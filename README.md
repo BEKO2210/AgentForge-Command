@@ -36,10 +36,35 @@ Claude stream.
 Local-first, file-coordinated and dependency-light. The optional Rust
 accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 
+## The cockpit
+
+<p align="center">
+  <img src="docs/screenshots/01-mission-control.png" alt="AgentForge Mission Control · the default desktop view" width="100%"/>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/04-sentinel-drawer.png" alt="Sentinel specialist drawer" width="100%"/></td>
+    <td width="50%"><img src="docs/screenshots/05-ledger-drawer.png" alt="Ledger drawer with spend forecast" width="100%"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Sentinel specialist drawer</em></td>
+    <td align="center"><em>Ledger drawer · spend + forecast</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/06-spawn-builder.png" alt="Spawn-Builder modal" width="100%"/></td>
+    <td width="50%"><img src="docs/screenshots/03-mobile.png" alt="Mobile layout" width="100%"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Spawn-Builder modal · Alt+N</em></td>
+    <td align="center"><em>Mobile · stacked layout</em></td>
+  </tr>
+</table>
+
 ## The swarm
 
 <p align="center">
-  <img src="docs/mascots/_gallery.svg" alt="Gallery of all 12 AgentForge mascots" width="100%"/>
+  <img src="docs/mascots/_gallery.svg" alt="Gallery of all 12 AgentForge pixel-art mascots" width="100%"/>
 </p>
 
 | Agent | Mascot | Domain |

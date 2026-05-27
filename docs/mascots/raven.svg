@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"
+     shape-rendering="crispEdges"
      role="img" aria-label="RAVEN · Debug Raven mascot">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -15,36 +16,12 @@
   <rect width="200" height="200" rx="22" fill="url(#bg)"/>
   <rect x="6" y="6" width="188" height="188" rx="18" fill="none" stroke="#ff6b7d" stroke-opacity=".35"/>
   <circle cx="100" cy="100" r="86" fill="url(#halo)"/>
-  <g transform="translate(50,50) scale(1.0)" style="color:#ff6b7d">
+  <!-- centred 32-unit canvas, scaled up ×5 to fill the 200-unit frame -->
+  <g transform="translate(20,20) scale(5)" style="color:#ff6b7d">
     
-      <defs>
-        <radialGradient id="halo-darkRaven-5" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stop-color="currentColor" stop-opacity="0.27499999999999997"/>
-          <stop offset="60%" stop-color="currentColor" stop-opacity="0.02"/>
-          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="glow-darkRaven-5" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="2.5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle class="mascot-halo" cx="50" cy="52" r="46" fill="url(#halo-darkRaven-5)"/>
-      <g class="mascot-body" filter="url(#glow-darkRaven-5)">
-    <g class="m-drv">
-      <ellipse class="m-drv-body" cx="50" cy="60" rx="16" ry="11" fill="none" stroke="currentColor" stroke-width="2.2"/>
-      <path    class="m-drv-wing" d="M30 60q6 -12 22 -10q -8 10 -16 14z" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle  class="m-drv-head" cx="66" cy="48" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path    class="m-drv-beak" d="M74 48l10 -2l-10 5z" fill="currentColor"/>
-      <circle  class="m-drv-eye" cx="67" cy="46" r="1.5" fill="currentColor"/>
-      <circle  class="m-drv-glow" cx="67" cy="46" r="3" fill="currentColor" opacity=".15"/>
-      <path    class="m-drv-leg" d="M44 70v8M54 70v8" stroke="currentColor" stroke-width="1.6"/>
-      <path class="m-glitch g1" d="M30 50h6M40 52h4" stroke="currentColor" stroke-width="1" opacity=".7"/>
-      <path class="m-glitch g2" d="M20 64h10M58 70h6" stroke="currentColor" stroke-width="1" opacity=".7"/>
-      <path class="m-trace" d="M14 86l20 -4l16 6l20 -10" stroke="currentColor" stroke-width="0.7" fill="none" opacity=".55" stroke-dasharray="3 2"/>
-      <text x="50" y="92" text-anchor="middle" font-size="5" font-family="monospace" fill="currentColor" opacity=".85" class="m-stack">stack#0xE3</text>
-    </g>
-  </g>
-      <circle class="evo-spark" cx="21" cy="13" r="0.7" style="animation-duration:1.6s;animation-delay:0s"/><circle class="evo-spark" cx="34" cy="16" r="0.95" style="animation-duration:2.0500000000000003s;animation-delay:0.21s"/><circle class="evo-spark" cx="47" cy="19" r="1.2" style="animation-duration:2.5s;animation-delay:0.42s"/><circle class="evo-spark" cx="60" cy="22" r="0.7" style="animation-duration:2.95s;animation-delay:0.63s"/><circle class="evo-spark" cx="73" cy="9" r="0.95" style="animation-duration:1.6s;animation-delay:0.84s"/><circle class="evo-spark" cx="14" cy="12" r="1.2" style="animation-duration:2.0500000000000003s;animation-delay:1.05s"/><circle class="evo-spark" cx="27" cy="15" r="0.7" style="animation-duration:2.5s;animation-delay:1.26s"/><circle class="evo-spark" cx="40" cy="18" r="0.95" style="animation-duration:2.95s;animation-delay:1.47s"/>
+      <rect class="halo" x="2" y="2" width="28" height="28" fill="currentColor" opacity="0.165" rx="4"/>
+      <g class="mascot-body"><rect x="8" y="12" width="14" height="13" fill="#000" class="r-body"/><rect x="9" y="11" width="12" height="1" fill="#000" class="r-body"/><rect x="11" y="18" width="8" height="6" fill="#171717" class="r-belly"/><rect x="9" y="13" width="6" height="9" fill="#0a0a0a" class="r-wing"/><rect x="17" y="7" width="8" height="7" fill="#000" class="r-head"/><rect x="25" y="10" width="5" height="1" fill="#7f1d1d" class="r-beak"/><rect x="25" y="11" width="4" height="1" fill="#7f1d1d" class="r-beak"/><rect x="25" y="12" width="3" height="1" fill="#7f1d1d" class="r-beak"/><rect x="22" y="10" width="2" height="2" fill="#ef4444" class="r-eye"/><rect x="21" y="9" width="4" height="4" fill="#ef4444" class="r-eye-glow" opacity="0.25"/><rect x="12" y="25" width="2" height="3" fill="#7f1d1d" class="r-leg"/><rect x="18" y="25" width="2" height="3" fill="#7f1d1d" class="r-leg"/></g>
+      <g class="mascot-evo"><rect x="5" y="16" width="4" height="1" fill="#ef4444" class="r-glitch" opacity="0.7"/><rect x="24" y="22" width="5" height="1" fill="#ef4444" class="r-glitch" opacity="0.7"/><rect x="1" y="9" width="6" height="1" fill="#ef4444" class="r-glitch" opacity="0.5"/><rect x="22" y="16" width="8" height="1" fill="#ef4444" class="r-glitch" opacity="0.5"/><rect x="4" y="30" width="2" height="1" fill="currentColor" class="r-trace"/><rect x="8" y="30" width="2" height="1" fill="currentColor" class="r-trace"/><rect x="12" y="30" width="2" height="1" fill="currentColor" class="r-trace"/><rect x="16" y="30" width="2" height="1" fill="currentColor" class="r-trace"/><rect x="0" y="0" width="8" height="5" fill="#7f1d1d" class="r-stack" opacity="0.5"/><rect x="1" y="2" width="6" height="1" fill="currentColor" class="r-stack-text"/></g>
     
   </g>
   <text x="100" y="186" text-anchor="middle"

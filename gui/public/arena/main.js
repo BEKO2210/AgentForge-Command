@@ -74,7 +74,9 @@ if (persisted.spend) store.set("spend", persisted.spend);
 
 const engine = createSpawnEngine({ store, persisted });
 engine.bootstrap();
-openArenaSocket();
+// arenaSocket + openArenaSocket are declared further down; defer the WS open
+// to a microtask so the lexical binding has been initialised by then.
+queueMicrotask(() => openArenaSocket());
 
 /* Broadcast mode — toggles between "atlas" (talk to Atlas only — he dispatches
    the rest) and "swarm" (broadcast to every running specialist). */

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"
+     shape-rendering="crispEdges"
      role="img" aria-label="VEGA · Neon Hummingbird mascot">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -15,37 +16,12 @@
   <rect width="200" height="200" rx="22" fill="url(#bg)"/>
   <rect x="6" y="6" width="188" height="188" rx="18" fill="none" stroke="#34d399" stroke-opacity=".35"/>
   <circle cx="100" cy="100" r="86" fill="url(#halo)"/>
-  <g transform="translate(50,50) scale(1.0)" style="color:#34d399">
+  <!-- centred 32-unit canvas, scaled up ×5 to fill the 200-unit frame -->
+  <g transform="translate(20,20) scale(5)" style="color:#34d399">
     
-      <defs>
-        <radialGradient id="halo-hummingbird-5" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stop-color="currentColor" stop-opacity="0.27499999999999997"/>
-          <stop offset="60%" stop-color="currentColor" stop-opacity="0.02"/>
-          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="glow-hummingbird-5" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="2.5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle class="mascot-halo" cx="50" cy="52" r="46" fill="url(#halo-hummingbird-5)"/>
-      <g class="mascot-body" filter="url(#glow-hummingbird-5)">
-    <g class="m-hb">
-      <ellipse class="m-hb-body" cx="50" cy="56" rx="13" ry="7" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle  class="m-hb-head" cx="64" cy="50" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path    class="m-hb-beak" d="M70 50l14 -1l-14 3z" fill="currentColor"/>
-      <path    class="m-hb-tongue" d="M82 49h4" stroke="currentColor" stroke-width=".8"/>
-      <path    class="m-hb-wing top" d="M36 50q-4 -16 10 -8q4 4 -2 14" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path    class="m-hb-wing bot" d="M36 60q-4 16 10 8q4 -4 -2 -14" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle  class="m-hb-eye" cx="65" cy="49" r="1.1" fill="currentColor"/>
-      <circle  class="m-hb-glint" cx="64.4" cy="48.5" r=".5" fill="#fff" opacity=".8"/>
-      <circle class="m-trail t1" cx="42" cy="54" r="1.2" fill="currentColor" opacity=".7"/>
-      <circle class="m-trail t2" cx="32" cy="56" r="1" fill="currentColor" opacity=".55"/>
-      <circle class="m-trail t3" cx="22" cy="58" r="0.8" fill="currentColor" opacity=".35"/>
-      <path class="m-hb-tail" d="M36 56l-12 -2l4 4l-4 4l12 -2" stroke="currentColor" stroke-width="0.8" fill="none" opacity=".7"/>
-    </g>
-  </g>
-      <circle class="evo-spark" cx="21" cy="13" r="0.7" style="animation-duration:1.6s;animation-delay:0s"/><circle class="evo-spark" cx="34" cy="16" r="0.95" style="animation-duration:2.0500000000000003s;animation-delay:0.21s"/><circle class="evo-spark" cx="47" cy="19" r="1.2" style="animation-duration:2.5s;animation-delay:0.42s"/><circle class="evo-spark" cx="60" cy="22" r="0.7" style="animation-duration:2.95s;animation-delay:0.63s"/><circle class="evo-spark" cx="73" cy="9" r="0.95" style="animation-duration:1.6s;animation-delay:0.84s"/><circle class="evo-spark" cx="14" cy="12" r="1.2" style="animation-duration:2.0500000000000003s;animation-delay:1.05s"/><circle class="evo-spark" cx="27" cy="15" r="0.7" style="animation-duration:2.5s;animation-delay:1.26s"/><circle class="evo-spark" cx="40" cy="18" r="0.95" style="animation-duration:2.95s;animation-delay:1.47s"/>
+      <rect class="halo" x="2" y="2" width="28" height="28" fill="currentColor" opacity="0.165" rx="4"/>
+      <g class="mascot-body"><rect x="3" y="14" width="2" height="1" fill="#34d399" class="r-trail" opacity="0.4"/><rect x="6" y="14" width="2" height="1" fill="#34d399" class="r-trail" opacity="0.6"/><rect x="11" y="12" width="9" height="4" fill="#10b981" class="r-back"/><rect x="11" y="11" width="7" height="1" fill="#10b981" class="r-back"/><rect x="12" y="15" width="8" height="3" fill="#f472b6" class="r-chest"/><rect x="17" y="9" width="5" height="5" fill="#10b981" class="r-head"/><rect x="19" y="11" width="1" height="1" fill="#111" class="r-eye"/><rect x="22" y="11" width="8" height="1" fill="#fcd34d" class="r-beak"/><rect x="11" y="8" width="8" height="4" fill="#6ee7b7" class="r-wing-t" opacity="0.85"/><rect x="11" y="17" width="8" height="4" fill="#6ee7b7" class="r-wing-b" opacity="0.85"/><rect x="7" y="15" width="4" height="1" fill="#10b981" class="r-tail"/><rect x="7" y="17" width="4" height="1" fill="#10b981" class="r-tail"/></g>
+      <g class="mascot-evo"><rect x="1" y="14" width="1" height="1" fill="currentColor" class="r-trail2" opacity="0.7"/><rect x="14" y="16" width="1" height="1" fill="currentColor" class="r-shimmer"/><rect x="30" y="11" width="1" height="1" fill="currentColor" class="r-beak-tip"/><rect x="4" y="6" width="26" height="18" fill="currentColor" class="r-orbit" opacity="0.1"/></g>
     
   </g>
   <text x="100" y="186" text-anchor="middle"

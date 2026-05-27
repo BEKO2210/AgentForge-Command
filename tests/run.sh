@@ -296,6 +296,33 @@ else
   echo "  - test-site smoke: not present yet"
 fi
 
+# ---- AgentForge arena & server suites (Node 22) ------------------------------
+# The bash suite covers the .team coordination scaffold. These two Node suites
+# cover the cockpit (arena modules, server HTTP/WS protocol). We aggregate the
+# pass / fail counts into the bash counters so the final tally is honest.
+run_node_suite() {
+  local title="$1" file="$2"
+  echo
+  echo "== $title =="
+  if [ ! -f "$SRC/$file" ]; then
+    echo "  - skipped (missing $file)"
+    return
+  fi
+  local out rc node_pass node_fail
+  out="$(cd "$SRC" && node "$file" 2>&1)"; rc=$?
+  printf '%s\n' "$out" | sed 's/^/    /'
+  node_pass="$(printf '%s\n' "$out" | sed -nE 's/^.* ([0-9]+) passed.*$/\1/p' | tail -1)"
+  node_fail="$(printf '%s\n' "$out" | sed -nE 's/^.* ([0-9]+) failed.*$/\1/p' | tail -1)"
+  pass=$((pass + ${node_pass:-0}))
+  fail=$((fail + ${node_fail:-0}))
+  if [ "$rc" -ne 0 ] && [ "${node_fail:-0}" -eq 0 ]; then
+    no "$title: runner exited non-zero (rc=$rc)"
+  fi
+}
+
+run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
+run_node_suite "server integration tests" "tests/server-suite.mjs"
+
 echo
 echo "tests: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

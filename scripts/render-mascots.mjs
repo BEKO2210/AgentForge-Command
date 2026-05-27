@@ -19,10 +19,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "..", "docs", "mascots");
 fs.mkdirSync(OUT, { recursive: true });
 
-// Default styling that lets the static SVG read on a dark or light
-// background — GitHub renders both.
+// Pixel-art mascots use a 32×32 viewBox. We frame each at 200×200 with a
+// dark background + accent border so GitHub renders them readably whether
+// it's the light or dark site theme.
 const FRAME = (inner, label, color) => `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"
+     shape-rendering="crispEdges"
      role="img" aria-label="${label} mascot">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -38,7 +40,8 @@ const FRAME = (inner, label, color) => `<?xml version="1.0" encoding="UTF-8"?>
   <rect width="200" height="200" rx="22" fill="url(#bg)"/>
   <rect x="6" y="6" width="188" height="188" rx="18" fill="none" stroke="${color}" stroke-opacity=".35"/>
   <circle cx="100" cy="100" r="86" fill="url(#halo)"/>
-  <g transform="translate(50,50) scale(1.0)" style="color:${color}">
+  <!-- centred 32-unit canvas, scaled up ×5 to fill the 200-unit frame -->
+  <g transform="translate(20,20) scale(5)" style="color:${color}">
     ${inner}
   </g>
   <text x="100" y="186" text-anchor="middle"
@@ -86,7 +89,7 @@ for (let i = 0; i < summary.length; i++) {
     <g transform="translate(${x},${y})">
       <rect width="${W}" height="${H}" rx="18" fill="#0c1224"/>
       <rect x="4" y="4" width="${W - 8}" height="${H - 8}" rx="14" fill="none" stroke="${s.color}" stroke-opacity=".4"/>
-      <g transform="translate(50,40) scale(1.0)" style="color:${s.color}">${inner}</g>
+      <g transform="translate(20,20) scale(5)" shape-rendering="crispEdges" style="color:${s.color}">${inner}</g>
       <text x="${W / 2}" y="${H - 12}" text-anchor="middle"
             font-family="JetBrains Mono, ui-monospace, monospace"
             font-weight="700" font-size="11" fill="${s.color}" letter-spacing="1.4">
