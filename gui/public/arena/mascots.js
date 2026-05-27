@@ -456,9 +456,16 @@ const SPRITES = {
       { c: "eye-ball", x: 3, y: 7, w: 5, h: 4, f: "#fef3c7" },
       { c: "eye-iris", x: 4, y: 8, w: 3, h: 2, f: "#0f172a" },
       { c: "eye-glint", x: 4, y: 8, w: 1, h: 1, f: "#fff" },
-      // mouth + tongue
+      // mouth + tongue (tip separated so it can dart independently)
       { c: "mouth", x: 3, y: 17, w: 4, h: 1, f: "#034a73" },
       { c: "tongue", x: 1, y: 17, w: 2, h: 1, f: "#f472b6" },
+      { c: "tongue-tip", x: 0, y: 17, w: 1, h: 1, f: "#f472b6", o: 0 },
+      // data glyphs — three small pixels above the body that appear only
+      // in reading state, scrolling like a tape of incoming bytes.
+      { c: "data-glyph", x: 8,  y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 12, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 16, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
+      { c: "data-glyph", x: 20, y: 11, w: 1, h: 1, f: "currentColor", o: 0 },
     ],
     evo: [
       [ { c: "spot", x: 12, y: 16, w: 2, h: 2, f: "#f472b6" } ],
