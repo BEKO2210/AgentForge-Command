@@ -304,7 +304,9 @@ function sendAtlasBrief(msg) {
   }));
   arenaSocket.send(JSON.stringify({ t: "atlas-brief", goal: msg, roster }));
   engine.appendLine(LEAD_ID, `operator > ${msg}`);
-  engine.setAnimationState(LEAD_ID, "thinking");
+  // Listening state first — Atlas heard the operator. atlas-brief-start
+  // upgrades us to thinking/typing.
+  engine.setAnimationState(LEAD_ID, "listening");
 }
 
 function broadcastToSwarm(msg) {
@@ -410,22 +412,35 @@ function handleServerMessage(m) {
       runningPtys: [],
     });
   } else if (m.t === "atlas-brief-start") {
+    // Atlas's pipeline: listening (receive prompt) → thinking (plan) →
+    // typing (LLM stream is producing tokens) → success.
     engine.appendLine(LEAD_ID, `[atlas] live briefing via ${m.model}…`);
-    engine.setAnimationState(LEAD_ID, "working");
+    engine.setAnimationState(LEAD_ID, "thinking");
+    setTimeout(() => {
+      // Only switch to typing if we're still in thinking — if an end/error
+      // arrived super fast the override would feel jittery.
+      const a = engine.get(LEAD_ID);
+      if (a && a.animationState === "thinking") engine.setAnimationState(LEAD_ID, "typing");
+    }, 350);
   } else if (m.t === "atlas-brief-delta") {
     const a = engine.get(LEAD_ID); if (a) {
       const last = a.terminalLines[a.terminalLines.length - 1] || "";
       a.terminalLines[a.terminalLines.length - 1] = (last + m.d).slice(0, 240);
       engine.publish();
+      if (a.animationState !== "typing") engine.setAnimationState(LEAD_ID, "typing");
     }
   } else if (m.t === "atlas-brief-end") {
     engine.appendLine(LEAD_ID, `[atlas] done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
     if (Array.isArray(m.briefings) && m.briefings.length) {
       engine.appendLine(LEAD_ID,
         `[atlas] dispatching ${m.briefings.length} specialist${m.briefings.length === 1 ? "" : "s"}: ${m.briefings.map((b) => b.id).join(", ")}`);
+      engine.setAnimationState(LEAD_ID, "working");      // actively dispatching
+      setTimeout(() => engine.setAnimationState(LEAD_ID, "success"), 600);
+      setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"),    2200);
+    } else {
+      engine.setAnimationState(LEAD_ID, "success");
+      setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
     }
-    engine.setAnimationState(LEAD_ID, "success");
-    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
   } else if (m.t === "dispatch") {
     const a = engine.get(m.id);
     if (a) {
@@ -469,8 +484,12 @@ function handleServerMessage(m) {
     store.set("spend", m.spend || {});
   } else if (m.t === "atlas-brief-error") {
     engine.appendLine(LEAD_ID, `[atlas] ${m.reason || "live brief failed"}`);
-    engine.setAnimationState(LEAD_ID, "warning");
-    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
+    // Genuine failures (API errors, budget over) get the dedicated error
+    // state; soft refusals like "no key" stay as warning so they're
+    // visually distinct from a hard fail.
+    const hard = /quota|rate|5\d{2}|over budget|abort/i.test(m.reason || "");
+    engine.setAnimationState(LEAD_ID, hard ? "error" : "warning");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1800);
   } else if (m.t === "auto-config-ack") {
     /* server confirmed */
   } else if (m.t === "auto-fired") {
