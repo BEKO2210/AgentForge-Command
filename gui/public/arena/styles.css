@@ -1025,8 +1025,8 @@ kbd {
   .mascot-bat .r-wing-r    { animation: b-flap-r 1.4s ease-in-out infinite; transform-origin:21px 15px; transform-box:fill-box; }
   .mascot-bat .r-wing-bone { animation: b-flap-l 1.4s ease-in-out infinite; transform-origin:11px 15px; transform-box:fill-box; }
   .mascot-bat .r-ear       { animation: b-ear 3s ease-in-out infinite; transform-box:fill-box; transform-origin:bottom; }
-  .mascot-bat .sonar       { animation: b-sonar 2.2s ease-out infinite; transform-origin:center; transform-box:fill-box; }
-  .mascot-bat .s2          { animation-delay:.55s; }
+  .mascot-bat .r-sonar     { animation: b-sonar 2.2s ease-out infinite; transform-origin:center; transform-box:fill-box; }
+  .mascot-bat .r-sonar.s2  { animation-delay:.55s; }
   @keyframes b-flap-l { 0%,100% { transform:rotate(-5deg) scaleY(1); }  50% { transform:rotate(15deg) scaleY(.6); } }
   @keyframes b-flap-r { 0%,100% { transform:rotate(5deg)  scaleY(1); }  50% { transform:rotate(-15deg) scaleY(.6); } }
   @keyframes b-ear    { 0%,84%,100% { transform:none; } 88%,92% { transform:scale(1.15); } }
