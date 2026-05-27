@@ -491,18 +491,22 @@ arenaWss.on("connection", (ws) => {
         const def = ptyIndex.get(m.id);
         if (def) {
           startAgent(def);
-          // If this is a specialist (has a briefing prompt), paste the briefing
-          // and press Enter so the launched session boots into its role.
+          // Only auto-paste the role briefing when the operator explicitly
+          // dispatched with a goal. Manual "launch" from the UI sends no
+          // goal — those sessions get a clean shell so the operator can
+          // drive them directly (and so test environments using TEST_CMD
+          // aren't drowned in role-prompt text). Atlas's auto-dispatch
+          // always supplies a goal, so the briefing flow stays intact.
           const goal = (m.goal || "").trim();
-          const promptText = def.prompt && goal
-            ? def.prompt.replace("{{GOAL}}", goal)
-            : def.prompt;
-          if (promptText) {
+          if (def.prompt && goal) {
+            const promptText = def.prompt.replace("{{GOAL}}", goal);
             setTimeout(() => {
               const rec2 = agents.get(def.id); if (!rec2) return;
               try {
                 rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
-                rec2.term.write("\r");
+                // Send Enter as a SEPARATE write 150ms later — Claude
+                // Code drops Enter if it's bundled with bracketed paste.
+                setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
               } catch {}
             }, 900);
           }
