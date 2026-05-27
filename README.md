@@ -21,14 +21,19 @@
 
 ---
 
-**AgentForge Command** is a local cockpit for orchestrating multiple Claude Code
-sessions in one window. A lead agent — **Atlas Prime** — analyses the repository
-and spawns a swarm of specialised agents, each with its own role, super-skill
-and animated mascot. The operator can broadcast briefings, watch terminals
-react, and arm a server-side auto-enter watchdog that presses Enter on
-permission prompts so they don't have to keep approving.
+**AgentForge Command** is a local cockpit for orchestrating multiple Claude
+Code sessions in one window. **Atlas Prime is the only lead** — you talk to
+Atlas, Atlas dispatches the right specialists, every specialist reports back
+to Atlas so he always knows what the swarm is doing. You can also broadcast
+directly to the entire swarm, or open any specialist's drawer and talk to
+that single agent.
 
-It is local-first, file-coordinated and dependency-light. The optional Rust
+There is **no mock activity**. If you haven't configured the LLM bridge and
+nothing is running, the cockpit stays honestly idle and tells you exactly
+what to set. Everything you see is either a real PTY's output or a live
+Claude stream.
+
+Local-first, file-coordinated and dependency-light. The optional Rust
 accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 
 ## The swarm
@@ -57,22 +62,25 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 > static docs).
 
 > [!NOTE]
-> The 4-agent coordination kit that started this project is preserved at
-> [`/console`](http://localhost:4173/console) and in [`.team/`](.team/) — the
-> file-based protocol, scripts, MCP server and 88-check test suite all stay
-> in place. AgentForge Command builds **on top** of that scaffold.
+> The `.team/` file-based protocol that started this project is preserved —
+> the board, the per-lane logs, the atomic `mkdir` locks, the green gate,
+> the MCP server and the 88-check test suite all stay in place. AgentForge
+> specialists each map onto a lane (`lead`, `backend`, `frontend`, `quality`)
+> via `gui/agents.json` and write into that lane's log. The original
+> 4-terminal flow now lives directly in the cockpit as well — Atlas is the
+> lead, the others fall into the backend / frontend / quality lanes by role.
 
 ## Contents
 
 - [Quickstart](#quickstart)
 - [Mission Control](#mission-control)
+- [Three ways to talk to the swarm](#three-ways-to-talk-to-the-swarm)
 - [Auto-enter](#auto-enter)
 - [Persistence](#persistence)
 - [Spawn-Builder](#spawn-builder)
 - [Architecture](#architecture)
 - [Optional Rust accelerator](#optional-rust-accelerator)
 - [Quality and security](#quality-and-security)
-- [Legacy 4-agent console](#legacy-4-agent-console)
 - [License](#license)
 
 ## Quickstart
@@ -106,12 +114,24 @@ ANTHROPIC_API_KEY=sk-ant-... node gui/server.js
 
 Optional — launch a real Claude session per specialist:
 
-The arena's WebSocket accepts `{t:"start-pty", id:"sentinel", goal:"…"}` —
-the server starts a PTY for that specialist, pastes its role-specific
-briefing from `gui/agents.json`, and presses Enter so the session boots
-into role. The 12 `specialists` in `agents.json` do **not** autostart;
-launching is operator-driven so you don't accidentally fire up a dozen
-concurrent claude processes.
+In the cockpit, every card has a **▶ launch** button. Click it (or open the
+detail drawer and use the launch control there) — the server starts a PTY
+for that specialist, pastes its role-specific briefing from `gui/agents.json`
+and presses Enter so the session boots into role. Specialists don't
+autostart, because 12 concurrent claude sessions is rarely what you want.
+Set `AUTOSTART=lead` to start just Atlas, or `AUTOSTART=all` to start
+everyone.
+
+## Three ways to talk to the swarm
+
+| | Where | What happens |
+|---|---|---|
+| 🪐 **Talk to Atlas** | Broadcast bar (mode = ATLAS) | Your message goes straight to Atlas Prime via the LLM bridge. Atlas plans, dispatches specialists by name in `@<id>` form, and integrates their reports. **Default mode.** |
+| 📢 **Broadcast to all** | Broadcast bar (mode = SWARM) | Raw text is written to every running specialist's PTY simultaneously. Useful for "everyone — `state`" style nudges. |
+| 💬 **Talk to one specialist** | Detail drawer → Direct message | Open any card's drawer, the chat box at the bottom writes straight into that specialist's PTY. Atlas still sees the result via the mission stream. |
+
+The mission stream in Atlas's panel shows **every** specialist's report
+back to him — colour-coded by kind so you can scan it at a glance.
 
 ## Mission Control
 

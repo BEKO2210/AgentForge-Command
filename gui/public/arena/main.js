@@ -46,6 +46,20 @@ const resetBtn       = document.getElementById("reset");
 const newAgentBtn    = document.getElementById("new-agent");
 const connDot        = document.getElementById("conn-dot");
 
+const sbLive    = document.getElementById("sb-live");
+const sbAuto    = document.getElementById("sb-auto");
+const sbReports = document.getElementById("sb-reports");
+const sbAtlas   = document.getElementById("sb-atlas");
+const sbAtlasChip = document.getElementById("sb-atlas-chip");
+const sbPulse   = document.getElementById("sb-pulse");
+const sbPulseChip = document.getElementById("sb-pulse-chip");
+const helpBtn   = document.getElementById("help-btn");
+const helpOverlay = document.getElementById("help-overlay");
+const cmdOverlay  = document.getElementById("cmd-overlay");
+const autoBanner  = document.getElementById("auto-banner");
+const autoBannerCount = document.getElementById("auto-banner-count");
+const autoBannerDisarm = document.getElementById("auto-banner-disarm");
+
 const persisted = await loadPersisted();
 store.set("connection", {
   ws: false,
@@ -112,6 +126,22 @@ function render() {
     },
   });
 
+  // Status bar
+  const running = agents.filter((a) => a.ptyRunning).length;
+  const armed   = agents.filter((a) => a.autoEnter).length;
+  const reports = timeline.filter((t) => t.kind === "report").length;
+  if (sbLive)    sbLive.textContent    = running;
+  if (sbAuto)    sbAuto.textContent    = armed;
+  if (sbReports) sbReports.textContent = reports;
+  if (sbAtlas)   sbAtlas.textContent   = conn.llmEnabled ? "live" : "off";
+  if (sbAtlasChip) sbAtlasChip.classList.toggle("live", !!conn.llmEnabled);
+  if (sbPulse)   sbPulse.textContent   = conn.pulse ? "rust" : "js";
+  if (sbPulseChip) sbPulseChip.classList.toggle("on", !!conn.pulse);
+  if (autoBanner) {
+    autoBanner.hidden = armed === 0;
+    if (autoBannerCount) autoBannerCount.textContent = String(armed);
+  }
+
   // Update broadcast bar copy depending on mode + LLM availability.
   if (broadcastInput) {
     const hasLlm = !!(conn && conn.llmEnabled);
@@ -167,15 +197,73 @@ modalBackdrop.addEventListener("click", (e) => {
   if (e.target === modalBackdrop) store.set("modalOpen", false);
 });
 
+let cmdMode = false;
+function setCmdMode(on) {
+  cmdMode = !!on;
+  if (cmdOverlay) cmdOverlay.hidden = !on;
+}
+function toggleHelp(on) {
+  if (!helpOverlay) return;
+  helpOverlay.hidden = on === false ? true : on === true ? false : !helpOverlay.hidden;
+}
+
 document.addEventListener("keydown", (e) => {
+  // Escape closes anything that's open, in order.
   if (e.key === "Escape") {
-    if (store.get("modalOpen")) store.set("modalOpen", false);
-    else if (store.get("selectedId")) closeDrawer();
+    if (cmdMode)                         { setCmdMode(false); return; }
+    if (helpOverlay && !helpOverlay.hidden) { toggleHelp(false); return; }
+    if (store.get("modalOpen"))          { store.set("modalOpen", false); return; }
+    if (store.get("selectedId"))         { closeDrawer(); return; }
+    return;
   }
+
+  // Command mode is a single-key follow-up. Swallow Browser-style modifier
+  // keys so we don't break native shortcuts the user might still want.
+  if (cmdMode) {
+    if (e.metaKey || e.altKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase();
+    const agents = store.get("agents") || [];
+    const specialists = agents.filter((a) => a.id !== LEAD_ID);
+    e.preventDefault();
+    if (/^[1-9]$/.test(k)) {
+      const target = specialists[parseInt(k, 10) - 1];
+      if (target) openDrawer(target.id);
+    } else if (k === "a") { broadcastMode = "atlas"; scheduleRender(); }
+      else if (k === "b") { broadcastMode = "swarm"; scheduleRender(); }
+      else if (k === "l") { for (const s of specialists) launchPty(s.id); }
+      else if (k === "s") { for (const s of specialists) if (s.ptyRunning) stopPty(s.id); }
+      else if (k === "n") { store.set("modalOpen", true); }
+      else if (k === "e") { for (const a of agents) engine.evolve(a.id); persistSoon(); }
+      else if (k === "?") { toggleHelp(true); }
+    setCmdMode(false);
+    return;
+  }
+
+  // Top-level shortcuts.
   if (e.key === "/" && document.activeElement !== broadcastInput) {
     if (!broadcastInput.disabled) { broadcastInput.focus(); e.preventDefault(); }
+    return;
   }
-  if (e.key === "n" && e.altKey) { e.preventDefault(); store.set("modalOpen", true); }
+  if (e.key === "k" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault(); setCmdMode(true); return;
+  }
+  if (e.key === "?" && document.activeElement !== broadcastInput &&
+      document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+    e.preventDefault(); toggleHelp(true); return;
+  }
+  if (e.key === "n" && e.altKey) {
+    e.preventDefault(); store.set("modalOpen", true); return;
+  }
+});
+
+if (helpBtn) helpBtn.addEventListener("click", () => toggleHelp());
+if (helpOverlay) helpOverlay.addEventListener("click", (e) => {
+  if (e.target === helpOverlay || e.target.closest('[data-action="help-close"]')) toggleHelp(false);
+});
+if (cmdOverlay) cmdOverlay.addEventListener("click", () => setCmdMode(false));
+if (autoBannerDisarm) autoBannerDisarm.addEventListener("click", () => {
+  for (const a of (store.get("agents") || [])) if (a.autoEnter) engine.toggleAutoEnter(a.id);
+  syncAutoEnterServer(); persistSoon();
 });
 
 /* ----- Broadcast bar (Atlas chat or swarm broadcast) ------------------- */
