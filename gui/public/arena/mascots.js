@@ -670,9 +670,10 @@ const SPRITES = {
       // top-left feather highlight (subtle)
       { c: "body-hi", x: 8, y: 12, w: 4, h: 1, f: "#334155" },
       { c: "body-hi", x: 8, y: 13, w: 1, h: 4, f: "#334155" },
-      // wing (folded, darker)
+      // wing (folded, darker) + wing-tip separated for fluttering
       { c: "wing", x: 9, y: 13, w: 6, h: 10, f: "#020617" },
       { c: "wing-hi", x: 9, y: 13, w: 4, h: 1, f: "#334155" },
+      { c: "wing-tip", x: 9, y: 22, w: 4, h: 1, f: "#334155" },
       // head
       { c: "head-outline", x: 17, y: 6, w: 8, h: 1, f: "#020617" },
       { c: "head-outline", x: 17, y: 14, w: 8, h: 1, f: "#020617" },
@@ -680,6 +681,9 @@ const SPRITES = {
       { c: "head-outline", x: 25, y: 7, w: 1, h: 7, f: "#020617" },
       { c: "head", x: 17, y: 7, w: 8, h: 7, f: "#0f172a" },
       { c: "head-hi", x: 17, y: 7, w: 5, h: 1, f: "#334155" },
+      // small scholarly feather tuft above the head
+      { c: "tuft", x: 19, y: 5, w: 2, h: 1, f: "#0f172a" },
+      { c: "tuft", x: 20, y: 4, w: 1, h: 1, f: "#0f172a" },
       // beak (yellow, tapered)
       { c: "beak-outline", x: 25, y: 9, w: 6, h: 1, f: "#92400e" },
       { c: "beak-outline", x: 25, y: 13, w: 6, h: 1, f: "#92400e" },
@@ -694,16 +698,38 @@ const SPRITES = {
       // legs
       { c: "leg", x: 12, y: 25, w: 2, h: 2, f: "#fcd34d" },
       { c: "leg", x: 18, y: 25, w: 2, h: 2, f: "#fcd34d" },
+      // ── QUILL (the signature scribe prop, now in base) ──
+      // Held in the right claw — runs diagonal up to the beak's writing
+      // position. Three layers: shaft (gold), under-shaft (burnt), feather
+      // plume at the top with a brighter highlight.
+      { c: "quill-shaft",   x: 16, y: 18, w: 1, h: 6, f: "#fcd34d" },
+      { c: "quill-shaft",   x: 17, y: 17, w: 1, h: 1, f: "#fcd34d" },
+      { c: "quill-shaft-sh",x: 17, y: 18, w: 1, h: 6, f: "#92400e" },
+      { c: "quill-feather", x: 15, y: 14, w: 3, h: 4, f: "#fde68a" },
+      { c: "quill-feather", x: 14, y: 15, w: 1, h: 2, f: "#fde68a" },
+      { c: "quill-feather-hi", x: 15, y: 14, w: 2, h: 1, f: "#fff" },
+      { c: "quill-feather-sh", x: 16, y: 17, w: 2, h: 1, f: "#fcd34d" },
+      // ── INK POT on the scroll (hidden by default, fades in for writing states) ──
+      { c: "ink-pot",     x: 23, y: 24, w: 3, h: 2, f: "#1e293b", o: 0 },
+      { c: "ink-pot-hi",  x: 23, y: 24, w: 3, h: 1, f: "#475569", o: 0 },
+      // ── INK DROPS (hidden by default, animate in for error/celebrating) ──
+      { c: "ink-drop", x: 17, y: 24, w: 1, h: 1, f: "#1e293b", o: 0 },
+      { c: "ink-drop", x: 15, y: 23, w: 1, h: 1, f: "#1e293b", o: 0 },
+      { c: "ink-drop", x: 13, y: 22, w: 1, h: 1, f: "#1e293b", o: 0 },
     ],
     evo: [
-      [ { c: "quill-shaft",   x: 18, y: 16, w: 1, h: 8, f: "#fcd34d" },
-        { c: "quill-shaft",   x: 19, y: 16, w: 1, h: 8, f: "#92400e" },
-        { c: "quill-feather", x: 16, y: 13, w: 5, h: 3, f: "#fcd34d" },
-        { c: "quill-feather", x: 16, y: 13, w: 4, h: 1, f: "#fde68a" } ],
+      // lvl 2 — ink dot on the scroll (written character)
       [ { c: "ink", x: 16, y: 27, w: 2, h: 1, f: "#1e293b" } ],
+      // lvl 3 — script lines on the scroll
       [ { c: "line", x: 6,  y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 },
         { c: "line", x: 19, y: 27, w: 6, h: 1, f: "#1e293b", o: 0.6 } ],
-      [ { c: "feather-tuft", x: 14, y: 6, w: 1, h: 3, f: "#fcd34d" } ],
+      // lvl 4 — back tail feathers under the body
+      [ { c: "tail-feather", x: 10, y: 24, w: 1, h: 2, f: "#020617" },
+        { c: "tail-feather", x: 12, y: 24, w: 1, h: 2, f: "#020617" },
+        { c: "tail-feather", x: 14, y: 24, w: 1, h: 2, f: "#020617" } ],
+      // lvl 5 — second feather tuft + aura
+      [ { c: "feather-tuft", x: 22, y: 5, w: 1, h: 2, f: "#fcd34d" },
+        { c: "aura", x: 4, y: 4, w: 24, h: 22, f: "currentColor", o: 0.1 } ],
     ],
   },
 
