@@ -789,20 +789,45 @@ const SPRITES = {
       { c: "eye-pupil", x: 17, y: 11, w: 1, h: 1, f: "#000" },
       // nose
       { c: "nose", x: 12, y: 14, w: 2, h: 1, f: "#0f172a" },
-      // hands
-      { c: "hand", x: 6, y: 16, w: 2, h: 2, f: "#475569" },
-      { c: "hand", x: 22, y: 16, w: 2, h: 2, f: "#475569" },
+      // hands — left at the side, right brought up to chest holding the coin
+      { c: "hand",  x: 6,  y: 16, w: 2, h: 2, f: "#475569" },
+      { c: "hand-r",x: 19, y: 17, w: 2, h: 2, f: "#475569" },
+      // ── COIN (the signature prop, held in right hand) ──
+      { c: "coin",     x: 19, y: 14, w: 4, h: 3, f: "#fcd34d" },
+      { c: "coin-hi",  x: 19, y: 14, w: 4, h: 1, f: "#fde68a" },
+      { c: "coin-sym", x: 20, y: 15, w: 2, h: 1, f: "#92400e" },
+      { c: "coin-sh",  x: 19, y: 16, w: 4, h: 1, f: "#b45309" },
+      // ── EXTRA COIN (top-right, hidden by default — only in success/celebrating) ──
+      { c: "coin2",     x: 26, y: 5, w: 3, h: 3, f: "#fcd34d", o: 0 },
+      { c: "coin2-hi",  x: 26, y: 5, w: 3, h: 1, f: "#fde68a", o: 0 },
+      { c: "coin3",     x: 24, y: 8, w: 2, h: 2, f: "#fcd34d", o: 0 },
+      // ── RECEIPT (paper strip under the body, hidden until typing/working) ──
+      { c: "receipt",      x: 8,  y: 30, w: 16, h: 1, f: "#f1f5f9", o: 0 },
+      { c: "receipt",      x: 9,  y: 29, w: 14, h: 1, f: "#f1f5f9", o: 0 },
+      { c: "receipt-line", x: 10, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      { c: "receipt-line", x: 14, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      { c: "receipt-line", x: 18, y: 29, w:  3, h: 1, f: "#475569", o: 0 },
+      // ── BUDGET BAR at the very bottom (always visible at evo lvl 4+) ──
+      // base sprite shows just an outline; CSS fills it for working states
+      { c: "bar-bg",   x: 2, y: 30, w: 0, h: 0, f: "transparent" },     // anchor only
+      // ── TICK NUMBERS (next to head, hidden until thinking/working) ──
+      { c: "tick", x: 25, y:  9, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      { c: "tick", x: 27, y: 11, w: 1, h: 1, f: "#fcd34d", o: 0 },
+      { c: "tick", x: 29, y:  9, w: 1, h: 1, f: "#fcd34d", o: 0 },
     ],
     evo: [
-      [ { c: "coin", x: 22, y: 14, w: 3, h: 3, f: "#fcd34d" },
-        { c: "coin-hi", x: 22, y: 14, w: 3, h: 1, f: "#fde68a" },
-        { c: "coin-sym", x: 23, y: 15, w: 1, h: 1, f: "#92400e" } ],
-      [ { c: "coin2", x: 26, y: 6, w: 2, h: 2, f: "currentColor" } ],
-      [ { c: "bar-bg",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
+      // lvl 2 — small floating "+" coin top corner (extra)
+      [ { c: "coin-stack", x: 26, y: 23, w: 3, h: 1, f: "#fcd34d" } ],
+      // lvl 3 — second stacked coin
+      [ { c: "coin-stack", x: 26, y: 21, w: 3, h: 1, f: "#fcd34d" },
+        { c: "coin-stack-sh", x: 26, y: 22, w: 3, h: 1, f: "#92400e" } ],
+      // lvl 4 — budget bar
+      [ { c: "bar-bg-real",   x: 2,  y: 30, w: 24, h: 1, f: "#1e293b" },
         { c: "bar-fill", x: 2,  y: 30, w: 14, h: 1, f: "#fcd34d" } ],
-      [ { c: "tick", x: 25, y: 10, w: 1, h: 1, f: "currentColor" },
-        { c: "tick", x: 27, y: 12, w: 1, h: 1, f: "currentColor" },
-        { c: "tick", x: 29, y: 10, w: 1, h: 1, f: "currentColor" } ],
+      // lvl 5 — extra ledger spectacles outline around the eyes
+      [ { c: "spectacles", x: 7,  y: 9, w: 6, h: 4, f: "#fcd34d", o: 0.5 },
+        { c: "spectacles", x: 15, y: 9, w: 6, h: 4, f: "#fcd34d", o: 0.5 },
+        { c: "spectacles", x: 13, y: 11, w: 2, h: 1, f: "#fcd34d", o: 0.5 } ],
     ],
   },
 
