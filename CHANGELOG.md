@@ -4,7 +4,82 @@ All notable changes to this project are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com); the project does not yet publish to a
 package registry, so versions are git tags for now.
 
-## [Unreleased]
+## [Unreleased] — AgentForge Command
+
+The project has been re-framed as **AgentForge Command**, a local mission-control
+cockpit for a Claude Code swarm led by **ATLAS PRIME**. The 4-agent coordination
+kit that started it (the `.team/` scaffold, scripts, MCP server, 88-check test
+suite) stays in place and lives on at `/console` — the new cockpit sits on top
+of it as the default surface.
+
+### Added — AgentForge Mission Control (`/`)
+
+- **Atlas Prime + 11 specialists** — Sentinel, Aurora, Forge, Prism, Echo, Vega,
+  Scribe, Ledger, Raven, Luma, Nova. Each has a role, super-skill, animated SVG
+  mascot, 5-level evolution lab, terminal card with status badge and mini-stats.
+- **Atlas Command Panel** — dedicated hero panel with mascot, status pills and a
+  live mission stream that scrolls the latest spawn + rule + broadcast events.
+- **Spawn timeline** — dramatic vertical connector + newest-event highlight,
+  colour-coded by kind (boot / scan / rule / spawn / evolve / broadcast).
+- **Broadcast bar** — `/` focuses, `Enter` dispatches. If `ANTHROPIC_API_KEY`
+  is set on the server, the brief streams through Claude live (Atlas + per-
+  specialist briefings inferred in one call). Otherwise falls back to the
+  built-in mock simulator.
+- **Spawn-Builder modal** — `Alt+N`. Define a new specialist visually (name,
+  title, role, super-skill, mascot picker, swatch palette). New agents persist
+  to `.team/arena.json` and survive restarts.
+- **Per-specialist real PTY** — `agents.json` ships 12 `specialists` entries
+  with role-specific Claude briefings. Each can be launched on-demand into its
+  own PTY from the arena WebSocket (`{t:"start-pty", id, goal}`); the server
+  pastes the briefing and presses Enter so the session boots into role.
+- **Persistence** — `.team/arena.json` keeps evolution levels, auto-enter
+  selection and operator-defined custom agents across restarts. Gitignored.
+- **Auto-enter watchdog** — per-PTY toggle that presses Enter on conservative
+  permission prompts (`(y/n)`, "press enter", "approve?", "allow this tool to
+  run", …). Single-fire, 1.5s cooldown, broadcasts `auto-fired` back to the UI.
+- **Mascot character animations** — each species has its own distinctive
+  behaviour (radar sweep, tail-flick, sonar rings, lantern glow, glitch trace,
+  …). Reduced-motion fully respected.
+- **Mascot SVG gallery** — `docs/mascots/*.svg` + `_gallery.svg`, rendered
+  directly from the live mascot source via `scripts/render-mascots.mjs`.
+
+### Added — Rust accelerator (`tools/forge-pulse/`)
+
+- Single-file, zero-dependency Rust binary that pipes PTY chunks and emits
+  prompt/activity events. Auto-detected by the Node server; advisory only —
+  the JS matcher drives auto-enter. Disable with `FORGE_PULSE=0`.
+- 5 unit tests, clippy-clean (`-D warnings`).
+
+### Added — server / API
+
+- `/` → arena (default), `/console` → legacy 4-agent console, `/index.html`
+  → 0-second redirect to `/`.
+- `/api/agents`, `/api/state`, `/api/arena` — typed REST surface.
+- WS `/arena` — protocol for auto-enter, persistence, real-PTY-start, atlas
+  LLM streaming.
+- Optional LLM bridge (`gui/llm.js`) — uses `fetch` against the Anthropic
+  Messages API. Streams text deltas back to the arena, reports usage + cost.
+  Zero npm dependencies.
+
+### Changed
+
+- Default route is now Mission Control. The legacy 4-agent console moved to
+  `/console`; bookmarks for `/` and `/arena` both land in the cockpit.
+- `agents.json` gained a `specialists` array — backward-compatible (the
+  original 4 still autostart for the console).
+- README rewritten around AgentForge Command. The original 4-agent kit's
+  docs are preserved under `gui/README.md` and `.team/PROTOCOL.md`.
+
+### Quality
+
+- 88/88 bash tests still green.
+- 5/5 Rust unit tests green.
+- `cargo clippy --release -- -D warnings` clean.
+- End-to-end smoke verified: HTTP routes, WS handshake, auto-fire on `(y/n)`,
+  persistence round-trip, pulse events wrapped + delivered, specialist PTY
+  launch with briefing paste, LLM fallback when no key is configured.
+
+## [Pre-AgentForge] — GUI ops-console refresh
 
 ### Added — GUI ops-console refresh
 

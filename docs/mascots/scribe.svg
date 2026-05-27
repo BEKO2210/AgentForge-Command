@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"
+     role="img" aria-label="SCRIBE · Scribe Raven mascot">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c1224"/>
+      <stop offset="100%" stop-color="#06090f"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#9aa5c4" stop-opacity=".25"/>
+      <stop offset="70%" stop-color="#9aa5c4" stop-opacity=".03"/>
+      <stop offset="100%" stop-color="#9aa5c4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" rx="22" fill="url(#bg)"/>
+  <rect x="6" y="6" width="188" height="188" rx="18" fill="none" stroke="#9aa5c4" stroke-opacity=".35"/>
+  <circle cx="100" cy="100" r="86" fill="url(#halo)"/>
+  <g transform="translate(50,50) scale(1.0)" style="color:#9aa5c4">
+    
+      <defs>
+        <radialGradient id="halo-raven-5" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="currentColor" stop-opacity="0.27499999999999997"/>
+          <stop offset="60%" stop-color="currentColor" stop-opacity="0.02"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="glow-raven-5" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle class="mascot-halo" cx="50" cy="52" r="46" fill="url(#halo-raven-5)"/>
+      <g class="mascot-body" filter="url(#glow-raven-5)">
+    <g class="m-rv">
+      <ellipse class="m-rv-body" cx="50" cy="58" rx="14" ry="10" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle  class="m-rv-head" cx="62" cy="48" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path    class="m-rv-beak" d="M68 48l10 -1l-10 4z" fill="currentColor"/>
+      <path    class="m-rv-wing" d="M40 56q4 -8 18 -8q -8 6 -16 12z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path    class="m-rv-wing-detail" d="M44 56q4 -4 12 -4" stroke="currentColor" stroke-width=".6" opacity=".5"/>
+      <circle  class="m-rv-eye" cx="63" cy="47" r="1.2" fill="currentColor"/>
+      <circle  class="m-rv-glint" cx="62.5" cy="46.5" r=".5" fill="#fff" opacity=".8"/>
+      <path    class="m-rv-leg" d="M44 68v8M52 68v8" stroke="currentColor" stroke-width="1.4"/>
+      <path class="m-quill" d="M28 36l-8 14l12 -4z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path class="m-cursor" d="M22 56h6" stroke="currentColor" stroke-width="2"/>
+      <path class="m-paper" d="M14 70h20v14h-20z" fill="none" stroke="currentColor" stroke-width="0.8" opacity=".5"/>
+      <path class="m-glyph" d="M16 76h16M16 80h12" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 3" opacity=".75"/>
+    </g>
+  </g>
+      <circle class="evo-spark" cx="21" cy="13" r="0.7" style="animation-duration:1.6s;animation-delay:0s"/><circle class="evo-spark" cx="34" cy="16" r="0.95" style="animation-duration:2.0500000000000003s;animation-delay:0.21s"/><circle class="evo-spark" cx="47" cy="19" r="1.2" style="animation-duration:2.5s;animation-delay:0.42s"/><circle class="evo-spark" cx="60" cy="22" r="0.7" style="animation-duration:2.95s;animation-delay:0.63s"/><circle class="evo-spark" cx="73" cy="9" r="0.95" style="animation-duration:1.6s;animation-delay:0.84s"/><circle class="evo-spark" cx="14" cy="12" r="1.2" style="animation-duration:2.0500000000000003s;animation-delay:1.05s"/><circle class="evo-spark" cx="27" cy="15" r="0.7" style="animation-duration:2.5s;animation-delay:1.26s"/><circle class="evo-spark" cx="40" cy="18" r="0.95" style="animation-duration:2.95s;animation-delay:1.47s"/>
+    
+  </g>
+  <text x="100" y="186" text-anchor="middle"
+        font-family="JetBrains Mono, ui-monospace, monospace"
+        font-weight="700" font-size="9" fill="#9aa5c4"
+        opacity=".75" letter-spacing="1.2">
+    SCRIBE · SCRIBE RAVEN
+  </text>
+</svg>

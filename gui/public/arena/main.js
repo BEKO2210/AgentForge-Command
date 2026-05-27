@@ -1,11 +1,13 @@
 // AgentForge Arena — entry point.
-// Wires the reactive store, spawn engine, broadcaster and UI together. Also
-// talks to the existing server for repo signals and to the new /arena
-// WebSocket protocol for auto-enter toggles, persistence and live PTY data.
+//
+// Wires the reactive store, the spawn engine and the UI together. There is no
+// mock activity left in the system: every terminal line the arena shows comes
+// from either a real PTY the operator launched or Atlas's LLM stream. When
+// no LLM key is configured and no PTYs are running, the cockpit stays
+// honestly idle and tells the operator what to do.
 
 import { createStore } from "./state.js";
-import { createSpawnEngine, deriveSignals } from "./spawner.js";
-import { createBroadcaster } from "./broadcast.js";
+import { createSpawnEngine } from "./spawner.js";
 import {
   renderHeroStats, renderLeadPanel, renderGrid,
   renderTimeline, renderDrawer, renderModal,
@@ -15,23 +17,12 @@ import { LEAD_ID } from "./data.js";
 const store = createStore({
   agents: [], timeline: [], filter: "all",
   selectedId: null, modalOpen: false,
-  connection: { ws: false, pulse: false, ptyIds: [] },
+  connection: { ws: false, pulse: false, ptyIds: [], llmEnabled: false, leadId: LEAD_ID },
+  spend: { totalIn: 0, totalOut: 0, totalUsd: 0, briefCount: 0, recent: [], budgetUsd: 0, overBudget: false },
 });
 
-/* ----- Bootstrap: signals + persisted state in parallel ---------------- */
+/* ----- Bootstrap ------------------------------------------------------- */
 
-async function loadBootstrap() {
-  const [signals, persisted] = await Promise.all([
-    loadSignals(), loadPersisted(),
-  ]);
-  return { signals, persisted };
-}
-async function loadSignals() {
-  let guiAgents = []; let teamState = null;
-  try { const r = await fetch("/api/agents"); if (r.ok) { const j = await r.json(); guiAgents = j.agents || []; } } catch {}
-  try { const r = await fetch("/api/state");  if (r.ok) teamState = await r.json(); } catch {}
-  return deriveSignals({ guiAgents, teamState });
-}
 async function loadPersisted() {
   try { const r = await fetch("/api/arena"); if (r.ok) return await r.json(); }
   catch {}
@@ -47,6 +38,8 @@ const drawerEl       = document.getElementById("drawer");
 const modalBackdrop  = document.getElementById("modal-backdrop");
 const modalEl        = document.getElementById("modal");
 const broadcastInput = document.getElementById("broadcast-input");
+const broadcastMeta  = document.getElementById("broadcast-meta");
+const broadcastModeBtn = document.getElementById("broadcast-mode");
 const filterBar      = document.getElementById("filter-bar");
 const autoAllBtn     = document.getElementById("auto-all");
 const evolveAllBtn   = document.getElementById("evolve-all");
@@ -54,21 +47,40 @@ const resetBtn       = document.getElementById("reset");
 const newAgentBtn    = document.getElementById("new-agent");
 const connDot        = document.getElementById("conn-dot");
 
-const { signals, persisted } = await loadBootstrap();
+const sbLive    = document.getElementById("sb-live");
+const sbAuto    = document.getElementById("sb-auto");
+const sbReports = document.getElementById("sb-reports");
+const sbAtlas   = document.getElementById("sb-atlas");
+const sbAtlasChip = document.getElementById("sb-atlas-chip");
+const sbPulse   = document.getElementById("sb-pulse");
+const sbPulseChip = document.getElementById("sb-pulse-chip");
+const helpBtn   = document.getElementById("help-btn");
+const helpOverlay = document.getElementById("help-overlay");
+const cmdOverlay  = document.getElementById("cmd-overlay");
+const autoBanner  = document.getElementById("auto-banner");
+const autoBannerCount = document.getElementById("auto-banner-count");
+const autoBannerDisarm = document.getElementById("auto-banner-disarm");
+
+const persisted = await loadPersisted();
 store.set("connection", {
-  ws: false, pulse: !!persisted.pulse,
+  ws: false,
+  pulse: !!persisted.pulse,
   ptyIds: persisted.ptyAgents || [],
+  llmEnabled: !!(persisted.llm && persisted.llm.enabled),
+  llmModel: persisted.llm && persisted.llm.model,
+  leadId: persisted.leadId || LEAD_ID,
 });
+if (persisted.spend) store.set("spend", persisted.spend);
 
-const engine = createSpawnEngine({ store, signals, persisted });
-const broadcaster = createBroadcaster({ engine, onEvent: () => scheduleRender() });
-
+const engine = createSpawnEngine({ store, persisted });
 engine.bootstrap();
 openArenaSocket();
 
+/* Broadcast mode — toggles between "atlas" (talk to Atlas only — he dispatches
+   the rest) and "swarm" (broadcast to every running specialist). */
+let broadcastMode = "atlas";
+
 /* ----- Render orchestrator -------------------------------------------- */
-// One RAF-batched render keeps things smooth; the store fires often and
-// rendering five panels per change would be wasteful.
 
 let rafPending = false;
 function scheduleRender() {
@@ -82,15 +94,20 @@ function render() {
   const timeline = store.get("timeline") || [];
   const lead = agents.find((a) => a.id === LEAD_ID);
   const swarm = agents.length - (lead ? 1 : 0);
+  const conn = store.get("connection") || {};
+  const spend = store.get("spend") || {};
 
-  renderHeroStats(heroRoot, { agents, timeline });
-  renderLeadPanel(leadRoot, lead, swarm, timeline);
+  renderHeroStats(heroRoot, { agents, timeline, conn, spend });
+  renderLeadPanel(leadRoot, lead, swarm, timeline, conn);
   renderGrid(gridRoot, agents, {
     filter: store.get("filter"),
     onSelect: openDrawer,
-    onAuto:    toggleAuto,
-    onEvolve:  (id) => { engine.evolve(id); persistSoon(); },
+    onAuto: toggleAuto,
+    onEvolve: (id) => { engine.evolve(id); persistSoon(); },
     onNewAgent: () => store.set("modalOpen", true),
+    onLaunchPty: (id) => launchPty(id),
+    onStopPty:   (id) => stopPty(id),
+    spend,                       // ledger card reads this directly
   });
   renderTimeline(timelineRoot, timeline);
 
@@ -99,17 +116,58 @@ function render() {
     close:      () => store.set("selectedId", null),
     evolve:     (id) => { engine.evolve(id); persistSoon(); },
     toggleAuto: (id) => toggleAuto(id),
+    launchPty:  (id) => launchPty(id),
+    stopPty:    (id) => stopPty(id),
+    sendInput:  (id, text) => sendDirectInput(id, text),
   });
-
   renderModal(modalBackdrop, modalEl, {
     open: !!store.get("modalOpen"),
     onCancel: () => store.set("modalOpen", false),
     onCreate: (spec) => {
-      engine.spawnAgent(spec, "operator-defined");
+      engine.spawnAgent(spec, "operator");
       store.set("modalOpen", false);
       persistSoon();
     },
   });
+
+  // Status bar
+  const running = agents.filter((a) => a.ptyRunning).length;
+  const armed   = agents.filter((a) => a.autoEnter).length;
+  const reports = timeline.filter((t) => t.kind === "report").length;
+  if (sbLive)    sbLive.textContent    = running;
+  if (sbAuto)    sbAuto.textContent    = armed;
+  if (sbReports) sbReports.textContent = reports;
+  if (sbAtlas)   sbAtlas.textContent   = conn.llmEnabled ? "live" : "off";
+  if (sbAtlasChip) sbAtlasChip.classList.toggle("live", !!conn.llmEnabled);
+  if (sbPulse)   sbPulse.textContent   = conn.pulse ? "rust" : "js";
+  if (sbPulseChip) sbPulseChip.classList.toggle("on", !!conn.pulse);
+  if (autoBanner) {
+    autoBanner.hidden = armed === 0;
+    if (autoBannerCount) autoBannerCount.textContent = String(armed);
+  }
+
+  // Update broadcast bar copy depending on mode + LLM availability.
+  if (broadcastInput) {
+    const hasLlm = !!(conn && conn.llmEnabled);
+    if (broadcastMode === "atlas") {
+      broadcastInput.placeholder = hasLlm
+        ? "Talk to Atlas — he briefs the swarm…"
+        : "Set ANTHROPIC_API_KEY on the server to brief Atlas. Press / to focus this bar.";
+      broadcastInput.disabled = !hasLlm;
+    } else {
+      broadcastInput.placeholder = "Broadcast a raw command to every running specialist…";
+      broadcastInput.disabled = false;
+    }
+    if (broadcastMeta) {
+      broadcastMeta.textContent = broadcastMode === "atlas"
+        ? (hasLlm ? `⏎ DISPATCH · ATLAS@${conn.llmModel || "claude"} · / FOCUS` : "⏎ DISABLED · NO API KEY · / FOCUS")
+        : "⏎ BROADCAST TO ALL · / FOCUS";
+    }
+    if (broadcastModeBtn) {
+      broadcastModeBtn.textContent = broadcastMode === "atlas" ? "ATLAS" : "SWARM";
+      broadcastModeBtn.setAttribute("aria-label", `Broadcast target: ${broadcastMode}`);
+    }
+  }
 }
 
 store.subscribe("agents",     scheduleRender);
@@ -117,48 +175,150 @@ store.subscribe("timeline",   scheduleRender);
 store.subscribe("filter",     scheduleRender);
 store.subscribe("selectedId", scheduleRender);
 store.subscribe("modalOpen",  scheduleRender);
+store.subscribe("spend",      scheduleRender);
 store.subscribe("connection", () => {
-  const c = store.get("connection");
+  const c = store.get("connection") || {};
   if (connDot) {
     connDot.classList.toggle("on",  c.ws);
     connDot.classList.toggle("off", !c.ws);
     const txt = connDot.querySelector(".txt");
-    if (txt) txt.textContent = c.ws ? (c.pulse ? "online · rust" : "online") : "offline";
+    if (txt) {
+      const status = !c.ws ? "offline"
+        : c.llmEnabled ? `online · atlas live${c.pulse ? " · rust" : ""}`
+        : `online${c.pulse ? " · rust" : ""}`;
+      txt.textContent = status;
+    }
   }
+  scheduleRender();
 });
 
-/* ----- Drawer + Modal close handlers ---------------------------------- */
+/* ----- Drawer + Modal -------------------------------------------------- */
 
-drawerBackdrop.addEventListener("click", () => store.set("selectedId", null));
+function openDrawer(id) { store.set("selectedId", id); }
+function closeDrawer()  { store.set("selectedId", null); }
+
+drawerBackdrop.addEventListener("click", closeDrawer);
 modalBackdrop.addEventListener("click", (e) => {
-  // close only if user clicked the backdrop, not the modal contents
   if (e.target === modalBackdrop) store.set("modalOpen", false);
 });
 
+let cmdMode = false;
+function setCmdMode(on) {
+  cmdMode = !!on;
+  if (cmdOverlay) cmdOverlay.hidden = !on;
+}
+function toggleHelp(on) {
+  if (!helpOverlay) return;
+  helpOverlay.hidden = on === false ? true : on === true ? false : !helpOverlay.hidden;
+}
+
 document.addEventListener("keydown", (e) => {
+  // Escape closes anything that's open, in order.
   if (e.key === "Escape") {
-    if (store.get("modalOpen")) store.set("modalOpen", false);
-    else if (store.get("selectedId")) store.set("selectedId", null);
+    if (cmdMode)                         { setCmdMode(false); return; }
+    if (helpOverlay && !helpOverlay.hidden) { toggleHelp(false); return; }
+    if (store.get("modalOpen"))          { store.set("modalOpen", false); return; }
+    if (store.get("selectedId"))         { closeDrawer(); return; }
+    return;
   }
+
+  // Command mode is a single-key follow-up. Swallow Browser-style modifier
+  // keys so we don't break native shortcuts the user might still want.
+  if (cmdMode) {
+    if (e.metaKey || e.altKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase();
+    const agents = store.get("agents") || [];
+    const specialists = agents.filter((a) => a.id !== LEAD_ID);
+    e.preventDefault();
+    if (/^[1-9]$/.test(k)) {
+      const target = specialists[parseInt(k, 10) - 1];
+      if (target) openDrawer(target.id);
+    } else if (k === "a") { broadcastMode = "atlas"; scheduleRender(); }
+      else if (k === "b") { broadcastMode = "swarm"; scheduleRender(); }
+      else if (k === "l") { for (const s of specialists) launchPty(s.id); }
+      else if (k === "s") { for (const s of specialists) if (s.ptyRunning) stopPty(s.id); }
+      else if (k === "n") { store.set("modalOpen", true); }
+      else if (k === "e") { for (const a of agents) engine.evolve(a.id); persistSoon(); }
+      else if (k === "?") { toggleHelp(true); }
+    setCmdMode(false);
+    return;
+  }
+
+  // Top-level shortcuts.
   if (e.key === "/" && document.activeElement !== broadcastInput) {
-    broadcastInput.focus(); e.preventDefault();
+    if (!broadcastInput.disabled) { broadcastInput.focus(); e.preventDefault(); }
+    return;
+  }
+  if (e.key === "k" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault(); setCmdMode(true); return;
+  }
+  if (e.key === "?" && document.activeElement !== broadcastInput &&
+      document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+    e.preventDefault(); toggleHelp(true); return;
   }
   if (e.key === "n" && e.altKey) {
-    e.preventDefault(); store.set("modalOpen", true);
+    e.preventDefault(); store.set("modalOpen", true); return;
   }
 });
 
-/* ----- Broadcast bar -------------------------------------------------- */
+if (helpBtn) helpBtn.addEventListener("click", () => toggleHelp());
+if (helpOverlay) helpOverlay.addEventListener("click", (e) => {
+  if (e.target === helpOverlay || e.target.closest('[data-action="help-close"]')) toggleHelp(false);
+});
+if (cmdOverlay) cmdOverlay.addEventListener("click", () => setCmdMode(false));
+if (autoBannerDisarm) autoBannerDisarm.addEventListener("click", () => {
+  for (const a of (store.get("agents") || [])) if (a.autoEnter) engine.toggleAutoEnter(a.id);
+  syncAutoEnterServer(); persistSoon();
+});
 
-broadcastInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && broadcastInput.value.trim()) {
-    const msg = broadcastInput.value.trim();
-    broadcaster.fire(msg);
+/* ----- Broadcast bar (Atlas chat or swarm broadcast) ------------------- */
+
+if (broadcastInput) {
+  broadcastInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const msg = broadcastInput.value.trim(); if (!msg) return;
+    if (broadcastMode === "atlas") sendAtlasBrief(msg);
+    else broadcastToSwarm(msg);
     broadcastInput.value = "";
-  }
-});
+  });
+}
+if (broadcastModeBtn) {
+  broadcastModeBtn.addEventListener("click", () => {
+    broadcastMode = broadcastMode === "atlas" ? "swarm" : "atlas";
+    scheduleRender();
+  });
+}
 
-/* ----- Toolbar -------------------------------------------------------- */
+function sendAtlasBrief(msg) {
+  const conn = store.get("connection") || {};
+  if (!conn.llmEnabled || !arenaSocket || arenaSocket.readyState !== 1) {
+    engine.appendLine(LEAD_ID, "[arena] cannot brief — set ANTHROPIC_API_KEY on the server.");
+    engine.setAnimationState(LEAD_ID, "warning");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1800);
+    return;
+  }
+  const roster = (store.get("agents") || []).map((a) => ({
+    id: a.id, name: a.name, role: a.role, superSkill: a.superSkill,
+  }));
+  arenaSocket.send(JSON.stringify({ t: "atlas-brief", goal: msg, roster }));
+  engine.appendLine(LEAD_ID, `operator > ${msg}`);
+  engine.setAnimationState(LEAD_ID, "thinking");
+}
+
+function broadcastToSwarm(msg) {
+  if (!arenaSocket || arenaSocket.readyState !== 1) return;
+  // Send the same text into every running specialist's PTY as a real input.
+  // Specialists that aren't running silently skip.
+  const running = (store.get("connection") || {}).runningPtys || [];
+  for (const a of (store.get("agents") || [])) {
+    if (a.id === LEAD_ID) continue;
+    if (!a.ptyRunning) continue;
+    arenaSocket.send(JSON.stringify({ t: "input", id: a.id, d: msg + "\r" }));
+  }
+  engine.appendLine(LEAD_ID, `swarm broadcast > ${msg}`);
+}
+
+/* ----- Filter / bulk controls ----------------------------------------- */
 
 filterBar.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-filter]"); if (!btn) return;
@@ -186,7 +346,7 @@ evolveAllBtn.addEventListener("click", () => {
 });
 
 resetBtn.addEventListener("click", () => {
-  if (!confirm("Reset arena? This clears persisted evolution + auto-enter, then re-runs Atlas's spawn pass.")) return;
+  if (!confirm("Reset arena? This clears persisted evolution + auto-enter + custom agents.")) return;
   if (arenaSocket && arenaSocket.readyState === 1) {
     arenaSocket.send(JSON.stringify({ t: "persist", evolution: {}, customAgents: [], atlasMission: "" }));
   }
@@ -195,7 +355,25 @@ resetBtn.addEventListener("click", () => {
 
 newAgentBtn.addEventListener("click", () => store.set("modalOpen", true));
 
-/* ----- Auto-enter (server bridge) ------------------------------------ */
+/* ----- PTY lifecycle controls ----------------------------------------- */
+
+function launchPty(id, goal = "") {
+  if (!arenaSocket || arenaSocket.readyState !== 1) return;
+  arenaSocket.send(JSON.stringify({ t: "start-pty", id, goal }));
+  engine.appendLine(id, "[arena] launching real session…");
+}
+function stopPty(id) {
+  if (!arenaSocket || arenaSocket.readyState !== 1) return;
+  arenaSocket.send(JSON.stringify({ t: "stop-pty", id }));
+}
+function sendDirectInput(id, text) {
+  if (!arenaSocket || arenaSocket.readyState !== 1) return;
+  const payload = text.endsWith("\r") ? text : text + "\r";
+  arenaSocket.send(JSON.stringify({ t: "input", id, d: payload }));
+  engine.appendLine(id, `> ${text}`);
+}
+
+/* ----- WebSocket bridge ----------------------------------------------- */
 
 let arenaSocket = null;
 function openArenaSocket() {
@@ -224,35 +402,64 @@ function handleServerMessage(m) {
     store.set("connection", {
       ws: true, pulse: !!m.pulse,
       ptyIds: m.ptyAgents || [],
+      llmEnabled: !!(m.llm && m.llm.enabled),
+      llmModel: m.llm && m.llm.model,
+      leadId: m.leadId || LEAD_ID,
+      runningPtys: [],
     });
-  } else if (m.t === "auto-config-ack") {
-    // server confirmed the set of armed PTYs — could surface this if needed
-  } else if (m.t === "auto-fired") {
-    // Drop the note onto Atlas's terminal so the operator sees what happened.
-    engine.appendLine(LEAD_ID, `[server] auto-enter → ${m.target} · ${m.reason || "prompt"}`);
-  } else if (m.t === "pulse") {
-    // Optional Rust accelerator advisory message — drop into Atlas's stream
-    if (m.kind) engine.appendLine(LEAD_ID, `[forge-pulse] ${m.kind}: ${m.reason || ""}`);
-  } else if (m.t === "o" && m.id) {
-    // Live PTY bytes — append a single condensed line so the arena cards
-    // get a feel for real terminal activity without rendering a full TTY.
-    const id = m.id;
-    const a = engine.get(id);
-    if (a) {
-      const txt = String(m.d || "").replace(/[\x00-\x1f]+/g, " ").trim();
-      if (txt) {
-        engine.appendLine(id, txt.slice(0, 100));
-        engine.setAnimationState(id, "working");
-      }
+  } else if (m.t === "atlas-brief-start") {
+    engine.appendLine(LEAD_ID, `[atlas] live briefing via ${m.model}…`);
+    engine.setAnimationState(LEAD_ID, "working");
+  } else if (m.t === "atlas-brief-delta") {
+    const a = engine.get(LEAD_ID); if (a) {
+      const last = a.terminalLines[a.terminalLines.length - 1] || "";
+      a.terminalLines[a.terminalLines.length - 1] = (last + m.d).slice(0, 240);
+      engine.publish();
     }
-  } else if (m.t === "started") {
-    const a = engine.get(m.id); if (a) engine.setAnimationState(m.id, "thinking");
-  } else if (m.t === "exit") {
+  } else if (m.t === "atlas-brief-end") {
+    engine.appendLine(LEAD_ID, `[atlas] done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
+    if (Array.isArray(m.briefings) && m.briefings.length) {
+      engine.appendLine(LEAD_ID,
+        `[atlas] dispatching ${m.briefings.length} specialist${m.briefings.length === 1 ? "" : "s"}: ${m.briefings.map((b) => b.id).join(", ")}`);
+    }
+    engine.setAnimationState(LEAD_ID, "success");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
+  } else if (m.t === "dispatch") {
     const a = engine.get(m.id);
     if (a) {
-      engine.appendLine(m.id, `[process exited code=${m.code ?? "?"}]`);
-      engine.setAnimationState(m.id, "warning");
+      engine.appendLine(m.id, `[atlas] @${m.id}: ${m.task}`);
+      engine.setAnimationState(m.id, "thinking");
     }
+  } else if (m.t === "dispatch-skip") {
+    engine.appendLine(LEAD_ID, `[atlas] could not dispatch @${m.id} — ${m.reason}`);
+  } else if (m.t === "spend-update") {
+    store.set("spend", m.spend || {});
+  } else if (m.t === "atlas-brief-error") {
+    engine.appendLine(LEAD_ID, `[atlas] ${m.reason || "live brief failed"}`);
+    engine.setAnimationState(LEAD_ID, "warning");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
+  } else if (m.t === "auto-config-ack") {
+    /* server confirmed */
+  } else if (m.t === "auto-fired") {
+    engine.appendLine(LEAD_ID, `[server] auto-enter → ${m.target} · ${m.reason || "prompt"}`);
+  } else if (m.t === "pulse") {
+    if (m.kind && m.id) engine.appendLine(LEAD_ID, `[forge-pulse] ${m.id}: ${m.kind} ${m.reason || ""}`);
+  } else if (m.t === "started") {
+    engine.setPtyRunning(m.id, true);
+  } else if (m.t === "exit") {
+    engine.appendLine(m.id, `[process exited code=${m.code ?? "?"}]`);
+    engine.setPtyRunning(m.id, false);
+  } else if (m.t === "o" && m.id) {
+    // Real PTY bytes. Strip ANSI and condense each chunk to one line.
+    const clean = String(m.d || "")
+      .replace(/\x1b\[[\d;?]*[a-zA-Z]/g, "")   // ANSI CSI
+      .replace(/\x1b\][^\x07]*\x07/g, "")      // OSC
+      .replace(/[\x00-\x1f]+/g, " ")
+      .trim();
+    if (clean) engine.appendLine(m.id, clean.slice(0, 160));
+    engine.setAnimationState(m.id, "working");
+  } else if (m.t === "error") {
+    engine.appendLine(LEAD_ID, `[server] ${m.reason || "error"}`);
   }
 }
 
@@ -261,10 +468,8 @@ function syncAutoEnterServer() {
   const armed = (store.get("agents") || [])
     .filter((a) => a.autoEnter)
     .map((a) => ({ id: a.id, name: a.name }));
-  // Also send any explicit PTY ids the operator can route auto-enter to.
-  const ptyIds = (store.get("connection") || {}).ptyIds || [];
   try {
-    arenaSocket.send(JSON.stringify({ t: "auto-config", agents: armed, ptyIds }));
+    arenaSocket.send(JSON.stringify({ t: "auto-config", agents: armed }));
   } catch {}
 }
 
@@ -292,7 +497,6 @@ function persist() {
     }));
   } catch {}
 }
-
 window.addEventListener("beforeunload", () => persist());
 
 /* Initial paint */

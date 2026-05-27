@@ -24,6 +24,7 @@ import path from "node:path";
 import { spawn as spawnProc } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildState } from "../lib/state.mjs";
+import { atlasBrief, llmConfig } from "./llm.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,20 +47,94 @@ try {
 
 const REPO_DIR = process.env.REPO_DIR || process.cwd();
 const PORT = Number(process.env.PORT) || 4173;
-const AUTOSTART = process.env.AUTOSTART !== "0";
+// AUTOSTART now takes three values:
+//   "off" (default) — no specialist auto-runs; the operator launches from the UI
+//   "lead"          — auto-spawn only Atlas
+//   "all"           — auto-spawn every specialist (12 concurrent Claude sessions!)
+// Old boolean values are translated: "0" → "off", "1" / unset → "off" too,
+// since the new default is dormant. Set it explicitly if you want auto-spawn.
+const _autoRaw = (process.env.AUTOSTART || "").toLowerCase();
+const AUTOSTART = _autoRaw === "all" ? "all" : _autoRaw === "lead" ? "lead" : "off";
 const ARENA_FILE = path.join(REPO_DIR, ".team", "arena.json");
 
 const config = JSON.parse(fs.readFileSync(path.join(HERE, "agents.json"), "utf8"));
+// One swarm, one list. ATLAS PRIME is the lead; everyone else reports to
+// Atlas. `specialists` from older configs is honoured as a fallback.
+const swarm = Array.isArray(config.agents) && config.agents.length
+  ? config.agents
+  : (Array.isArray(config.specialists) ? config.specialists : []);
+const LEAD = swarm.find((a) => a.lead) || swarm.find((a) => a.id === "atlas") || swarm[0];
+const ptyIndex = new Map(swarm.map((d) => [d.id, d]));
 if (process.env.TEST_CMD) {
-  for (const a of config.agents) {
-    a.cmd = process.env.TEST_CMD;
-    a.args = [];
-  }
+  for (const a of swarm) { a.cmd = process.env.TEST_CMD; a.args = []; }
 }
 
 const agents = new Map(); // id -> { def, term, buf, alive, tail }
 const clients = new Set();
 const arenaClients = new Set();
+
+/* ----- Spend / budget tracking -----
+ * Every Atlas brief stream returns usage + cost. We aggregate them into a
+ * per-session ledger and broadcast updates so the arena's Ledger card can
+ * show live spend without polling. AGENTFORGE_BUDGET_USD enforces a soft cap:
+ * once exceeded, new briefs are refused with a clear error. 0 = unlimited. */
+const BUDGET_USD = Number(process.env.AGENTFORGE_BUDGET_USD || 0);
+const spend = {
+  totalIn: 0, totalOut: 0, totalUsd: 0, briefs: [],
+  startedAt: Date.now(), budgetUsd: BUDGET_USD,
+};
+function recordSpend(entry) {
+  spend.totalIn  += entry.usage?.input_tokens  || 0;
+  spend.totalOut += entry.usage?.output_tokens || 0;
+  spend.totalUsd += entry.cost || 0;
+  spend.briefs.push({
+    ts: Date.now(),
+    model: entry.model,
+    input: entry.usage?.input_tokens  || 0,
+    output: entry.usage?.output_tokens || 0,
+    cost: entry.cost || 0,
+    goal: (entry.goal || "").slice(0, 120),
+  });
+  if (spend.briefs.length > 100) spend.briefs.splice(0, spend.briefs.length - 100);
+  arenaBroadcastSafe({ t: "spend-update", spend: spendSnapshot() });
+}
+function spendSnapshot() {
+  return {
+    totalIn: spend.totalIn,
+    totalOut: spend.totalOut,
+    totalUsd: spend.totalUsd,
+    briefCount: spend.briefs.length,
+    recent: spend.briefs.slice(-10),
+    budgetUsd: spend.budgetUsd,
+    remainingUsd: spend.budgetUsd > 0 ? Math.max(0, spend.budgetUsd - spend.totalUsd) : null,
+    overBudget: spend.budgetUsd > 0 && spend.totalUsd >= spend.budgetUsd,
+    startedAt: spend.startedAt,
+  };
+}
+function arenaBroadcastSafe(msg) {
+  const s = JSON.stringify(msg);
+  for (const c of arenaClients) if (c.readyState === 1) { try { c.send(s); } catch {} }
+}
+
+/* ----- Atlas brief parser -----
+ * Atlas's system prompt asks for a paragraph plus a `BRIEFINGS:` block of
+ * `- <id>: <task>` lines. We pull those out so the server can autodispatch
+ * each specialist's PTY with the matching sub-briefing.  */
+function parseAtlasBrief(text) {
+  if (!text) return { plan: "", briefings: [] };
+  const lines = text.split(/\r?\n/);
+  let i = lines.findIndex((l) => /^\s*briefings\s*:?/i.test(l));
+  const plan = i > 0 ? lines.slice(0, i).join("\n").trim() : text.trim();
+  const briefings = [];
+  if (i >= 0) {
+    for (const raw of lines.slice(i + 1)) {
+      // Accept "- id: task" / "* id: task" / "id: task" / "@id task"
+      const m = raw.match(/^[\s*\-•]*@?([a-z][a-z0-9_-]*)\s*[:\-—]\s*(.+?)\s*$/i);
+      if (m && m[2].length > 0) briefings.push({ id: m[1].toLowerCase(), task: m[2] });
+    }
+  }
+  return { plan, briefings };
+}
 
 /* ----- Arena persistence ----- */
 
@@ -223,7 +298,13 @@ const server = http.createServer((req, res) => {
   // REST surfaces ----------------------------------------------------------
   if (url === "/api/agents" || url === "/agents") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ agents: config.agents, repoDir: REPO_DIR }));
+    // Never leak raw role prompts over HTTP — they're operator-authored
+    // briefings, not public metadata.
+    return res.end(JSON.stringify({
+      swarm: swarm.map(({ prompt, ...rest }) => rest),
+      leadId: LEAD ? LEAD.id : null,
+      repoDir: REPO_DIR,
+    }));
   }
   if (url === "/api/state" || url === "/state") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -236,18 +317,25 @@ const server = http.createServer((req, res) => {
       evolution: arenaState.evolution,
       customAgents: arenaState.customAgents,
       atlasMission: arenaState.atlasMission,
-      ptyAgents: config.agents.map((a) => a.id),
+      ptyAgents: swarm.map((a) => a.id),
+      leadId: LEAD ? LEAD.id : null,
+      runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
+      llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
+      spend: spendSnapshot(),
     }));
   }
 
   // Pretty routes ----------------------------------------------------------
-  // /          → arena (the default surface)
-  // /console   → legacy 4-agent console
-  // /arena     → kept as an alias for backwards compatibility
+  // /          → mission control (the only surface)
+  // /arena     → alias for backwards compatibility
+  // /console   → redirects to / (the legacy 4-agent console is gone)
+  if (url === "/console" || url === "/console/") {
+    res.writeHead(302, { Location: "/" });
+    return res.end();
+  }
   let rel;
   if (url === "/") rel = "/arena.html";
-  else if (url === "/console" || url === "/console/") rel = "/console.html";
   else if (url === "/arena" || url === "/arena/") rel = "/arena.html";
   else rel = url;
 
@@ -274,6 +362,9 @@ server.on("upgrade", (req, sock, head) => {
   }
 });
 
+// Legacy /ws → kept as a thin compatibility shim. The arena WebSocket on
+// /arena is the canonical channel; nothing in the current UI uses this one
+// any more, but old tooling that hits the root WS gets the same PTY view.
 wss.on("connection", (ws) => {
   clients.add(ws);
   for (const [id, rec] of agents) {
@@ -288,8 +379,7 @@ wss.on("connection", (ws) => {
     else if (m.t === "resize" && rec) {
       try { rec.term.resize(Math.max(2, m.cols | 0), Math.max(2, m.rows | 0)); } catch {}
     } else if (m.t === "start") {
-      const def = config.agents.find((a) => a.id === m.id);
-      if (def) startAgent(def);
+      const def = ptyIndex.get(m.id); if (def) startAgent(def);
     } else if (m.t === "stop" && rec) {
       try { rec.term.kill(); } catch {}
     }
@@ -305,8 +395,11 @@ arenaWss.on("connection", (ws) => {
     evolution: arenaState.evolution,
     customAgents: arenaState.customAgents,
     atlasMission: arenaState.atlasMission,
-    ptyAgents: config.agents.map((a) => a.id),
+    ptyAgents: swarm.map((a) => a.id),
+    leadId: LEAD ? LEAD.id : null,
     pulse: !!pulse,
+    llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
+    spend: spendSnapshot(),
   }));
   // Replay buffers for any live PTYs so a late-joining arena client sees state.
   for (const [id, rec] of agents) {
@@ -352,12 +445,128 @@ arenaWss.on("connection", (ws) => {
         break;
       }
       case "start-pty": {
-        const def = config.agents.find((a) => a.id === m.id);
-        if (def) startAgent(def);
+        const def = ptyIndex.get(m.id);
+        if (def) {
+          startAgent(def);
+          // If this is a specialist (has a briefing prompt), paste the briefing
+          // and press Enter so the launched session boots into its role.
+          const goal = (m.goal || "").trim();
+          const promptText = def.prompt && goal
+            ? def.prompt.replace("{{GOAL}}", goal)
+            : def.prompt;
+          if (promptText) {
+            setTimeout(() => {
+              const rec2 = agents.get(def.id); if (!rec2) return;
+              try {
+                rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
+                rec2.term.write("\r");
+              } catch {}
+            }, 900);
+          }
+        } else {
+          ws.send(JSON.stringify({ t: "error", reason: `unknown pty id: ${m.id}` }));
+        }
         break;
       }
       case "stop-pty": {
         const rec = agents.get(m.id); if (rec) try { rec.term.kill(); } catch {}
+        break;
+      }
+      case "atlas-brief": {
+        // Stream a real Atlas briefing through the configured LLM. The text
+        // is accumulated server-side so when the stream ends we can pull the
+        // `BRIEFINGS:` block out and auto-dispatch each specialist's PTY
+        // with its sub-briefing. Cost is recorded into the spend ledger.
+        const goal = String(m.goal || "").slice(0, 4000);
+        const roster = Array.isArray(m.roster) ? m.roster.slice(0, 32) : [];
+        const autoDispatch = m.autoDispatch !== false; // opt-out flag
+        const cfg = llmConfig();
+        if (!cfg.enabled) {
+          ws.send(JSON.stringify({ t: "atlas-brief-error", reason: "ANTHROPIC_API_KEY not set on the server." }));
+          break;
+        }
+        if (spend.budgetUsd > 0 && spend.totalUsd >= spend.budgetUsd) {
+          ws.send(JSON.stringify({ t: "atlas-brief-error",
+            reason: `Budget ceiling $${spend.budgetUsd.toFixed(2)} reached (spent $${spend.totalUsd.toFixed(4)}). Raise AGENTFORGE_BUDGET_USD to continue.` }));
+          break;
+        }
+        const ac = new AbortController();
+        const reqId = `b-${Date.now()}`;
+        let accum = "";
+        ws.send(JSON.stringify({ t: "atlas-brief-start", reqId, model: cfg.model }));
+        atlasBrief({
+          goal, roster,
+          signal: ac.signal,
+          onDelta: (d) => {
+            accum += d;
+            try { ws.send(JSON.stringify({ t: "atlas-brief-delta", reqId, d })); } catch {}
+          },
+        }).then(({ usage, cost, model }) => {
+          recordSpend({ usage, cost, model, goal });
+          const parsed = parseAtlasBrief(accum);
+          arenaBroadcastSafe({
+            t: "atlas-brief-end", reqId, usage, cost, model,
+            briefings: parsed.briefings,
+            plan: parsed.plan.slice(0, 400),
+            autoDispatch,
+          });
+          if (autoDispatch && parsed.briefings.length) {
+            // For every briefing line Atlas produced, start the matching
+            // specialist PTY (if it isn't already running) with the sub-
+            // briefing as the goal. Atlas's own line is skipped — he doesn't
+            // delegate to himself.
+            for (const b of parsed.briefings) {
+              if (b.id === "atlas") continue;
+              const def = ptyIndex.get(b.id);
+              if (!def) {
+                arenaBroadcastSafe({ t: "dispatch-skip", id: b.id, reason: "unknown specialist" });
+                continue;
+              }
+              const wasRunning = agents.has(b.id) && agents.get(b.id).alive;
+              if (!wasRunning) startAgent(def);
+              const promptText = def.prompt ? def.prompt.replace("{{GOAL}}", b.task) : b.task;
+              // Defer the paste so the PTY is ready (newly started) or so
+              // the running session sees a clean newline before the new task.
+              setTimeout(() => {
+                const rec2 = agents.get(def.id); if (!rec2) return;
+                try {
+                  if (!wasRunning) {
+                    rec2.term.write("\x1b[200~" + promptText + "\x1b[201~");
+                  } else {
+                    rec2.term.write("\x1b[200~" + b.task + "\x1b[201~");
+                  }
+                  // Send Enter separately, ~150ms later — many TUIs (Claude
+                  // Code included) drop Enter when it's bundled with the
+                  // paste. The same pattern rmux uses.
+                  setTimeout(() => { try { rec2.term.write("\r"); } catch {} }, 150);
+                } catch {}
+              }, wasRunning ? 200 : 900);
+              arenaBroadcastSafe({
+                t: "dispatch", reqId, id: b.id, task: b.task,
+                started: !wasRunning,
+              });
+            }
+          }
+        }).catch((e) => {
+          ws.send(JSON.stringify({ t: "atlas-brief-error", reqId, reason: String(e.message || e) }));
+        });
+        ws._atlasAborts = ws._atlasAborts || new Map();
+        ws._atlasAborts.set(reqId, ac);
+        break;
+      }
+      case "atlas-brief-abort": {
+        const ac = ws._atlasAborts && ws._atlasAborts.get(m.reqId);
+        if (ac) { try { ac.abort(); } catch {} }
+        break;
+      }
+      case "spend-reset": {
+        spend.totalIn = 0; spend.totalOut = 0; spend.totalUsd = 0;
+        spend.briefs.length = 0; spend.startedAt = Date.now();
+        ws.send(JSON.stringify({ t: "spend-update", spend: spendSnapshot() }));
+        break;
+      }
+      case "spend-get": {
+        ws.send(JSON.stringify({ t: "spend-update", spend: spendSnapshot() }));
         break;
       }
     }
@@ -367,10 +576,19 @@ arenaWss.on("connection", (ws) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`\n[forge] AgentForge Command up on http://localhost:${PORT}`);
-  console.log(`[forge] arena (default): http://localhost:${PORT}/`);
-  console.log(`[forge] legacy console:  http://localhost:${PORT}/console`);
+  console.log(`[forge] mission control: http://localhost:${PORT}/`);
   console.log(`[forge] working repo:    ${REPO_DIR}`);
+  console.log(`[forge] swarm:           ${swarm.map((s) => s.id).join(", ")}`);
+  console.log(`[forge] llm bridge:      ${process.env.ANTHROPIC_API_KEY ? "enabled" : "disabled (set ANTHROPIC_API_KEY)"}`);
   startForgePulse();
-  if (AUTOSTART) for (const def of config.agents) startAgent(def);
-  else console.log("[forge] AUTOSTART=0 — start each PTY from the UI or send {t:'start-pty',id}");
+  // No autostart by default — Atlas decides which specialists run, and the
+  // operator launches them from the cockpit. Set AUTOSTART=lead to auto-spawn
+  // only Atlas, or AUTOSTART=all to spawn every specialist (12 sessions).
+  if (AUTOSTART === "all") {
+    for (const def of swarm) startAgent(def);
+  } else if (AUTOSTART === "lead" && LEAD) {
+    startAgent(LEAD);
+  } else {
+    console.log("[forge] specialists are dormant — launch from the cockpit (set AUTOSTART=lead|all to change)");
+  }
 });

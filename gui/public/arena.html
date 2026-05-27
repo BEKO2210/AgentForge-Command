@@ -21,14 +21,27 @@
       <span class="sub">· LOCAL · <span class="ok">ATLAS PRIME</span> · MISSION CONTROL ·</span>
     </div>
     <span class="conn off" id="conn-dot" aria-live="polite"
-          data-tip="WebSocket connection state">
+          data-tip="WebSocket + LLM bridge state">
       <span class="dot"></span><span class="txt">offline</span>
     </span>
-    <nav class="nav-tabs" aria-label="Surfaces">
-      <a href="/" class="active" aria-current="page">ARENA</a>
-      <a href="/console" title="Legacy 4-agent terminal console">CONSOLE</a>
-    </nav>
+    <button id="help-btn" class="btn ghost" data-tip="Keyboard shortcuts (?)"
+            style="margin-left:auto" aria-label="Keyboard shortcuts">?</button>
   </header>
+
+  <div id="status-bar" class="status-bar" aria-label="Live swarm status">
+    <span class="sb-chip"><span class="sb-k">LIVE</span><span class="sb-v" id="sb-live">0</span></span>
+    <span class="sb-chip"><span class="sb-k">AUTO</span><span class="sb-v" id="sb-auto">0</span></span>
+    <span class="sb-chip"><span class="sb-k">REPORTS</span><span class="sb-v" id="sb-reports">0</span></span>
+    <span class="sb-chip" id="sb-atlas-chip"><span class="sb-k">ATLAS</span><span class="sb-v" id="sb-atlas">off</span></span>
+    <span class="sb-chip" id="sb-pulse-chip"><span class="sb-k">PULSE</span><span class="sb-v" id="sb-pulse">—</span></span>
+    <span class="sb-spacer"></span>
+    <span class="sb-chip muted"><kbd>Ctrl</kbd>+<kbd>K</kbd> command · <kbd>/</kbd> broadcast · <kbd>?</kbd> help</span>
+  </div>
+
+  <div id="auto-banner" class="auto-banner" hidden role="alert">
+    <span>⚠ Auto-enter armed on <b id="auto-banner-count">0</b> agent(s). The server will press <kbd>Enter</kbd> on permission prompts.</span>
+    <button class="btn ghost" id="auto-banner-disarm">Disarm all</button>
+  </div>
 
   <section class="hero" aria-label="Mission overview">
     <div>
@@ -75,16 +88,58 @@
 
   <footer class="broadcast" aria-label="Atlas broadcast bar" role="contentinfo">
     <div class="broadcast-inner">
-      <span class="broadcast-prompt" aria-hidden="true">broadcast &gt;</span>
-      <label class="sr-only" for="broadcast-input">Broadcast briefing to every agent</label>
+      <button id="broadcast-mode" class="broadcast-mode"
+              data-tip="Toggle between ATLAS (talk to Atlas — he dispatches) and SWARM (raw broadcast to every running specialist)">ATLAS</button>
+      <span class="broadcast-prompt" aria-hidden="true">&gt;</span>
+      <label class="sr-only" for="broadcast-input">Brief Atlas, or broadcast directly to the swarm</label>
       <input id="broadcast-input" type="text" autocomplete="off" spellcheck="false"
-             placeholder="brief the swarm — Enter dispatches to every agent…" />
-      <span class="meta" aria-hidden="true">⏎ DISPATCH · / FOCUS · ESC CLOSE</span>
+             placeholder="Talk to Atlas — he briefs the swarm…" />
+      <span class="meta" id="broadcast-meta" aria-hidden="true">⏎ DISPATCH · / FOCUS</span>
     </div>
   </footer>
 
   <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
   <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Agent detail" aria-hidden="true"></aside>
+
+  <div id="cmd-overlay" class="cmd-overlay" hidden role="dialog" aria-label="Command mode">
+    <div class="cmd-card">
+      <div class="cmd-title">Command Mode</div>
+      <div class="cmd-hint">Next key:</div>
+      <div class="cmd-keys">
+        <span><kbd>1</kbd>…<kbd>9</kbd> focus card</span>
+        <span><kbd>a</kbd> Atlas chat mode</span>
+        <span><kbd>b</kbd> Swarm broadcast mode</span>
+        <span><kbd>l</kbd> Launch all PTYs</span>
+        <span><kbd>s</kbd> Stop all PTYs</span>
+        <span><kbd>n</kbd> New specialist</span>
+        <span><kbd>e</kbd> Evolve all mascots</span>
+        <span><kbd>?</kbd> Help overlay</span>
+        <span><kbd>Esc</kbd> Cancel</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-overlay" class="help-overlay" hidden role="dialog" aria-label="Keyboard shortcuts">
+    <div class="help-card">
+      <header>
+        <h3>Keyboard shortcuts</h3>
+        <button class="close" data-action="help-close" aria-label="Close help">ESC</button>
+      </header>
+      <div class="help-grid">
+        <div><kbd>/</kbd></div><div>Focus the broadcast bar</div>
+        <div><kbd>Ctrl</kbd>+<kbd>K</kbd></div><div>Enter command mode (then press a single key)</div>
+        <div><kbd>Esc</kbd></div><div>Close any drawer / modal / overlay</div>
+        <div><kbd>Alt</kbd>+<kbd>N</kbd></div><div>Spawn a new specialist (modal)</div>
+        <div><kbd>?</kbd></div><div>Toggle this help</div>
+        <div><kbd>Enter</kbd></div><div>Dispatch broadcast / submit direct message</div>
+        <div><kbd>Tab</kbd></div><div>Walk through cards (browser focus)</div>
+      </div>
+      <div class="help-foot">
+        <span>Atlas is the sole lead — talk to him, he dispatches the swarm. Every specialist's
+        output reports back to Atlas in the mission stream.</span>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-backdrop" class="modal-backdrop" aria-hidden="true">
     <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Spawn a new specialist" aria-hidden="true"></div>

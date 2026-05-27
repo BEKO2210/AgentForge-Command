@@ -1,12 +1,14 @@
-# team-mcp — read-only MCP server for the .team/ state
+# team-mcp — read-only MCP server for AgentForge state
 
-Exposes the kit's coordination state (board, logs, memory, health, metrics) as
-[Model Context Protocol](https://modelcontextprotocol.io) resources, so any MCP-aware
-client (Claude Desktop, IDE plugins, agents) can read the team's state without writing
-to the repo.
+Exposes AgentForge's coordination state (board, logs, memory, health, metrics)
+as [Model Context Protocol](https://modelcontextprotocol.io) resources, so any
+MCP-aware client (Claude Desktop, IDE plugins, agents) can read the swarm's
+state without writing to the repo.
 
-This sub-package is opt-in. The core kit has zero runtime dependencies; the MCP server
-ships its own `package.json` and is only used when you explicitly enable it.
+This sub-package is opt-in. AgentForge's core has zero runtime dependencies;
+the MCP server ships its own `package.json` and is only used when you
+explicitly enable it. It complements — but does not replace — the arena's
+`/api/arena` HTTP surface, which exposes the same data to local clients.
 
 ## Install
 
