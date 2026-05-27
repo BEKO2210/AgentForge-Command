@@ -13,16 +13,29 @@ jobs:
   gate:
     name: bash + shellcheck + tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Show tool versions
         run: |
           bash --version | head -1
           git --version
+          node --version
           (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed"
+
+      # The server-integration suite (tests/server-suite.mjs) spawns the
+      # real gui server, which imports node-pty + ws from gui/node_modules.
+      # CI starts with a clean tree, so install gui deps before the gate.
+      - name: Install gui dependencies (for server integration suite)
+        working-directory: gui
+        run: npm ci --ignore-scripts
 
       - name: Run the green gate (bash -n + shellcheck + tests/run.sh)
         run: scripts/team-check.sh

@@ -32,8 +32,19 @@ async function it(name, fn) {
 
 /* ----- Server lifecycle ----- */
 
+import fs from "node:fs";
+
+// CI guard: the suite spawns the real gui server which requires node-pty +
+// ws in gui/node_modules. If they're missing we can't run the suite, but
+// we shouldn't fail silently either — skip explicitly with a clear note.
+const ptyInstalled = fs.existsSync(path.join(ROOT, "gui", "node_modules", "node-pty"))
+                  && fs.existsSync(path.join(ROOT, "gui", "node_modules", "ws"));
+
 let server = null;
 async function startServer() {
+  if (!ptyInstalled) {
+    throw new Error("gui/node_modules missing — run `cd gui && npm install` (or `npm ci`) before this suite.");
+  }
   server = spawn("node", [path.join(ROOT, "gui/server.js")], {
     cwd: ROOT,
     env: {
@@ -50,16 +61,24 @@ async function startServer() {
   });
   server.stdout.setEncoding("utf8");
   server.stderr.setEncoding("utf8");
-  let buf = "";
+  let stdoutBuf = "";
+  let stderrBuf = "";
   await new Promise((resolve, reject) => {
-    const onData = (d) => {
-      buf += d;
-      if (buf.includes("AgentForge Command up")) resolve();
-    };
-    server.stdout.on("data", onData);
-    server.stderr.on("data", () => {});
-    server.on("exit", (code) => reject(new Error(`server exited early code=${code}: ${buf.slice(-400)}`)));
-    setTimeout(() => reject(new Error("server didn't come up in 5s")), 5000);
+    server.stdout.on("data", (d) => {
+      stdoutBuf += d;
+      if (stdoutBuf.includes("AgentForge Command up")) resolve();
+    });
+    // Capture stderr so a startup failure is debuggable on CI — without
+    // this we used to see "server exited early code=1:" with an empty tail.
+    server.stderr.on("data", (d) => { stderrBuf += d; });
+    server.on("exit", (code) => {
+      const tail = (stderrBuf || stdoutBuf).slice(-600).trim();
+      reject(new Error(`server exited early code=${code}\n  stderr/tail: ${tail || "(empty)"}`));
+    });
+    setTimeout(() => {
+      const tail = (stderrBuf || stdoutBuf).slice(-400).trim();
+      reject(new Error(`server didn't come up in 5s\n  tail: ${tail || "(empty)"}`));
+    }, 5000);
   });
 }
 function stopServer() {
