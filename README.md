@@ -198,7 +198,7 @@ line. Press `/` to focus, `Enter` to dispatch, `Esc` to close any drawer.
 
 ## Auto-enter
 
-> *„Sag dem System einmal: du darfst Enter drücken — und es macht es ab jetzt für dich."*
+> *„Tell the system once: You can press Enter - and it will do it for you from now on ."*
 
 A per-PTY watchdog presses Enter on clear permission prompts so the operator
 doesn't keep approving them by hand.
