@@ -5,7 +5,12 @@
   "description": "One-window control panel for the 4-agent Claude Code team",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:arena": "node ../tests/arena-suite.mjs",
+    "test:server": "node ../tests/server-suite.mjs",
+    "test:workflow": "node ../tests/workflow-suite.mjs",
+    "test:e2e": "node ../tests/server-suite.mjs && node ../tests/workflow-suite.mjs",
+    "smoke:atlas": "node ../scripts/smoke-atlas-workflow.mjs"
   },
   "dependencies": {
     "node-pty": "^1.0.0",

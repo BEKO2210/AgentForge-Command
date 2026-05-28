@@ -26,6 +26,7 @@ The cockpit launches each agent in the directory you run from. Override with
 | `TEST_CMD` | *(unset)* | Replace `claude` with another command (e.g. `bash`) for smoke tests. |
 | `ANTHROPIC_API_KEY` | *(unset)* | Enables live LLM briefings in the arena. Server-only, never sent to the browser. |
 | `AGENTFORGE_LLM_MODEL` | `claude-sonnet-4-6` | Model id for the LLM bridge. |
+| `AGENTFORGE_HARNESS` | *(unset)* | `1` runs the deterministic **test harness** for `atlas-brief` when no key is set (no LLM, frames tagged `harness:true`, UI shows a "TEST HARNESS" badge). |
 | `AGENTFORGE_BUDGET_USD` | `0` (unlimited) | Soft spend ceiling; once exceeded, new Atlas briefs are refused with a clear error. |
 | `FORGE_PULSE` | auto | Auto-detected if the binary is present; set `0` to disable the optional Rust accelerator. |
 
@@ -133,6 +134,22 @@ A corrupt file never crashes the server: it's backed up to
 `arena.json.corrupt-<ts>` and the cockpit boots to empty state. Reset from the
 UI ("↺ Reset") or by deleting the file.
 
+## Test & workflow scripts
+
+From the `gui/` directory:
+
+```bash
+npm run test:arena       # arena unit tests
+npm run test:server      # server integration tests (HTTP + WS)
+npm run test:workflow    # agentforge-real-workflow-smoke (routing chain A–H)
+npm run test:e2e         # server + workflow
+npm run smoke:atlas      # one workflow run → _handoff/.../WORKFLOW_TEST_REPORT.md
+```
+
+`smoke:atlas` and `test:workflow` use the deterministic harness by default; set
+`AGENTFORGE_LIVE_TEST=1 ANTHROPIC_API_KEY=sk-ant-...` for a real LLM run. The
+full operator handover is in `../_handoff/agentforge-command/`.
+
 ## API surface
 
 - `GET /` → arena.html (Mission Control)
@@ -140,7 +157,7 @@ UI ("↺ Reset") or by deleting the file.
 - `GET /index.html` → 0-second meta-refresh to `/`
 - `GET /api/agents` → `{ swarm, leadId, repoDir }` (role prompts never leak)
 - `GET /api/state` → folded `.team/` state (board counts + per-role liveness)
-- `GET /api/arena` → `{ autoEnter, evolution, customAgents, atlasMission, ptyAgents, leadId, runningPtys, pulse, claudeCli, llm, spend }`
+- `GET /api/arena` → `{ autoEnter, evolution, customAgents, atlasMission, ptyAgents, leadId, runningPtys, pulse, claudeCli, harness, llm, spend }`
 - `GET|POST /api/hooks` → tool-hook receiver (resolves event/tool → state)
 - `WS  /` → legacy PTY bridge (input / resize / start / stop / output / exit)
 - `WS  /arena` → arena protocol:

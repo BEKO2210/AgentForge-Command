@@ -35,6 +35,7 @@
     <span class="sb-chip" id="sb-atlas-chip"><span class="sb-k">ATLAS</span><span class="sb-v" id="sb-atlas">off</span></span>
     <span class="sb-chip" id="sb-cli-chip"><span class="sb-k">CLI</span><span class="sb-v" id="sb-cli">—</span></span>
     <span class="sb-chip" id="sb-pulse-chip"><span class="sb-k">PULSE</span><span class="sb-v" id="sb-pulse">—</span></span>
+    <span class="sb-chip warn" id="sb-harness-chip" hidden><span class="sb-k">MODE</span><span class="sb-v">TEST HARNESS</span></span>
     <span class="sb-spacer"></span>
     <span class="sb-chip muted"><kbd>Ctrl</kbd>+<kbd>K</kbd> command · <kbd>/</kbd> broadcast · <kbd>?</kbd> help</span>
   </div>
@@ -44,16 +45,9 @@
     <button class="btn ghost" id="auto-banner-disarm">Disarm all</button>
   </div>
 
-  <section class="hero" aria-label="Mission overview">
-    <div>
-      <h1>Mission Control <span class="accent">·</span> AgentForge Command</h1>
-      <p class="sub">
-        <b>Atlas Prime</b> scanned the repository and assembled the swarm below. Each agent owns a domain,
-        a super-skill and a mascot that evolves as it ships value. Broadcast a briefing, watch the swarm react,
-        or arm <kbd>⏎ auto</kbd> on the agents you trust to approve their own permission prompts.
-      </p>
-      <div id="hero-stats"></div>
-    </div>
+  <div id="hero-stats" class="stat-strip" aria-label="Mission stats"></div>
+
+  <section class="atlas-stage" aria-label="Atlas Prime command center">
     <div id="lead-panel"></div>
   </section>
 
@@ -75,15 +69,6 @@
     <main id="agent-grid" class="grid" aria-label="Specialist terminals"></main>
     <aside class="right">
       <div id="timeline"></div>
-      <div class="timeline" aria-label="Operator notes">
-        <h3>Operator notes</h3>
-        <ul style="font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.6;list-style:disc inside;padding-left:6px;margin:0;display:flex;flex-direction:column;gap:4px">
-          <li>Click any terminal card to open the agent's detail drawer.</li>
-          <li><kbd>/</kbd> focuses broadcast · <kbd>Esc</kbd> closes drawer / modal · <kbd>Alt+N</kbd> spawns a new specialist.</li>
-          <li><b>⏎ auto</b> arms server-side auto-enter on permission prompts for that agent.</li>
-          <li>State persists to <code>.team/arena.json</code> — evolution + auto-enter survive restarts.</li>
-        </ul>
-      </div>
     </aside>
   </section>
 

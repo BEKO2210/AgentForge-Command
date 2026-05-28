@@ -68,54 +68,120 @@ export function renderHeroStats(root, { agents, timeline, conn, spend }) {
 
 /* ----- Atlas command panel --------------------------------------------- */
 
-export function renderLeadPanel(root, lead, swarmSize, timeline, conn) {
+const WORKFLOW_STEPS = [
+  ["asked",       "User → Atlas"],
+  ["planning",    "Atlas plans"],
+  ["dispatching", "Dispatch"],
+  ["working",     "Agents work"],
+  ["reports",     "Reports in"],
+  ["final",       "Atlas summary"],
+  ["done",        "Done"],
+];
+
+function renderStepper(workflow) {
+  const failed = workflow === "failed";
+  const activeIdx = WORKFLOW_STEPS.findIndex(([k]) => k === workflow);
+  return `<ol class="wf-stepper ${failed ? "failed" : ""}" aria-label="Workflow status: ${escapeHTML(workflow)}">
+    ${WORKFLOW_STEPS.map(([k, label], i) => {
+      const state = failed ? (i === 0 ? "fail" : "")
+        : activeIdx < 0 ? "idle"
+        : i < activeIdx ? "done"
+        : i === activeIdx ? "active" : "";
+      return `<li class="wf-step ${state}"><span class="wf-dot"></span><span class="wf-label">${label}</span></li>`;
+    }).join("")}
+  </ol>`;
+}
+
+// Classify an answer line so operator turns, Atlas's own answer and the final
+// summary read differently — the human-readable conversation, not tool noise.
+function answerLineHTML(line) {
+  const s = String(line);
+  if (s.startsWith("you ▸"))   return `<div class="a-line you"><span class="a-who">YOU</span><span class="a-msg">${escapeHTML(s.slice(5).trim())}</span></div>`;
+  if (s.startsWith("ATLAS ▸")) return `<div class="a-line final"><span class="a-who">ATLAS · SUMMARY</span><span class="a-msg">${escapeHTML(s.slice(7).trim())}</span></div>`;
+  return `<div class="a-line atlas"><span class="a-who">ATLAS</span><span class="a-msg">${escapeHTML(s)}</span></div>`;
+}
+
+export function renderLeadPanel(root, lead, swarmSize, conn, atlasView) {
   if (!lead) { root.innerHTML = ""; return; }
-  // Mission stream — last 7 meaningful events (skip "scan" noise). Reports
-  // from specialists are the most important entries; they're tagged so they
-  // visually stand apart from boot/evolve/auto events.
-  const stream = timeline
-    .filter((t) => t.kind !== "scan")
-    .slice(0, 7)
-    .map((ev, i) =>
-      `<div class="line ${i === 0 ? "recent" : ""} kind-${ev.kind}">
-         <span class="ts">${fmtTime(ev.ts)}</span>
-         <span class="badge">${ev.kind.toUpperCase()}</span>
-         <span class="msg">${escapeHTML(ev.label)}</span>
-       </div>`).join("");
-  const recentAtlas = (lead.terminalLines || []).slice(-5);
+  const v = atlasView || { workflow: "idle", harness: false, answer: [], dispatch: [], tech: [] };
   const llmEnabled = !!(conn && conn.llmEnabled);
+  const harness = !!v.harness;
+
+  const answer = (v.answer || []).filter((l) => String(l).trim().length);
+  const answerHTML = answer.length
+    ? answer.map(answerLineHTML).join("")
+    : `<div class="a-line empty">${harness
+        ? "TEST HARNESS ready. Send Atlas a message below — a deterministic routing run will show here (no live LLM)."
+        : llmEnabled
+          ? "Atlas is standing by. Send a mission below — his live answer streams here, then he dispatches the swarm."
+          : "Atlas is standing by. Your first message launches his real <code>claude</code> session; everything he says shows here."}</div>`;
+
+  const dispatch = v.dispatch || [];
+  const dispatchHTML = dispatch.length
+    ? dispatch.map((d) => {
+        const cls = d.status === "skipped" || d.status === "error" ? "bad"
+          : d.running ? "live" : d.status === "dispatched" ? "ok" : "";
+        const badge = d.status === "skipped" ? "SKIPPED"
+          : d.status === "error" ? "ERROR"
+          : d.running ? "RUNNING"
+          : d.status === "dispatched" ? "DISPATCHED"
+          : (d.status || "queued").toUpperCase();
+        return `<li class="dsp ${cls}">
+          <div class="dsp-head"><span class="dsp-id">@${escapeHTML(d.id)}</span>
+            <span class="dsp-badge">${badge}</span></div>
+          ${d.task ? `<div class="dsp-task">${escapeHTML(d.task)}</div>` : ""}
+          ${d.report ? `<div class="dsp-report">▸ ${escapeHTML(d.report)}</div>`
+            : (!d.running && d.status !== "skipped"
+                ? `<div class="dsp-report dim">no live session — ▶ launch to deliver</div>` : "")}
+        </li>`;
+      }).join("")
+    : `<li class="dsp empty">No dispatches yet — brief Atlas and he'll address the specialists here.</li>`;
+
+  const tech = v.tech || [];
+  const techHTML = tech.length
+    ? tech.slice(-120).map((l) => `<div class="tech-line">${escapeHTML(l)}</div>`).join("")
+    : `<div class="tech-line dim">No technical events yet.</div>`;
+
   root.innerHTML = `
-    <div class="lead-panel" aria-label="Atlas Prime command panel">
+    <div class="lead-panel ${harness ? "is-harness" : ""}" aria-label="Atlas Prime command center">
       <div class="lead-head">
         <div class="lead-mascot-wrap" style="color:${lead.color}" aria-hidden="true">
           ${renderMascot({ mascot: lead.mascot, level: lead.evolutionLevel, color: lead.color, state: lead.animationState, size: "lg" })}
         </div>
         <div class="lead-meta">
-          <h2>${lead.name} <small>${escapeHTML(lead.title)}</small></h2>
-          <p class="lead-briefing">${escapeHTML(lead.briefing)}</p>
+          <h2>${lead.name} <small>${escapeHTML(lead.title)}</small>${harness ? ` <span class="harness-tag">TEST HARNESS</span>` : ""}</h2>
           <div class="lead-row">
-            <span class="pill ${llmEnabled ? "good" : ""}">
+            <span class="pill ${llmEnabled ? "good" : harness ? "warn" : ""}">
               <span class="dot ${llmEnabled ? "good" : ""}"></span>
-              Atlas ${llmEnabled ? `live · ${escapeHTML(conn.llmModel || "claude")}` : "direct PTY · no API key"}
+              ${llmEnabled ? `Atlas live · ${escapeHTML(conn.llmModel || "claude")}`
+                : harness ? "Atlas · test harness (no LLM)"
+                : "Atlas · direct PTY · no API key"}
             </span>
             <span class="pill"><span class="dot"></span>${STATUS_LABELS[lead.animationState] || lead.animationState}</span>
             <span class="pill"><span class="dot good"></span>${swarmSize} specialists</span>
-            <span class="pill"><span class="dot"></span>Mascot Lv. ${lead.evolutionLevel}/5</span>
           </div>
+          ${renderStepper(v.workflow || "idle")}
         </div>
       </div>
-      <div class="lead-transcript" aria-live="polite" aria-label="Atlas transcript">
-        ${recentAtlas.length
-          ? recentAtlas.map((l) => `<div class="t-line">${escapeHTML(l)}</div>`).join("")
-          : `<div class="t-line empty">Atlas is standing by. Type below to talk to his real claude-CLI session — first message launches the PTY with your mission.</div>`
-        }
+      <div class="lead-grid">
+        <section class="atlas-answer" aria-label="Atlas answer">
+          <h3>Atlas <span class="dim">— his answer to you</span></h3>
+          <div class="answer-scroll" id="atlas-answer-scroll" aria-live="polite">${answerHTML}</div>
+        </section>
+        <aside class="atlas-dispatch" aria-label="Dispatch and reports">
+          <h3>Dispatch &amp; reports <span class="count">${dispatch.length}</span></h3>
+          <ul class="dispatch-list">${dispatchHTML}</ul>
+        </aside>
       </div>
-      <div class="mission-stream" aria-live="polite" aria-label="Atlas mission stream">
-        <h3>Mission stream — every specialist reports here</h3>
-        ${stream || '<div class="line"><span class="ts">--:--:--</span> <span class="badge">IDLE</span> <span class="msg">No reports yet — launch a specialist or brief Atlas.</span></div>'}
-      </div>
+      <details class="tech-events"${tech.length ? "" : ""}>
+        <summary>Technical events <span class="count">${tech.length}</span> <span class="dim">— tool calls · hooks · raw PTY (collapsed by default)</span></summary>
+        <div class="tech-scroll">${techHTML}</div>
+      </details>
     </div>
   `;
+  // Keep the answer pinned to the newest line.
+  const sc = root.querySelector("#atlas-answer-scroll");
+  if (sc) sc.scrollTop = sc.scrollHeight;
 }
 
 /* ----- Terminal grid ---------------------------------------------------- */
