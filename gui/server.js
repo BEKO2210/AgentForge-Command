@@ -56,6 +56,12 @@ const PORT = Number(process.env.PORT) || 4173;
 const _autoRaw = (process.env.AUTOSTART || "").toLowerCase();
 const AUTOSTART = _autoRaw === "all" ? "all" : _autoRaw === "lead" ? "lead" : "off";
 const ARENA_FILE = path.join(REPO_DIR, ".team", "arena.json");
+// Deterministic test harness: when set AND no real LLM key is configured, the
+// atlas-brief path runs a *clearly labelled* synthetic Atlas that exercises the
+// real routing chain (goal → parse → dispatch → reports → final summary)
+// without pretending an LLM ran. Every event it emits carries `harness:true`
+// and the cockpit shows a "TEST HARNESS" badge. Never on by accident.
+const HARNESS = process.env.AGENTFORGE_HARNESS === "1" || process.env.AGENTFORGE_TEST_HARNESS === "1";
 
 const config = JSON.parse(fs.readFileSync(path.join(HERE, "agents.json"), "utf8"));
 // One swarm, one list. ATLAS PRIME is the lead; everyone else reports to
@@ -247,6 +253,82 @@ function parseAtlasBrief(text) {
     }
   }
   return { plan, briefings };
+}
+
+/* ----- Deterministic test harness -----
+ * Synthetic Atlas that drives the SAME routing pipeline the live LLM path uses
+ * (parse → dispatch → per-specialist briefing → report → final summary), but
+ * with fixed, offline content. It exists to prove the routing chain end-to-end
+ * when no API key / Claude CLI is available. It is honest about being a harness:
+ * every frame carries `harness:true` and the final summary says so. It does NOT
+ * spawn PTYs or claim a specialist "worked" — it reports each addressed agent's
+ * delivery status truthfully (dispatched vs. not-running). */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function harnessTargets(goal, roster) {
+  const specialists = roster.filter((r) => r.id && r.id !== "atlas");
+  const named = specialists.filter((r) => {
+    const id = String(r.id);
+    const name = String(r.name || "");
+    const re = new RegExp(`\\b(${id}|${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "i");
+    return re.test(goal);
+  });
+  return named.length ? named : specialists;
+}
+
+async function runHarnessBrief({ ws, goal, roster, autoDispatch }) {
+  const reqId = `h-${Date.now()}`;
+  const send = (msg) => { try { ws.send(JSON.stringify({ ...msg, harness: true })); } catch {} };
+  const targets = harnessTargets(goal, roster);
+
+  send({ t: "atlas-brief-start", reqId, model: "test-harness" });
+  await sleep(20);
+
+  const plan = `Running a deterministic swarm check (TEST HARNESS — no live LLM). I will address ${targets.length} specialist${targets.length === 1 ? "" : "s"}: ${targets.map((t) => t.id).join(", ")}. Each is asked for one status line; I will then summarise who responded and what remains open.`;
+  // Stream the plan in a few chunks so the transcript renders a live answer.
+  for (const chunk of plan.match(/.{1,60}(\s|$)/g) || [plan]) {
+    send({ t: "atlas-brief-delta", reqId, d: chunk });
+    await sleep(12);
+  }
+  const briefings = targets.map((t) => ({ id: t.id, task: `report one-line ${t.role || "status"} check for the swarm audit` }));
+  send({ t: "atlas-brief-end", reqId, plan, briefings,
+         usage: { input_tokens: 0, output_tokens: 0 }, cost: 0 });
+  await sleep(20);
+
+  const responded = [];
+  const notRunning = [];
+  if (autoDispatch !== false) {
+    for (const b of briefings) {
+      const def = ptyIndex.get(b.id);
+      if (!def) { send({ t: "dispatch-skip", reqId, id: b.id, reason: "unknown specialist" }); continue; }
+      send({ t: "specialist-brief-start", reqId, id: b.id, task: b.task });
+      await sleep(10);
+      send({ t: "specialist-brief-delta", reqId, id: b.id, d: `You are ${def.name || b.id}. ${b.task}. Reply to @atlas with exactly one status line.` });
+      await sleep(10);
+      send({ t: "specialist-brief-end", reqId, id: b.id, usage: { input_tokens: 0, output_tokens: 0 }, cost: 0 });
+      const running = agents.has(b.id) && agents.get(b.id).alive;
+      send({ t: "dispatch", reqId, id: b.id, task: b.task, started: false, running });
+      await sleep(10);
+      // Truthful report: a harness status line is synthetic, clearly tagged.
+      send({ t: "specialist-report", reqId, id: b.id,
+             line: `[harness] ${(def.name || b.id)} ack — ${b.task}`,
+             running });
+      responded.push(b.id);
+      if (!running) notRunning.push(b.id);
+      await sleep(10);
+    }
+  }
+
+  const summary = [
+    `SWARM CHECK COMPLETE (TEST HARNESS — no live LLM ran).`,
+    `Checked: routing chain for ${briefings.length} specialist${briefings.length === 1 ? "" : "s"} (${briefings.map((b) => b.id).join(", ")}).`,
+    `Responded: ${responded.length ? responded.join(", ") : "none"}.`,
+    notRunning.length
+      ? `Open: ${notRunning.join(", ")} have no live PTY — launch them (or set ANTHROPIC_API_KEY / TEST_CMD) for a real session.`
+      : `Open: nothing — every addressed specialist had a live session.`,
+  ].join(" ");
+  send({ t: "atlas-final", reqId, summary,
+         addressed: briefings.map((b) => b.id), responded, open: notRunning });
 }
 
 /* ----- Arena persistence ----- */
@@ -510,6 +592,7 @@ const server = http.createServer((req, res) => {
       runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
       claudeCli: claudeCliPresent(),
+      harness: HARNESS && !process.env.ANTHROPIC_API_KEY,
       llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
       spend: spendSnapshot(),
     }));
@@ -625,6 +708,7 @@ arenaWss.on("connection", (ws) => {
     leadId: LEAD ? LEAD.id : null,
     pulse: !!pulse,
     claudeCli: claudeCliPresent(),
+    harness: HARNESS && !process.env.ANTHROPIC_API_KEY,
     llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
     spend: spendSnapshot(),
   }));
@@ -721,6 +805,12 @@ arenaWss.on("connection", (ws) => {
         const autoDispatch = m.autoDispatch !== false; // opt-out flag
         const cfg = llmConfig();
         if (!cfg.enabled) {
+          if (HARNESS) {
+            // Deterministic, clearly-labelled routing-chain test. No LLM, no
+            // PTY spawns, no fake "work" — just the real dispatch pipeline.
+            runHarnessBrief({ ws, goal, roster, autoDispatch });
+            break;
+          }
           ws.send(JSON.stringify({ t: "atlas-brief-error", reason: "ANTHROPIC_API_KEY not set on the server." }));
           break;
         }
@@ -849,6 +939,9 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`[forge] swarm:           ${swarm.map((s) => s.id).join(", ")}`);
   console.log(`[forge] claude cli:      ${claudeCliPresent() ? "found" : `missing (launches will fail — install '${(LEAD && LEAD.cmd) || "claude"}' or set TEST_CMD=bash)`}`);
   console.log(`[forge] llm bridge:      ${process.env.ANTHROPIC_API_KEY ? "enabled" : "disabled (set ANTHROPIC_API_KEY)"}`);
+  if (HARNESS && !process.env.ANTHROPIC_API_KEY) {
+    console.log(`[forge] test harness:    ON — atlas-brief runs the deterministic routing harness (no live LLM). Frames are tagged harness:true.`);
+  }
   startForgePulse();
   // No autostart by default — Atlas decides which specialists run, and the
   // operator launches them from the cockpit. Set AUTOSTART=lead to auto-spawn

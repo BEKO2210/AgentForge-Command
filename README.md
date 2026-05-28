@@ -155,8 +155,26 @@ everyone.
 | 📢 **Broadcast to all** | Broadcast bar (mode = SWARM) | Raw text is written to every running specialist's PTY simultaneously. Useful for "everyone — `state`" style nudges. |
 | 💬 **Talk to one specialist** | Detail drawer → Direct message | Open any card's drawer, the chat box at the bottom writes straight into that specialist's PTY. Atlas still sees the result via the mission stream. |
 
-The mission stream in Atlas's panel shows **every** specialist's report
-back to him — colour-coded by kind so you can scan it at a glance.
+Atlas's command center shows his **answer** large and readable, a **workflow
+stepper** (User → Atlas → plan → dispatch → work → reports → summary → done),
+a **Dispatch & reports** panel naming every specialist he addressed (honestly
+flagged running / dispatched / skipped), and a collapsible **Technical events**
+panel for tool calls, hooks and raw PTY output — so the answer is never buried.
+
+### Prove the workflow (deterministic, no key needed)
+
+```bash
+cd gui && npm run smoke:atlas        # → _handoff/agentforge-command/WORKFLOW_TEST_REPORT.md
+# or the assertion suite:
+npm run test:workflow                # agentforge-real-workflow-smoke
+```
+
+Without an API key this runs a **TEST HARNESS**: a deterministic Atlas that
+drives the *real* routing pipeline (parse → dispatch → reports → summary)
+offline. It never pretends an LLM ran — every event is tagged `harness:true`
+and the cockpit shows a **TEST HARNESS** badge. Set
+`AGENTFORGE_LIVE_TEST=1 ANTHROPIC_API_KEY=sk-ant-...` for a real run. A full
+operator handover lives in [`_handoff/agentforge-command/`](_handoff/agentforge-command/START_HERE.md).
 
 ## Mission Control
 
@@ -342,12 +360,13 @@ the way a polyglot stack should grow.
 
 ## Quality and security
 
-- **Tests** — `bash tests/run.sh` runs **157** checks (87 bash against the
+- **Tests** — `bash tests/run.sh` runs **165** checks (87 bash against the
   coordination scripts + 40 arena unit tests for the cockpit modules + 30
   server integration tests that boot the real `gui/server.js` over HTTP +
   WebSocket — covering the hook receiver, auto-enter scoping, launch failure
-  and corrupt-state recovery). `cargo test --release` in `tools/forge-pulse`
-  adds 5 Rust unit tests.
+  and corrupt-state recovery + 8 **workflow** checks that prove the full
+  routing chain). `cargo test --release` in `tools/forge-pulse` adds 5 Rust
+  unit tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + tests)
   and `cargo clippy --release -- -D warnings` are both clean.
 - **Concurrency safety** — locks are atomic `mkdir` directories with stale

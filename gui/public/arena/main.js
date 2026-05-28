@@ -19,7 +19,45 @@ const store = createStore({
   selectedId: null, modalOpen: false,
   connection: { ws: false, pulse: false, ptyIds: [], llmEnabled: false, leadId: LEAD_ID },
   spend: { totalIn: 0, totalOut: 0, totalUsd: 0, briefCount: 0, recent: [], budgetUsd: 0, overBudget: false },
+  // Atlas's human-readable conversation model — kept separate from the noisy
+  // technical event stream so the main stage shows his actual answer.
+  atlas: { workflow: "idle", harness: false, answer: [], dispatch: [], tech: [] },
 });
+
+/* ----- Atlas view model -------------------------------------------------
+ * Everything Atlas "says" (his streamed answer + final summary + the
+ * operator's turns) goes into `answer`. Who he dispatched and what each
+ * specialist reported goes into `dispatch`. Tool calls, hooks and raw PTY
+ * lines go into `tech` — collapsed by default so they never bury the answer. */
+const atlasView = store.get("atlas");
+function pushAtlas() { store.set("atlas", { ...atlasView, answer: [...atlasView.answer], dispatch: [...atlasView.dispatch], tech: [...atlasView.tech] }); }
+function setWorkflow(s) { if (atlasView.workflow !== s) { atlasView.workflow = s; pushAtlas(); } }
+function atlasSay(line) { atlasView.answer = [...atlasView.answer.slice(-120), line]; pushAtlas(); }
+function atlasStreamStart() { atlasView.answer = [...atlasView.answer.slice(-120), ""]; pushAtlas(); }
+function atlasStreamAppend(d) {
+  const a = atlasView.answer;
+  if (!a.length) a.push("");
+  a[a.length - 1] = (a[a.length - 1] + d).slice(0, 4000);
+  pushAtlas();
+}
+function atlasTech(line) { atlasView.tech = [...atlasView.tech.slice(-200), `${nowHMS()} ${line}`]; pushAtlas(); }
+function atlasDispatch(id, patch) {
+  const list = atlasView.dispatch;
+  const i = list.findIndex((d) => d.id === id);
+  if (i >= 0) list[i] = { ...list[i], ...patch };
+  else list.push({ id, status: "queued", ...patch });
+  atlasView.dispatch = [...list];
+  pushAtlas();
+}
+function atlasReset() {
+  atlasView.workflow = "idle"; atlasView.answer = []; atlasView.dispatch = []; atlasView.tech = [];
+  pushAtlas();
+}
+function nowHMS() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
 
 /* ----- Bootstrap ------------------------------------------------------- */
 
@@ -56,6 +94,7 @@ const sbCli     = document.getElementById("sb-cli");
 const sbCliChip = document.getElementById("sb-cli-chip");
 const sbPulse   = document.getElementById("sb-pulse");
 const sbPulseChip = document.getElementById("sb-pulse-chip");
+const sbHarnessChip = document.getElementById("sb-harness-chip");
 const helpBtn   = document.getElementById("help-btn");
 const helpOverlay = document.getElementById("help-overlay");
 const cmdOverlay  = document.getElementById("cmd-overlay");
@@ -68,11 +107,13 @@ store.set("connection", {
   ws: false,
   pulse: !!persisted.pulse,
   claudeCli: !!persisted.claudeCli,
+  harness: !!persisted.harness,
   ptyIds: persisted.ptyAgents || [],
   llmEnabled: !!(persisted.llm && persisted.llm.enabled),
   llmModel: persisted.llm && persisted.llm.model,
   leadId: persisted.leadId || LEAD_ID,
 });
+atlasView.harness = !!persisted.harness; pushAtlas();
 if (persisted.spend) store.set("spend", persisted.spend);
 
 const engine = createSpawnEngine({ store, persisted });
@@ -103,7 +144,7 @@ function render() {
   const spend = store.get("spend") || {};
 
   renderHeroStats(heroRoot, { agents, timeline, conn, spend });
-  renderLeadPanel(leadRoot, lead, swarm, timeline, conn);
+  renderLeadPanel(leadRoot, lead, swarm, conn, store.get("atlas"));
   renderGrid(gridRoot, agents, {
     filter: store.get("filter"),
     onSelect: openDrawer,
@@ -154,6 +195,7 @@ function render() {
   }
   if (sbPulse)   sbPulse.textContent   = conn.pulse ? "rust" : "js";
   if (sbPulseChip) sbPulseChip.classList.toggle("on", !!conn.pulse);
+  if (sbHarnessChip) sbHarnessChip.hidden = !conn.harness;
   if (autoBanner) {
     autoBanner.hidden = armed === 0;
     if (autoBannerCount) autoBannerCount.textContent = String(armed);
@@ -189,6 +231,7 @@ store.subscribe("filter",     scheduleRender);
 store.subscribe("selectedId", scheduleRender);
 store.subscribe("modalOpen",  scheduleRender);
 store.subscribe("spend",      scheduleRender);
+store.subscribe("atlas",      scheduleRender);
 store.subscribe("connection", () => {
   const c = store.get("connection") || {};
   if (connDot) {
@@ -307,43 +350,44 @@ function sendAtlasBrief(msg) {
   const conn = store.get("connection") || {};
   const lead = (store.get("agents") || []).find((a) => a.id === LEAD_ID);
 
-  // No LLM bridge? Talk to Atlas's real claude-CLI PTY directly. First message
-  // launches the PTY with the operator's text as the mission (so the role
-  // briefing is pasted with {{GOAL}} substituted); subsequent messages are
-  // typed straight into the running terminal.
-  if (!conn.llmEnabled) {
+  atlasSay(`you ▸ ${msg}`);
+  setWorkflow("asked");
+  engine.setAnimationState(LEAD_ID, "listening");
+
+  // No LLM bridge AND no harness? Talk to Atlas's real claude-CLI PTY directly.
+  // First message launches the PTY with the operator's text as the mission;
+  // subsequent messages are typed straight into the running terminal. His real
+  // output streams into the answer area as it arrives.
+  if (!conn.llmEnabled && !conn.harness) {
     if (lead && lead.ptyRunning) {
       arenaSocket.send(JSON.stringify({ t: "input", id: LEAD_ID, d: msg + "\r" }));
     } else {
       arenaSocket.send(JSON.stringify({ t: "start-pty", id: LEAD_ID, goal: msg }));
-      engine.appendLine(LEAD_ID, "[arena] launching Atlas PTY with mission…");
+      atlasTech("[arena] launching Atlas PTY with mission…");
     }
-    engine.appendLine(LEAD_ID, `operator > ${msg}`);
-    engine.setAnimationState(LEAD_ID, "listening");
     return;
   }
 
+  // LLM bridge OR harness — route through the dispatch pipeline.
   const roster = (store.get("agents") || []).map((a) => ({
     id: a.id, name: a.name, role: a.role, superSkill: a.superSkill,
   }));
   arenaSocket.send(JSON.stringify({ t: "atlas-brief", goal: msg, roster }));
-  engine.appendLine(LEAD_ID, `operator > ${msg}`);
-  // Listening state first — Atlas heard the operator. atlas-brief-start
-  // upgrades us to thinking/typing.
-  engine.setAnimationState(LEAD_ID, "listening");
 }
 
 function broadcastToSwarm(msg) {
   if (!arenaSocket || arenaSocket.readyState !== 1) return;
   // Send the same text into every running specialist's PTY as a real input.
-  // Specialists that aren't running silently skip.
-  const running = (store.get("connection") || {}).runningPtys || [];
+  // Specialists that aren't running are honestly skipped (and reported).
+  const sent = [];
+  const skipped = [];
   for (const a of (store.get("agents") || [])) {
     if (a.id === LEAD_ID) continue;
-    if (!a.ptyRunning) continue;
-    arenaSocket.send(JSON.stringify({ t: "input", id: a.id, d: msg + "\r" }));
+    if (a.ptyRunning) { arenaSocket.send(JSON.stringify({ t: "input", id: a.id, d: msg + "\r" })); sent.push(a.id); }
+    else skipped.push(a.id);
   }
-  engine.appendLine(LEAD_ID, `swarm broadcast > ${msg}`);
+  atlasSay(`you ▸ (swarm broadcast) ${msg}`);
+  atlasTech(`[swarm] delivered to ${sent.length ? sent.join(", ") : "(none running)"}${skipped.length ? ` · skipped (not running): ${skipped.join(", ")}` : ""}`);
 }
 
 /* ----- Filter / bulk controls ----------------------------------------- */
@@ -430,106 +474,101 @@ function handleServerMessage(m) {
     store.set("connection", {
       ws: true, pulse: !!m.pulse,
       claudeCli: !!m.claudeCli,
+      harness: !!m.harness,
       ptyIds: m.ptyAgents || [],
       llmEnabled: !!(m.llm && m.llm.enabled),
       llmModel: m.llm && m.llm.model,
       leadId: m.leadId || LEAD_ID,
       runningPtys: [],
     });
+    atlasView.harness = !!m.harness; pushAtlas();
   } else if (m.t === "atlas-brief-start") {
-    // Atlas's pipeline: listening (receive prompt) → thinking (plan) →
-    // typing (LLM stream is producing tokens) → success.
-    engine.appendLine(LEAD_ID, `[atlas] live briefing via ${m.model}…`);
+    // A fresh run — clear the previous dispatch list, open a streaming answer
+    // line and move the workflow into "planning".
+    atlasView.dispatch = []; pushAtlas();
+    setWorkflow("planning");
+    atlasStreamStart();
+    atlasTech(`[atlas] briefing via ${m.model || "claude"}${m.harness ? " · TEST HARNESS" : ""}`);
     engine.setAnimationState(LEAD_ID, "thinking");
     setTimeout(() => {
-      // Only switch to typing if we're still in thinking — if an end/error
-      // arrived super fast the override would feel jittery.
       const a = engine.get(LEAD_ID);
       if (a && a.animationState === "thinking") engine.setAnimationState(LEAD_ID, "typing");
     }, 350);
   } else if (m.t === "atlas-brief-delta") {
-    const a = engine.get(LEAD_ID); if (a) {
-      const last = a.terminalLines[a.terminalLines.length - 1] || "";
-      a.terminalLines[a.terminalLines.length - 1] = (last + m.d).slice(0, 240);
-      engine.publish();
-      if (a.animationState !== "typing") engine.setAnimationState(LEAD_ID, "typing");
-    }
+    atlasStreamAppend(m.d || "");
+    const a = engine.get(LEAD_ID);
+    if (a && a.animationState !== "typing") engine.setAnimationState(LEAD_ID, "typing");
   } else if (m.t === "atlas-brief-end") {
-    engine.appendLine(LEAD_ID, `[atlas] done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
+    atlasTech(`[atlas] plan done · ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
     if (Array.isArray(m.briefings) && m.briefings.length) {
-      engine.appendLine(LEAD_ID,
-        `[atlas] dispatching ${m.briefings.length} specialist${m.briefings.length === 1 ? "" : "s"}: ${m.briefings.map((b) => b.id).join(", ")}`);
-      engine.setAnimationState(LEAD_ID, "working");      // actively dispatching
-      setTimeout(() => engine.setAnimationState(LEAD_ID, "success"), 600);
-      setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"),    2200);
+      setWorkflow("dispatching");
+      for (const b of m.briefings) atlasDispatch(b.id, { task: b.task, status: "queued" });
+      engine.setAnimationState(LEAD_ID, "working");
     } else {
+      setWorkflow("final");
       engine.setAnimationState(LEAD_ID, "success");
       setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1600);
     }
   } else if (m.t === "dispatch") {
+    atlasDispatch(m.id, { task: m.task, status: "dispatched", running: !!m.running });
+    setWorkflow("working");
     const a = engine.get(m.id);
     if (a) {
-      engine.appendLine(m.id, `[atlas] dispatched — sub-session starting…`);
-      engine.setAnimationState(m.id, "working");
+      engine.appendLine(m.id, m.running ? `[atlas] dispatched — running` : `[atlas] dispatched — not running (launch to deliver)`);
+      if (m.running) engine.setAnimationState(m.id, "working");
     }
   } else if (m.t === "dispatch-skip") {
-    engine.appendLine(LEAD_ID, `[atlas] could not dispatch @${m.id} — ${m.reason}`);
+    atlasDispatch(m.id, { status: "skipped", report: m.reason });
+    atlasTech(`[atlas] could not dispatch @${m.id} — ${m.reason}`);
   } else if (m.t === "specialist-brief-start") {
-    // Pass 2 has started for this specialist. Open a fresh "briefing"
-    // line on the card and switch to thinking — the next delta events
-    // will accumulate into this line.
+    atlasDispatch(m.id, { task: m.task, status: "briefing" });
     const a = engine.get(m.id);
-    if (a) {
-      engine.appendLine(m.id, `[atlas → ${m.id}] ${m.task}`);
-      engine.appendLine(m.id, "[brief] ");
-      engine.setAnimationState(m.id, "thinking");
-    }
+    if (a) { engine.appendLine(m.id, `[atlas → ${m.id}] ${m.task}`); engine.setAnimationState(m.id, "thinking"); }
   } else if (m.t === "specialist-brief-delta") {
-    // Append onto the last "[brief]" line so we get a live typing feel.
-    const a = engine.get(m.id);
-    if (a) {
-      const lines = a.terminalLines;
-      const last = lines[lines.length - 1] || "";
-      lines[lines.length - 1] = (last + m.d).slice(0, 240);
-      engine.publish();
-    }
+    atlasTech(`[brief ${m.id}] ${String(m.d || "").slice(0, 120)}`);
   } else if (m.t === "specialist-brief-end") {
+    atlasDispatch(m.id, { status: "dispatched" });
     const a = engine.get(m.id);
-    if (a) {
-      engine.appendLine(m.id,
-        `[brief done] ${m.usage?.input_tokens || 0}→${m.usage?.output_tokens || 0} tokens · $${(m.cost || 0).toFixed(4)}`);
-      engine.setAnimationState(m.id, "success");
-      setTimeout(() => engine.setAnimationState(m.id, "working"), 1200);
-    }
+    if (a) { engine.setAnimationState(m.id, "success"); setTimeout(() => engine.setAnimationState(m.id, "working"), 1200); }
   } else if (m.t === "specialist-brief-error") {
+    atlasDispatch(m.id, { status: "error", report: m.reason });
     engine.appendLine(m.id, `[brief failed] ${m.reason}`);
     engine.setAnimationState(m.id, "warning");
     setTimeout(() => engine.setAnimationState(m.id, "idle"), 1800);
+  } else if (m.t === "specialist-report") {
+    // A specialist reported back to Atlas — the visible answer, honestly
+    // flagged running vs. not.
+    atlasDispatch(m.id, { report: m.line, running: !!m.running, status: m.running ? "running" : "dispatched" });
+    setWorkflow("reports");
+    const a = engine.get(m.id);
+    if (a) engine.appendLine(m.id, m.line);
+  } else if (m.t === "atlas-final") {
+    atlasSay(`ATLAS ▸ ${m.summary}`);
+    setWorkflow("done");
+    engine.setAnimationState(LEAD_ID, "success");
+    setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 2200);
   } else if (m.t === "spend-update") {
     store.set("spend", m.spend || {});
   } else if (m.t === "atlas-brief-error") {
-    engine.appendLine(LEAD_ID, `[atlas] ${m.reason || "live brief failed"}`);
-    // Genuine failures (API errors, budget over) get the dedicated error
-    // state; soft refusals like "no key" stay as warning so they're
-    // visually distinct from a hard fail.
+    atlasSay(`ATLAS ▸ ${m.reason || "live brief failed"}`);
+    setWorkflow("failed");
     const hard = /quota|rate|5\d{2}|over budget|abort/i.test(m.reason || "");
     engine.setAnimationState(LEAD_ID, hard ? "error" : "warning");
     setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1800);
   } else if (m.t === "auto-config-ack") {
     /* server confirmed */
   } else if (m.t === "auto-fired") {
-    engine.appendLine(LEAD_ID, `[server] auto-enter → ${m.target} · ${m.reason || "prompt"}`);
+    atlasTech(`[server] auto-enter → ${m.target} · ${m.reason || "prompt"}`);
   } else if (m.t === "pulse") {
-    if (m.kind && m.id) engine.appendLine(LEAD_ID, `[forge-pulse] ${m.id}: ${m.kind} ${m.reason || ""}`);
+    if (m.kind && m.id) atlasTech(`[forge-pulse] ${m.id}: ${m.kind} ${m.reason || ""}`);
   } else if (m.t === "hook") {
-    // Authoritative state from a Claude Code tool hook. Beats heuristic
-    // PTY-byte sniffing: we know EXACTLY what the specialist is doing.
+    // Authoritative state from a Claude Code tool hook → card state + tech log.
     const a = engine.get(m.id);
     if (a && m.state) engine.setAnimationState(m.id, m.state);
     const label = m.tool ? `${m.event} ${m.tool}` : m.event;
     const detail = m.file ? ` · ${m.file}` : "";
+    atlasTech(`[hook] ${m.id}: ${label}${detail}`);
     if (a) engine.appendLine(m.id, `[hook] ${label}${detail}`);
-    // PostToolUse success → kurzer Glanz dann zurück nach idle.
     if (m.event === "PostToolUse" && m.ok && a) {
       setTimeout(() => {
         const cur = engine.get(m.id);
@@ -538,9 +577,11 @@ function handleServerMessage(m) {
     }
   } else if (m.t === "started") {
     engine.setPtyRunning(m.id, true);
+    if (m.id !== LEAD_ID) atlasDispatch(m.id, { running: true });
   } else if (m.t === "exit") {
     engine.appendLine(m.id, `[process exited code=${m.code ?? "?"}]`);
     engine.setPtyRunning(m.id, false);
+    if (m.id !== LEAD_ID) atlasDispatch(m.id, { running: false });
   } else if (m.t === "o" && m.id) {
     // Real PTY bytes. Strip ANSI and condense each chunk to one line.
     const clean = String(m.d || "")
@@ -548,7 +589,11 @@ function handleServerMessage(m) {
       .replace(/\x1b\][^\x07]*\x07/g, "")      // OSC
       .replace(/[\x00-\x1f]+/g, " ")
       .trim();
-    if (clean) engine.appendLine(m.id, clean.slice(0, 160));
+    if (clean) {
+      engine.appendLine(m.id, clean.slice(0, 160));
+      if (m.id === LEAD_ID) atlasStreamAppend(clean.slice(0, 160) + "\n");  // real Atlas PTY output IS his answer
+      else atlasDispatch(m.id, { report: clean.slice(0, 140), running: true });
+    }
     engine.setAnimationState(m.id, "working");
   } else if (m.t === "launch-error") {
     // A PTY failed to start (most often: the claude CLI isn't installed).
@@ -556,13 +601,15 @@ function handleServerMessage(m) {
     // error loudly on the agent's card AND in Atlas's stream, then settle idle.
     engine.appendLine(m.id, `[launch failed] ${m.reason || "could not start session"}`);
     engine.setAnimationState(m.id, "error");
-    if (m.id !== LEAD_ID) engine.appendLine(LEAD_ID, `[server] launch failed for ${m.id}: ${m.reason || "could not start session"}`);
+    if (m.id === LEAD_ID) { atlasSay(`ATLAS ▸ launch failed: ${m.reason || "could not start session"}`); setWorkflow("failed"); }
+    else atlasDispatch(m.id, { status: "error", report: m.reason || "launch failed", running: false });
+    atlasTech(`[server] launch failed for ${m.id}: ${m.reason || "could not start session"}`);
     setTimeout(() => {
       const cur = engine.get(m.id);
       if (cur && cur.animationState === "error") engine.setAnimationState(m.id, "idle");
     }, 2600);
   } else if (m.t === "error") {
-    engine.appendLine(LEAD_ID, `[server] ${m.reason || "error"}`);
+    atlasTech(`[server] ${m.reason || "error"}`);
   }
 }
 
