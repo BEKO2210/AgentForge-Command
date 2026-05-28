@@ -251,9 +251,17 @@ function parseAtlasBrief(text) {
 
 /* ----- Arena persistence ----- */
 
+const EMPTY_ARENA = () => ({ evolution: {}, autoEnter: [], customAgents: [], atlasMission: "", version: 1 });
+
 function loadArenaState() {
+  let raw;
   try {
-    const raw = fs.readFileSync(ARENA_FILE, "utf8");
+    raw = fs.readFileSync(ARENA_FILE, "utf8");
+  } catch {
+    // No file yet — first run. Honest empty state, nothing to recover.
+    return EMPTY_ARENA();
+  }
+  try {
     const j = JSON.parse(raw);
     return {
       evolution:  j.evolution  && typeof j.evolution  === "object" ? j.evolution  : {},
@@ -262,8 +270,17 @@ function loadArenaState() {
       atlasMission: typeof j.atlasMission === "string" ? j.atlasMission : "",
       version: 1,
     };
-  } catch {
-    return { evolution: {}, autoEnter: [], customAgents: [], atlasMission: "", version: 1 };
+  } catch (e) {
+    // The file exists but is corrupt. Never crash on it — preserve the broken
+    // copy as a sidecar so nothing is silently lost, then reset to empty.
+    try {
+      const backup = `${ARENA_FILE}.corrupt-${Date.now()}`;
+      fs.renameSync(ARENA_FILE, backup);
+      console.error(`[forge] .team/arena.json was corrupt (${e.message}). Backed up to ${path.basename(backup)} and reset to empty state.`);
+    } catch (e2) {
+      console.error(`[forge] .team/arena.json was corrupt and could not be backed up: ${e2.message}`);
+    }
+    return EMPTY_ARENA();
   }
 }
 function saveArenaState(next) {
@@ -349,6 +366,32 @@ function startForgePulse() {
   }
 }
 
+/* ----- Command resolution -----
+ * Before we spawn a PTY we resolve the command against $PATH so a missing
+ * binary (most often the `claude` CLI) becomes an honest, actionable error
+ * instead of a cryptic `execvp(3) failed` line buried in the terminal — or,
+ * on platforms where node-pty throws synchronously, an uncaught exception
+ * that takes the whole server down. */
+function resolveCommand(cmd) {
+  if (!cmd) return null;
+  if (cmd.includes("/")) {
+    try { fs.accessSync(cmd, fs.constants.X_OK); return cmd; } catch { return null; }
+  }
+  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
+    if (!dir) continue;
+    const full = path.join(dir, cmd);
+    try { fs.accessSync(full, fs.constants.X_OK); return full; } catch {}
+  }
+  return null;
+}
+
+// Cache the lead's command resolution once so the cockpit can show a
+// "Claude CLI: found / missing" pill without re-probing PATH on every request.
+function claudeCliPresent() {
+  const cmd = (LEAD && LEAD.cmd) || "claude";
+  return !!resolveCommand(cmd);
+}
+
 /* ----- PTY lifecycle ----- */
 
 function broadcast(msg) {
@@ -360,7 +403,24 @@ function arenaBroadcast(msg) {
   for (const c of arenaClients) if (c.readyState === 1) c.send(s);
 }
 
+function launchError(id, reason) {
+  console.error(`[forge] launch failed for '${id}': ${reason}`);
+  broadcast({ t: "launch-error", id, reason });
+  arenaBroadcast({ t: "launch-error", id, reason });
+}
+
 function startAgent(def) {
+  // Preflight: a missing command must surface as a clear, actionable error —
+  // not a silent crash or cryptic terminal noise. Returns false so callers
+  // can skip any follow-up (briefing paste, etc.).
+  if (!resolveCommand(def.cmd)) {
+    launchError(def.id,
+      `command not found: ${def.cmd}. Install it and ensure it is on PATH ` +
+      (def.cmd === "claude"
+        ? "(the Claude CLI — see https://claude.com/claude-code), or set TEST_CMD=bash for a smoke test."
+        : "."));
+    return false;
+  }
   const prev = agents.get(def.id);
   if (prev && prev.term) {
     try { prev.term.kill(); } catch {}
@@ -373,9 +433,15 @@ function startAgent(def) {
     AGENTFORGE_AGENT_ID: def.id,
     AGENTFORGE_HOOK_URL: `http://127.0.0.1:${PORT}/api/hooks`,
   };
-  const term = pty.spawn(def.cmd, def.args || [], {
-    name: "xterm-256color", cols: 140, rows: 30, cwd: REPO_DIR, env: ptyEnv,
-  });
+  let term;
+  try {
+    term = pty.spawn(def.cmd, def.args || [], {
+      name: "xterm-256color", cols: 140, rows: 30, cwd: REPO_DIR, env: ptyEnv,
+    });
+  } catch (e) {
+    launchError(def.id, `failed to start ${def.cmd}: ${e.message}`);
+    return false;
+  }
   const rec = { def, term, buf: "", alive: true, tail: "" };
   term.onData((d) => {
     rec.buf = (rec.buf + d).slice(-200000);
@@ -402,6 +468,7 @@ function startAgent(def) {
   broadcast({ t: "started", id: def.id });
   arenaBroadcast({ t: "started", id: def.id });
   console.log(`[forge] started '${def.id}' (${def.cmd}) in ${REPO_DIR}`);
+  return true;
 }
 
 /* ----- HTTP ----- */
@@ -442,6 +509,7 @@ const server = http.createServer((req, res) => {
       leadId: LEAD ? LEAD.id : null,
       runningPtys: Array.from(agents.keys()),
       pulse: !!pulse,
+      claudeCli: claudeCliPresent(),
       llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
       spend: spendSnapshot(),
     }));
@@ -556,6 +624,7 @@ arenaWss.on("connection", (ws) => {
     ptyAgents: swarm.map((a) => a.id),
     leadId: LEAD ? LEAD.id : null,
     pulse: !!pulse,
+    claudeCli: claudeCliPresent(),
     llm: { enabled: !!process.env.ANTHROPIC_API_KEY, model: process.env.AGENTFORGE_LLM_MODEL || "claude-sonnet-4-6" },
     spend: spendSnapshot(),
   }));
@@ -569,12 +638,20 @@ arenaWss.on("connection", (ws) => {
     try { m = JSON.parse(raw); } catch { return; }
     switch (m.t) {
       case "auto-config": {
+        // Arm auto-enter for EXACTLY the agents the operator selected. The
+        // client (main.js → syncAutoEnterServer) sends `{ agents: [{id,…}] }`
+        // listing only the armed cards. We also accept `autoEnterAll` and an
+        // explicit `ptyIds` list for tooling. Auto-enter approves permission
+        // prompts on the operator's behalf, so we must never arm an agent the
+        // operator didn't pick — an empty selection means "disarm everything".
         const wanted = new Set();
-        const ptyIds = new Set(config.agents.map((a) => a.id));
+        const ptyIds = new Set(swarm.map((a) => a.id));
         if (m.autoEnterAll) for (const id of ptyIds) wanted.add(id);
         if (Array.isArray(m.ptyIds)) for (const id of m.ptyIds) if (ptyIds.has(id)) wanted.add(id);
-        const arenaCount = Array.isArray(m.agents) ? m.agents.length : 0;
-        if (arenaCount > 0 && wanted.size === 0) for (const id of ptyIds) wanted.add(id);
+        if (Array.isArray(m.agents)) for (const a of m.agents) {
+          const id = a && typeof a === "object" ? a.id : a;
+          if (ptyIds.has(id)) wanted.add(id);
+        }
         autoEnter.clear(); for (const id of wanted) autoEnter.add(id);
         arenaState.autoEnter = Array.from(autoEnter);
         saveArenaState(arenaState);
@@ -605,7 +682,7 @@ arenaWss.on("connection", (ws) => {
       case "start-pty": {
         const def = ptyIndex.get(m.id);
         if (def) {
-          startAgent(def);
+          const launched = startAgent(def);
           // Only auto-paste the role briefing when the operator explicitly
           // dispatched with a goal. Manual "launch" from the UI sends no
           // goal — those sessions get a clean shell so the operator can
@@ -613,7 +690,7 @@ arenaWss.on("connection", (ws) => {
           // aren't drowned in role-prompt text). Atlas's auto-dispatch
           // always supplies a goal, so the briefing flow stays intact.
           const goal = (m.goal || "").trim();
-          if (def.prompt && goal) {
+          if (launched && def.prompt && goal) {
             const promptText = def.prompt.replace("{{GOAL}}", goal);
             setTimeout(() => {
               const rec2 = agents.get(def.id); if (!rec2) return;
@@ -770,6 +847,7 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`[forge] mission control: http://localhost:${PORT}/`);
   console.log(`[forge] working repo:    ${REPO_DIR}`);
   console.log(`[forge] swarm:           ${swarm.map((s) => s.id).join(", ")}`);
+  console.log(`[forge] claude cli:      ${claudeCliPresent() ? "found" : `missing (launches will fail — install '${(LEAD && LEAD.cmd) || "claude"}' or set TEST_CMD=bash)`}`);
   console.log(`[forge] llm bridge:      ${process.env.ANTHROPIC_API_KEY ? "enabled" : "disabled (set ANTHROPIC_API_KEY)"}`);
   startForgePulse();
   // No autostart by default — Atlas decides which specialists run, and the
@@ -783,3 +861,33 @@ server.listen(PORT, "127.0.0.1", () => {
     console.log("[forge] specialists are dormant — launch from the cockpit (set AUTOSTART=lead|all to change)");
   }
 });
+
+server.on("error", (e) => {
+  if (e.code === "EADDRINUSE") {
+    console.error(`\n[forge] port ${PORT} is already in use. Stop the other process or start with a different port:\n  PORT=${PORT + 1} node gui/server.js\n`);
+    process.exit(1);
+  }
+  console.error(`[forge] server error: ${e.message}`);
+  process.exit(1);
+});
+
+/* ----- Clean shutdown ----- */
+// Kill every live PTY, hang up the Rust accelerator and close the WebSocket
+// servers so we don't leak child processes or sockets on Ctrl-C / SIGTERM.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n[forge] ${signal} — shutting down: killing ${agents.size} PTY(s)…`);
+  for (const [, rec] of agents) { try { rec.term.kill(); } catch {} }
+  if (pulse) { try { pulse.kill(); } catch {} }
+  for (const c of clients)      { try { c.close(); } catch {} }
+  for (const c of arenaClients) { try { c.close(); } catch {} }
+  try { wss.close(); } catch {}
+  try { arenaWss.close(); } catch {}
+  server.close(() => process.exit(0));
+  // Hard backstop: never hang forever waiting on a stuck socket.
+  setTimeout(() => process.exit(0), 1500).unref();
+}
+process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

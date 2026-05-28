@@ -101,6 +101,47 @@ function stopServer() {
 process.on("exit", stopServer);
 process.on("SIGINT", () => { stopServer(); process.exit(130); });
 
+// Boot a throwaway server with custom env (own port, own REPO_DIR) for the
+// failure-mode tests that can't share the long-lived `server` above. Resolves
+// with handles + a stop() the caller must invoke.
+const extraServers = [];
+async function bootServer(extraEnv = {}) {
+  const port = 4700 + Math.floor(Math.random() * 200);
+  const proc = spawn("node", [path.join(ROOT, "gui/server.js")], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      TEST_CMD: "bash",
+      AUTOSTART: "off",
+      REPO_DIR: ROOT,
+      FORGE_PULSE: "0",
+      ANTHROPIC_API_KEY: "",
+      ...extraEnv,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  proc.stdout.setEncoding("utf8");
+  proc.stderr.setEncoding("utf8");
+  let outBuf = "", errBuf = "";
+  extraServers.push(proc);
+  await new Promise((resolve, reject) => {
+    proc.stdout.on("data", (d) => { outBuf += d; if (outBuf.includes("AgentForge Command up")) resolve(); });
+    proc.stderr.on("data", (d) => { errBuf += d; });
+    proc.on("exit", (code) => reject(new Error(`extra server exited early code=${code}\n  tail: ${(errBuf || outBuf).slice(-400).trim()}`)));
+    setTimeout(() => reject(new Error(`extra server didn't come up\n  tail: ${(errBuf || outBuf).slice(-400).trim()}`)), 5000);
+  });
+  return {
+    port,
+    base: `http://127.0.0.1:${port}`,
+    wsbase: `ws://127.0.0.1:${port}`,
+    stdout: () => outBuf,
+    stderr: () => errBuf,
+    stop: () => { try { proc.kill("SIGTERM"); } catch {} },
+  };
+}
+process.on("exit", () => { for (const p of extraServers) { try { p.kill("SIGKILL"); } catch {} } });
+
 async function openWS(pathname) {
   const ws = new WebSocket(WSBASE + pathname);
   await new Promise((resolve, reject) => {
@@ -205,7 +246,8 @@ await it("auto-config arms a PTY and acks with the armed list", async () => {
   ws.send(JSON.stringify({ t: "auto-config", agents: [{ id: "atlas" }] }));
   const ack = await nextMsg(ws, (m) => m.t === "auto-config-ack");
   assert.ok(Array.isArray(ack.autoEnter));
-  assert.ok(ack.autoEnter.includes("atlas"));
+  // Exactly the armed agent — not the whole swarm (see regression below).
+  assert.deepEqual(ack.autoEnter, ["atlas"]);
   ws.close();
 });
 await it("(y/n) prompt fires auto-enter via the JS matcher", async () => {
@@ -389,8 +431,154 @@ await it("started events reach two arena clients", async () => {
   a.close(); b.close();
 });
 
+section("HTTP /api/hooks · tool-hook receiver");
+await it("GET query string resolves event+tool to a state", async () => {
+  const r = await fetch(BASE + "/api/hooks?agent=forge&event=PreToolUse&tool=Read");
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.ok, true);
+  assert.equal(j.agentId, "forge");
+  assert.equal(j.state, "reading");
+});
+await it("POST JSON PostToolUse(ok) → success", async () => {
+  const r = await fetch(BASE + "/api/hooks", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ agent: "forge", event: "PostToolUse", tool: "Edit", ok: true }),
+  });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.state, "success");
+});
+await it("POST form-urlencoded is accepted", async () => {
+  const r = await fetch(BASE + "/api/hooks", {
+    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "agent=forge&event=Stop",
+  });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.state, "idle");
+});
+await it("missing agent/event → 400 without crashing", async () => {
+  const r = await fetch(BASE + "/api/hooks", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event: "Stop" }),
+  });
+  assert.equal(r.status, 400);
+  const j = await r.json();
+  assert.equal(j.ok, false);
+  // server must still be serving afterwards
+  assert.equal((await fetch(BASE + "/api/arena")).status, 200);
+});
+await it("a hook event reaches connected arena clients over WS", async () => {
+  const ws = await openWS("/arena");
+  await nextMsg(ws, (m) => m.t === "hello");
+  // Arm the listener BEFORE firing the hook so we can't miss the frame.
+  const hookP = nextMsg(ws, (m) => m.t === "hook" && m.id === "vega", 3000);
+  await fetch(BASE + "/api/hooks?agent=vega&event=PreToolUse&tool=Bash");
+  const hook = await hookP;
+  assert.equal(hook.state, "working");
+  ws.close();
+});
+
+section("WebSocket /arena · auto-enter arms ONLY the selected agents (regression)");
+await it("arming one agent does NOT arm the whole swarm", async () => {
+  // Regression for the bug where any non-empty `agents` list armed every PTY.
+  const ws = await openWS("/arena");
+  await nextMsg(ws, (m) => m.t === "hello");
+  ws.send(JSON.stringify({ t: "auto-config", agents: [{ id: "forge" }] }));
+  const ack = await nextMsg(ws, (m) => m.t === "auto-config-ack");
+  assert.deepEqual(ack.autoEnter.sort(), ["forge"]);
+  // read-back through HTTP confirms persistence matches the selection
+  const j = await (await fetch(BASE + "/api/arena")).json();
+  assert.deepEqual(j.autoEnter.sort(), ["forge"]);
+  // empty selection disarms everything
+  ws.send(JSON.stringify({ t: "auto-config", agents: [] }));
+  const ack2 = await nextMsg(ws, (m) => m.t === "auto-config-ack");
+  assert.deepEqual(ack2.autoEnter, []);
+  ws.close();
+});
+
+section("HTTP /api/arena · honest capability flags");
+await it("reports claudeCli boolean (bash is present in test env)", async () => {
+  const j = await (await fetch(BASE + "/api/arena")).json();
+  assert.equal(typeof j.claudeCli, "boolean");
+  assert.equal(j.claudeCli, true); // TEST_CMD=bash → resolvable
+});
+
+section("No fake activity · idle cockpit stays silent");
+await it("a fresh server with nothing launched emits hello and NO activity frames", async () => {
+  // Use a dedicated server so prior tests' (real) PTY buffer replays don't
+  // count against us. With nothing ever started, an honest cockpit produces
+  // zero terminal/dispatch frames — no mock simulator filling the silence.
+  const srv = await bootServer();
+  try {
+    const frames = [];
+    const ws = new WebSocket(srv.wsbase + "/arena");
+    ws.addEventListener("message", (e) => { try { frames.push(JSON.parse(e.data)); } catch {} });
+    await new Promise((r) => ws.addEventListener("open", r, { once: true }));
+    await new Promise((r) => setTimeout(r, 1200));
+    ws.close();
+    const noise = frames.filter((f) => ["o", "started", "dispatch", "specialist-brief-delta", "auto-fired"].includes(f.t));
+    assert.equal(noise.length, 0, `expected no activity frames, saw: ${noise.map((f) => f.t).join(",")}`);
+    assert.ok(frames.some((f) => f.t === "hello"), "should still receive the hello frame");
+  } finally {
+    srv.stop();
+  }
+});
+
+section("Launch failure · missing command surfaces a clear error");
+await it("start-pty with a missing command emits launch-error, server survives", async () => {
+  const srv = await bootServer({ TEST_CMD: "agentforge-nonexistent-binary-xyz" });
+  try {
+    const ws = new WebSocket(srv.wsbase + "/arena");
+    const frames = [];
+    ws.addEventListener("message", (e) => { try { frames.push(JSON.parse(e.data)); } catch {} });
+    await new Promise((r) => ws.addEventListener("open", r, { once: true }));
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("no hello")), 2000);
+      const h = () => { if (frames.some((f) => f.t === "hello")) { clearTimeout(t); ws.removeEventListener("message", h); resolve(); } };
+      ws.addEventListener("message", h); h();
+    });
+    ws.send(JSON.stringify({ t: "start-pty", id: "forge" }));
+    const err = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error(`no launch-error (saw: ${frames.map((f) => f.t).join(",")})`)), 3000);
+      const h = () => { const f = frames.find((x) => x.t === "launch-error" && x.id === "forge"); if (f) { clearTimeout(t); ws.removeEventListener("message", h); resolve(f); } };
+      ws.addEventListener("message", h); h();
+    });
+    assert.match(err.reason || "", /command not found/i);
+    // server must still respond on HTTP after the failed launch
+    assert.equal((await fetch(srv.base + "/api/arena")).status, 200);
+    ws.close();
+  } finally {
+    srv.stop();
+  }
+});
+
+section("Resilience · corrupt arena.json is recovered, not fatal");
+await it("a corrupt .team/arena.json boots to empty state + leaves a backup", async () => {
+  const fs = await import("node:fs");
+  const os = await import("node:os");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "arena-corrupt-"));
+  fs.mkdirSync(path.join(dir, ".team"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".team", "arena.json"), "{ this is : not json ]");
+  const srv = await bootServer({ REPO_DIR: dir });
+  try {
+    const j = await (await fetch(srv.base + "/api/arena")).json();
+    assert.deepEqual(j.autoEnter, []);
+    assert.deepEqual(j.customAgents, []);
+    assert.equal(j.atlasMission, "");
+    const files = fs.readdirSync(path.join(dir, ".team"));
+    assert.ok(files.some((f) => f.startsWith("arena.json.corrupt-")),
+      `expected a corrupt backup, saw: ${files.join(",")}`);
+  } finally {
+    srv.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 /* ----- Summary ----- */
 
+for (const p of extraServers) { try { p.kill("SIGTERM"); } catch {} }
 stopServer();
 setTimeout(() => {
   console.log("");

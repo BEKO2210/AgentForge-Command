@@ -52,6 +52,8 @@ const sbAuto    = document.getElementById("sb-auto");
 const sbReports = document.getElementById("sb-reports");
 const sbAtlas   = document.getElementById("sb-atlas");
 const sbAtlasChip = document.getElementById("sb-atlas-chip");
+const sbCli     = document.getElementById("sb-cli");
+const sbCliChip = document.getElementById("sb-cli-chip");
 const sbPulse   = document.getElementById("sb-pulse");
 const sbPulseChip = document.getElementById("sb-pulse-chip");
 const helpBtn   = document.getElementById("help-btn");
@@ -65,6 +67,7 @@ const persisted = await loadPersisted();
 store.set("connection", {
   ws: false,
   pulse: !!persisted.pulse,
+  claudeCli: !!persisted.claudeCli,
   ptyIds: persisted.ptyAgents || [],
   llmEnabled: !!(persisted.llm && persisted.llm.enabled),
   llmModel: persisted.llm && persisted.llm.model,
@@ -136,11 +139,19 @@ function render() {
   const running = agents.filter((a) => a.ptyRunning).length;
   const armed   = agents.filter((a) => a.autoEnter).length;
   const reports = timeline.filter((t) => t.kind === "report").length;
-  if (sbLive)    sbLive.textContent    = running;
+  if (sbLive)    sbLive.textContent    = `${running}/${agents.length}`;
   if (sbAuto)    sbAuto.textContent    = armed;
   if (sbReports) sbReports.textContent = reports;
   if (sbAtlas)   sbAtlas.textContent   = conn.llmEnabled ? "live" : "off";
   if (sbAtlasChip) sbAtlasChip.classList.toggle("live", !!conn.llmEnabled);
+  if (sbCli)     sbCli.textContent     = conn.claudeCli ? "found" : "missing";
+  if (sbCliChip) {
+    sbCliChip.classList.toggle("live", !!conn.claudeCli);
+    sbCliChip.classList.toggle("warn", conn.ws && !conn.claudeCli);
+    sbCliChip.title = conn.claudeCli
+      ? "Claude CLI found on PATH — launches will start real sessions."
+      : "Claude CLI not found on PATH — ▶ launch will fail. Install it or set TEST_CMD=bash.";
+  }
   if (sbPulse)   sbPulse.textContent   = conn.pulse ? "rust" : "js";
   if (sbPulseChip) sbPulseChip.classList.toggle("on", !!conn.pulse);
   if (autoBanner) {
@@ -418,6 +429,7 @@ function handleServerMessage(m) {
   if (m.t === "hello") {
     store.set("connection", {
       ws: true, pulse: !!m.pulse,
+      claudeCli: !!m.claudeCli,
       ptyIds: m.ptyAgents || [],
       llmEnabled: !!(m.llm && m.llm.enabled),
       llmModel: m.llm && m.llm.model,
@@ -538,6 +550,17 @@ function handleServerMessage(m) {
       .trim();
     if (clean) engine.appendLine(m.id, clean.slice(0, 160));
     engine.setAnimationState(m.id, "working");
+  } else if (m.t === "launch-error") {
+    // A PTY failed to start (most often: the claude CLI isn't installed).
+    // The PTY never came up, so don't fake a "pty-down" — just surface the
+    // error loudly on the agent's card AND in Atlas's stream, then settle idle.
+    engine.appendLine(m.id, `[launch failed] ${m.reason || "could not start session"}`);
+    engine.setAnimationState(m.id, "error");
+    if (m.id !== LEAD_ID) engine.appendLine(LEAD_ID, `[server] launch failed for ${m.id}: ${m.reason || "could not start session"}`);
+    setTimeout(() => {
+      const cur = engine.get(m.id);
+      if (cur && cur.animationState === "error") engine.setAnimationState(m.id, "idle");
+    }, 2600);
   } else if (m.t === "error") {
     engine.appendLine(LEAD_ID, `[server] ${m.reason || "error"}`);
   }
