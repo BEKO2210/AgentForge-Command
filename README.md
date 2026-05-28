@@ -39,8 +39,16 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 ## The cockpit
 
 <p align="center">
-  <img src="docs/screenshots/01-mission-control.png" alt="AgentForge Mission Control · the default desktop view" width="100%"/>
+  <img src="docs/screenshots/01-mission-control.png" alt="AgentForge Mission Control · the redesigned Atlas-dominant cockpit" width="100%"/>
 </p>
+
+<p align="center"><em>The redesigned cockpit — Atlas Prime is the central figure with a large, readable answer area.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/08-atlas-workflow.png" alt="Atlas answering a swarm-check: streamed answer, workflow stepper and per-specialist dispatch panel" width="100%"/>
+</p>
+
+<p align="center"><em>A swarm-check in flight: your message, Atlas's streamed answer, the workflow stepper, and the Dispatch &amp; reports panel naming every specialist (here shown via the deterministic <b>test harness</b>, hence the badge — no fake activity).</em></p>
 
 <table>
   <tr>
