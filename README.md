@@ -196,10 +196,14 @@ Each specialist has its own terminal card with:
 - Confidence / Risk / Evolution mini-bars.
 - Per-card **⏎ auto** toggle and **★ evolve** button.
 
-The **broadcast bar** at the bottom dispatches a briefing to the entire swarm.
-Atlas appends to its own terminal, every specialist transitions through
-`thinking → working → success → idle` and responds with a role-flavoured log
-line. Press `/` to focus, `Enter` to dispatch, `Esc` to close any drawer.
+The **broadcast bar** at the bottom is how you drive the swarm. In **ATLAS**
+mode your message goes to Atlas — through the live LLM bridge if
+`ANTHROPIC_API_KEY` is set, otherwise straight into Atlas's real `claude` PTY
+(the first message launches it with your text as the mission). In **SWARM**
+mode the text is written into every *running* specialist's PTY. Specialist
+cards only move when something real happens — a real PTY byte, a hook event or
+a live LLM stream. Nothing is simulated; an idle swarm stays idle. Press `/` to
+focus, `Enter` to dispatch, `Esc` to close any drawer.
 
 ## Auto-enter
 
@@ -282,21 +286,22 @@ SVG template if you want a new species.
 ```
 gui/server.js                          Node HTTP + WebSocket bridge
   ├── http   /             → Mission Control (default)
-  ├── http   /console      → Legacy 4-agent console
-  ├── http   /api/agents   → PTY config
+  ├── http   /console      → 302 redirect to / (legacy console retired)
+  ├── http   /api/agents   → swarm config (no prompts) + leadId
   ├── http   /api/state    → folded .team state
-  ├── http   /api/arena    → arena server state
-  ├── ws     /             → PTY bridge (xterm-style terminals)
+  ├── http   /api/arena    → arena server state (autoEnter, llm, claudeCli, pulse, spend…)
+  ├── http   /api/hooks    → Claude Code tool-hook receiver (GET/POST)
+  ├── ws     /             → legacy PTY bridge (compat shim)
   └── ws     /arena        → arena protocol (auto-enter, persistence, live)
 
 gui/public/arena/
   ├── arena.html      ← Mission Control shell
   ├── styles.css      ← cockpit theme + per-species mascot animations
-  ├── data.js         ← registry + briefings + spawn rules
+  ├── data.js         ← registry (identities, briefings, priors)
   ├── mascots.js      ← 12 SVG mascot templates, 5 evolution levels
   ├── state.js        ← tiny reactive store
-  ├── spawner.js      ← Atlas's rule-based spawn engine
-  ├── broadcast.js    ← broadcast simulator (state machine per agent)
+  ├── spawner.js      ← swarm registry + live-state engine
+  ├── broadcast.js    ← no-op stub (the mock simulator was removed — no fake activity)
   ├── ui.js           ← renderers (hero, lead panel, grid, drawer, modal, timeline)
   └── main.js         ← app entry; ties store, engine, UI, persistence, WS
 
@@ -337,11 +342,12 @@ the way a polyglot stack should grow.
 
 ## Quality and security
 
-- **Tests** — `bash tests/run.sh` runs **147** checks (87 bash against the
-  coordination scripts + 40 arena unit tests for the cockpit modules + 20
+- **Tests** — `bash tests/run.sh` runs **157** checks (87 bash against the
+  coordination scripts + 40 arena unit tests for the cockpit modules + 30
   server integration tests that boot the real `gui/server.js` over HTTP +
-  WebSocket). `cargo test --release` in `tools/forge-pulse` adds 5 Rust
-  unit tests.
+  WebSocket — covering the hook receiver, auto-enter scoping, launch failure
+  and corrupt-state recovery). `cargo test --release` in `tools/forge-pulse`
+  adds 5 Rust unit tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + tests)
   and `cargo clippy --release -- -D warnings` are both clean.
 - **Concurrency safety** — locks are atomic `mkdir` directories with stale
@@ -353,15 +359,16 @@ the way a polyglot stack should grow.
   shortcuts for the broadcast bar (`/`), drawer (`Esc`), and spawn-builder
   (`Alt+N`). All animations honour `prefers-reduced-motion: reduce`.
 
-## Legacy 4-agent console
+## The `.team/` coordination substrate
 
-The original 4-agent coordination kit is preserved unchanged at
-[`/console`](http://localhost:4173/console). The board, role lanes, locks,
-green gate, MCP server and `team-*.sh` scripts in [`.team/`](.team/) and
-[`scripts/`](scripts/) work exactly as before — they are the substrate
-Mission Control sits on top of.
+The original file-based coordination kit lives on underneath the cockpit. The
+board, role lanes, atomic `mkdir` locks, the green gate, the MCP server and the
+`team-*.sh` scripts in [`.team/`](.team/) and [`scripts/`](scripts/) work
+exactly as before — Mission Control sits on top of them. (The old 4-agent
+*terminal* console UI has been retired; `/console` now redirects to Mission
+Control.)
 
-See [`gui/README.md`](gui/README.md) for the console's own documentation, and
+See [`gui/README.md`](gui/README.md) for the server's own documentation, and
 [`.team/PROTOCOL.md`](.team/PROTOCOL.md) for the file-based coordination
 rules.
 

@@ -35,11 +35,11 @@ Rust-Beschleuniger (`forge-pulse`) schärft die Prompt-Erkennung, ist aber nie
 zwingend.
 
 > [!NOTE]
-> Das 4-Agent-Coordination-Kit, mit dem dieses Projekt begann, läuft unverändert
-> unter [`/console`](http://localhost:4173/console) und in
-> [`.team/`](.team/) — das datei-basierte Protokoll, die Scripts, der MCP-Server
+> Das datei-basierte Coordination-Kit, mit dem dieses Projekt begann, läuft
+> unverändert in [`.team/`](.team/) — das Protokoll, die Scripts, der MCP-Server
 > und die Bash-Testsuite sind alle noch da. AgentForge Command setzt **auf**
-> diesem Scaffold auf.
+> diesem Scaffold auf. Die alte 4-Agent-*Terminal*-Console-Oberfläche wurde
+> entfernt; `/console` leitet jetzt auf Mission Control (`/`) um.
 
 ## Maskottchen
 
@@ -198,18 +198,19 @@ einfügen, fertig.
 
 ## Per-Specialist Real-Sessions
 
-`gui/agents.json` hat zwei Roster:
+`gui/agents.json` enthält ein `agents`-Roster: **Atlas Prime + 11
+Spezialisten**, jeweils mit eigenem rollen-spezifischem Briefing-Prompt für
+Claude. **Kein AUTOSTART** (Default `off`) — Spezialisten werden bewusst
+on-demand aus dem Cockpit (**▶ launch**) oder über das Arena-WS gestartet
+(`{t:"start-pty", id, goal}`), damit nicht versehentlich 12 echte
+Claude-Sessions parallel starten. Mit `AUTOSTART=lead` startet nur Atlas, mit
+`AUTOSTART=all` der gesamte Schwarm.
 
-- `agents` (4 Stück) — die ursprünglichen Lanes (Lead, Backend, Frontend,
-  Quality), AUTOSTART, treiben die `/console`-Oberfläche.
-- `specialists` (12 Stück) — jeweils mit eigenem rollen-spezifischem
-  Briefing-Prompt für Claude. **Kein AUTOSTART** — werden bewusst on-demand
-  über das Arena-WS gestartet (`{t:"start-pty", id, goal}`), damit nicht
-  versehentlich 12 echte Claude-Sessions parallel starten.
-
-Server-seitig wird beim Start das Briefing (mit `{{GOAL}}` ersetzt) per
-bracketed-paste gefolgt von Enter eingespielt — die Session bootet direkt in
-ihre Rolle.
+Server-seitig wird beim Start **mit** `goal` das Briefing (mit `{{GOAL}}`
+ersetzt) per bracketed-paste gefolgt von Enter eingespielt — die Session bootet
+direkt in ihre Rolle. **Ohne** `goal` (einfaches „launch") bleibt die Shell
+sauber. Fehlt das Kommando (z. B. die Claude-CLI), erscheint ein sichtbarer
+`launch-error` statt einer kryptischen Terminalzeile.
 
 ## Echte LLM-Briefings (optional)
 
@@ -222,7 +223,7 @@ Konfiguration:
 
 | Variable | Bedeutung | Default |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Aktiviert die Live-LLM-Bridge | *(nicht gesetzt → Mock)* |
+| `ANTHROPIC_API_KEY` | Aktiviert die Live-LLM-Bridge | *(nicht gesetzt → ATLAS spricht direkt mit seiner echten `claude`-PTY, kein Mock)* |
 | `AGENTFORGE_LLM_MODEL` | Modell-ID | `claude-sonnet-4-6` |
 
 Implementierung in [`gui/llm.js`](gui/llm.js) — keine npm-Dependency,
@@ -233,11 +234,12 @@ nutzt nur `fetch`.
 ```
 gui/server.js                          Node HTTP + WebSocket
   ├── http   /             → Mission Control (default)
-  ├── http   /console      → Legacy 4-Agent Console
-  ├── http   /api/agents   → PTY-Konfig (+ specialists)
+  ├── http   /console      → 302-Redirect auf / (Legacy-Console entfernt)
+  ├── http   /api/agents   → Swarm-Konfig (ohne Prompts) + leadId
   ├── http   /api/state    → Folded .team State
-  ├── http   /api/arena    → Arena Server State + LLM-Status
-  ├── ws     /             → PTY-Bridge
+  ├── http   /api/arena    → Arena Server State (autoEnter, llm, claudeCli, pulse, spend…)
+  ├── http   /api/hooks    → Claude-Code Tool-Hook-Receiver (GET/POST)
+  ├── ws     /             → Legacy-PTY-Bridge (Compat-Shim)
   └── ws     /arena        → Arena-Protokoll
                               (auto-enter, persistence, live PTY,
                                atlas-brief stream, specialist start)
@@ -245,11 +247,11 @@ gui/server.js                          Node HTTP + WebSocket
 gui/public/arena/
   ├── arena.html      ← Mission Control Shell
   ├── styles.css      ← Cockpit-Theme + Maskottchen-Animationen
-  ├── data.js         ← Registry + Briefings + Spawn-Rules
+  ├── data.js         ← Registry (Identitäten, Briefings, Priors)
   ├── mascots.js      ← 12 SVG-Vorlagen, 5 Evolution-Stufen
   ├── state.js        ← Reactive Store
-  ├── spawner.js      ← Atlas' regelbasierte Spawn-Engine
-  ├── broadcast.js    ← Broadcast-Simulator (Mock-Fallback)
+  ├── spawner.js      ← Swarm-Registry + Live-State-Engine
+  ├── broadcast.js    ← No-op-Stub (Mock-Simulator entfernt — keine Fake-Aktivität)
   ├── ui.js           ← Renderer (Hero, Lead, Grid, Drawer, Modal, Timeline)
   └── main.js         ← Entry-Point; bindet Store, Engine, UI, WS
 
@@ -286,11 +288,12 @@ deaktiviert auch bei vorhandenem Binary.
 
 ## Qualität & Sicherheit
 
-- **Tests** — `bash tests/run.sh` führt **147** Checks aus (87 Bash gegen
+- **Tests** — `bash tests/run.sh` führt **157** Checks aus (87 Bash gegen
   die Coordination-Scripts + 40 Arena-Unit-Tests für die Cockpit-Module +
-  20 Server-Integration-Tests, die den echten `gui/server.js` über HTTP +
-  WebSocket booten). `cargo test --release` in `tools/forge-pulse` ergänzt
-  5 Rust-Unit-Tests.
+  30 Server-Integration-Tests, die den echten `gui/server.js` über HTTP +
+  WebSocket booten — inkl. Hook-Receiver, Auto-Enter-Scoping, Launch-Fehler
+  und Recovery bei kaputtem State). `cargo test --release` in
+  `tools/forge-pulse` ergänzt 5 Rust-Unit-Tests.
 - **Lint** — `bash scripts/team-check.sh` (`bash -n` + `shellcheck` + Tests)
   und `cargo clippy --release -- -D warnings` sind beide clean.
 - **Privacy** — alles lokal. Server bindet `127.0.0.1`. Arena-State in
@@ -300,15 +303,16 @@ deaktiviert auch bei vorhandenem Binary.
   Shortcuts für Broadcast (`/`), Drawer (`Esc`), Spawn-Builder (`Alt+N`).
   Alle Animationen respektieren `prefers-reduced-motion: reduce`.
 
-## Legacy 4-Agent-Console
+## Das `.team/`-Coordination-Substrat
 
-Das ursprüngliche Coordination-Kit ist unverändert unter
-[`/console`](http://localhost:4173/console) verfügbar. Board, Role-Lanes, Locks,
-Green Gate, MCP-Server und `team-*.sh`-Scripts in [`.team/`](.team/) und
-[`scripts/`](scripts/) funktionieren wie vorher — sie sind das Substrat, auf
-dem Mission Control aufsetzt.
+Das ursprüngliche datei-basierte Coordination-Kit läuft unter dem Cockpit
+weiter. Board, Role-Lanes, Locks, Green Gate, MCP-Server und `team-*.sh`-Scripts
+in [`.team/`](.team/) und [`scripts/`](scripts/) funktionieren wie vorher — sie
+sind das Substrat, auf dem Mission Control aufsetzt. (Die alte 4-Agent-
+*Terminal*-Console-Oberfläche wurde entfernt; `/console` leitet jetzt auf
+Mission Control um.)
 
-Eigene Doku der Console: [`gui/README.md`](gui/README.md).
+Server-Doku: [`gui/README.md`](gui/README.md).
 Datei-Coordination-Regeln: [`.team/PROTOCOL.md`](.team/PROTOCOL.md).
 
 ## Lizenz

@@ -164,6 +164,12 @@ kbd {
 .status-bar #sb-pulse-chip.on { border-color:rgba(255,154,85,.5);
   background:color-mix(in srgb, #ff9a55 12%, transparent); }
 .status-bar #sb-pulse-chip.on .sb-v { color:#ffb47a; }
+.status-bar #sb-cli-chip.live { border-color:color-mix(in srgb, var(--good, #7ee787) 50%, transparent);
+  background:color-mix(in srgb, var(--good, #7ee787) 12%, transparent); }
+.status-bar #sb-cli-chip.live .sb-v { color:var(--good, #7ee787); }
+.status-bar #sb-cli-chip.warn { border-color:color-mix(in srgb, var(--bad, #ff6b7d) 50%, transparent);
+  background:color-mix(in srgb, var(--bad, #ff6b7d) 12%, transparent); }
+.status-bar #sb-cli-chip.warn .sb-v { color:var(--bad, #ff6b7d); }
 
 /* ----- Approval-bypass banner ----- */
 .auto-banner {
