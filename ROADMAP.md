@@ -73,10 +73,10 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 **Warum:** „Production-ready" ist messbar oder es ist Meinung. Ohne Baseline kein Beweis der Verbesserung — und Phase 4 (Benchmarks) braucht Vorher-Werte.
 
 **Aufgaben:**
-- ☐ `docs/THREAT_MODEL.md` anlegen: Trust-Boundaries (Browser ↔ Server ↔ PTY ↔ Anthropic-API), Assets (laufende `claude`-Sessions = RCE-Wert), Angreifer (bösartige Webseite im selben Browser, anderer lokaler User, MITM auf API). STRIDE-Tabelle. **Befund #1–3 explizit dokumentieren.**
-- ☐ `docs/BASELINE.md` anlegen: aktuelle LOC pro Datei, Test-Anzahl (165+5), Gate-Laufzeit, Bundle-Größe `gui/public/arena/*`, Anzahl `console.log`. Reproduzierbares Mess-Snippet beilegen.
-- ☐ Coverage-Ist-Zustand erheben (Node `--experimental-test-coverage` oder `c8`) und in BASELINE festhalten — auch wenn es 0 % „echte" Coverage zeigt.
-- ☐ `_handoff/agentforge-command/FINDINGS.md` anlegen (Sammelstelle für Out-of-Scope-Funde aller Phasen).
+- ☑ `docs/THREAT_MODEL.md` anlegen: Trust-Boundaries (Browser ↔ Server ↔ PTY ↔ Anthropic-API), Assets (laufende `claude`-Sessions = RCE-Wert), Angreifer (bösartige Webseite im selben Browser, anderer lokaler User, MITM auf API). STRIDE-Tabelle. **Befund #1–3 explizit dokumentieren.**
+- ☑ `docs/BASELINE.md` anlegen: aktuelle LOC pro Datei, Test-Anzahl (165+5), Gate-Laufzeit, Bundle-Größe `gui/public/arena/*`, Anzahl `console.log`. Reproduzierbares Mess-Snippet beilegen.
+- ☑ Coverage-Ist-Zustand erheben (Node `--experimental-test-coverage` oder `c8`) und in BASELINE festhalten — auch wenn es 0 % „echte" Coverage zeigt.
+- ☑ `_handoff/agentforge-command/FINDINGS.md` anlegen (Sammelstelle für Out-of-Scope-Funde aller Phasen).
 
 **Akzeptanzkriterien / Gate:** Beide Docs existieren, Gate weiterhin grün, **kein** Produktivcode geändert.
 
