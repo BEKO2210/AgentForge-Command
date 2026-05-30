@@ -5,6 +5,10 @@
 ### A premium mission-control cockpit for a swarm of Claude Code agents.
 
 <p>
+  <a href="https://github.com/BEKO2210/AgentForge-Command/actions/workflows/gate.yml"><img alt="CI gate" src="https://github.com/BEKO2210/AgentForge-Command/actions/workflows/gate.yml/badge.svg"></a>
+  <a href="https://codecov.io/gh/BEKO2210/AgentForge-Command"><img alt="Coverage" src="https://codecov.io/gh/BEKO2210/AgentForge-Command/branch/main/graph/badge.svg"></a>
+  <img alt="Tested on Linux/macOS/Windows" src="https://img.shields.io/badge/tested-Linux%20%7C%20macOS%20%7C%20Windows-2ea043">
+  <img alt="Node 18 | 20 | 22" src="https://img.shields.io/badge/node-18%20%7C%2020%20%7C%2022-3c873a">
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea043">
   <img alt="Stack: Node + Vanilla JS" src="https://img.shields.io/badge/stack-Node%20%2B%20Vanilla%20JS-3c873a">
   <img alt="Optional: Rust accelerator" src="https://img.shields.io/badge/optional-Rust%20accelerator-orange">

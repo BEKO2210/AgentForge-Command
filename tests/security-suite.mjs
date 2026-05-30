@@ -16,7 +16,9 @@
 
 import * as assert from "node:assert/strict";
 import http from "node:http";
-import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -212,6 +214,112 @@ await it("WS with valid token + localhost origin opens and gets hello", async ()
 await it("GET / from a trusted host returns the cockpit (200)", async () => {
   const r = await rawRequest({ path: "/", origin: TRUSTED_ORIGIN });
   assert.equal(r.status, 200, `expected 200 for trusted GET, got ${r.status}`);
+});
+
+// ---- Phase 4 additions: config + reattach trust boundary -------------------
+// Spawn a server with custom env and resolve { code, out } once it either
+// comes up or exits. Used for the negative config tests (which must exit≠0).
+function spawnUntilUpOrExit(env, { expectUp = false } = {}) {
+  return new Promise((resolve) => {
+    const proc = spawn("node", [path.join(ROOT, "gui/server.js")], {
+      cwd: ROOT,
+      env: { ...process.env, TEST_CMD: "bash", AUTOSTART: "off", FORGE_PULSE: "0",
+        ANTHROPIC_API_KEY: "", AGENTFORGE_NO_TOKEN: "1", AGENTFORGE_WORKTREES: "0", ...env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    const onData = (d) => {
+      out += d;
+      if (expectUp && out.includes("AgentForge Command up")) { try { proc.kill("SIGTERM"); } catch {} resolve({ code: null, out, up: true }); }
+    };
+    proc.stdout.setEncoding("utf8"); proc.stderr.setEncoding("utf8");
+    proc.stdout.on("data", onData); proc.stderr.on("data", onData);
+    proc.on("exit", (code) => resolve({ code, out, up: false }));
+    setTimeout(() => { try { proc.kill("SIGKILL"); } catch {} resolve({ code: -1, out, up: false }); }, 6000);
+  });
+}
+
+function writeAgents(obj) {
+  const f = path.join(os.tmpdir(), `afc-agents-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  fs.writeFileSync(f, typeof obj === "string" ? obj : JSON.stringify(obj));
+  return f;
+}
+
+section("7b. /api/agent/<id>/git-status is token-gated");
+await it("git-status without a valid token → 403", async () => {
+  const r = await rawRequest({ path: "/api/agent/atlas/git-status?token=invalid", origin: TRUSTED_ORIGIN });
+  assert.equal(r.status, 403, `expected 403, got ${r.status}`);
+});
+
+section("8. Schema validation — a bad agents.json fails loudly (no silent boot)");
+await it("invalid agent id pattern → exit 1 with a clear error", async () => {
+  const f = writeAgents({ agents: [{ id: "123bad", name: "X", cmd: "claude" }] });
+  const r = await spawnUntilUpOrExit({ AGENTFORGE_AGENTS_FILE: f, PORT: "4811" }, { expectUp: true });
+  assert.equal(r.code, 1, `expected exit 1, got ${r.code} (up=${r.up})`);
+  assert.match(r.out, /failed validation|id must match/i);
+});
+await it("empty cmd → exit 1 with a clear error", async () => {
+  const f = writeAgents({ agents: [{ id: "forge", name: "Forge", cmd: "" }] });
+  const r = await spawnUntilUpOrExit({ AGENTFORGE_AGENTS_FILE: f, PORT: "4812" }, { expectUp: true });
+  assert.equal(r.code, 1, `expected exit 1, got ${r.code}`);
+  assert.match(r.out, /cmd must be a non-empty string/i);
+});
+await it("missing required 'agents' array → exit 1", async () => {
+  const f = writeAgents({ nope: true });
+  const r = await spawnUntilUpOrExit({ AGENTFORGE_AGENTS_FILE: f, PORT: "4813" }, { expectUp: true });
+  assert.equal(r.code, 1, `expected exit 1, got ${r.code}`);
+  assert.match(r.out, /missing required array 'agents'/i);
+});
+await it("malformed JSON → exit 1 (parse error, not a crash)", async () => {
+  const f = writeAgents("{ not json ");
+  const r = await spawnUntilUpOrExit({ AGENTFORGE_AGENTS_FILE: f, PORT: "4814" }, { expectUp: true });
+  assert.equal(r.code, 1, `expected exit 1, got ${r.code}`);
+  assert.match(r.out, /could not read\/parse/i);
+});
+
+section("9. Session reattach — a tampered sessions.json cannot execute anything");
+await it("a malicious cmd in .team/sessions.json is never launched", async () => {
+  // PTYs are launched from agents.json via ptyIndex — NEVER from the persisted
+  // session metadata. So even a poisoned sessions.json is inert: relaunching an
+  // id that isn't in agents.json is rejected, and the recorded cmd is ignored.
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "afc-sess-"));
+  fs.mkdirSync(path.join(repo, ".team"), { recursive: true });
+  fs.writeFileSync(path.join(repo, ".team", "sessions.json"), JSON.stringify({
+    sessions: [{ id: "evilagent", cmd: "rm -rf /", args: ["--no-preserve-root"], cwd: repo, branch: "main", status: "running" }],
+  }));
+  const port = 4815;
+  const proc = spawn("node", [path.join(ROOT, "gui/server.js")], {
+    cwd: ROOT,
+    env: { ...process.env, PORT: String(port), TEST_CMD: "bash", AUTOSTART: "off",
+      REPO_DIR: repo, FORGE_PULSE: "0", ANTHROPIC_API_KEY: "", AGENTFORGE_NO_TOKEN: "1", AGENTFORGE_WORKTREES: "0" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  try {
+    let out = "";
+    proc.stdout.setEncoding("utf8"); proc.stdout.on("data", (d) => { out += d; });
+    await new Promise((res, rej) => {
+      proc.stdout.on("data", () => { if (out.includes("AgentForge Command up")) res(); });
+      proc.on("exit", (c) => rej(new Error(`server exited code=${c}`)));
+      setTimeout(() => rej(new Error("server didn't boot")), 5000);
+    });
+    // The orphan is surfaced (display-only)...
+    const arena = await (await fetch(`http://127.0.0.1:${port}/api/arena`)).json();
+    assert.ok(arena.orphaned.some((s) => s.id === "evilagent"), "orphan should be surfaced for review");
+    // ...but trying to (re)launch it is rejected — it is not in agents.json.
+    const ws = new WS(`ws://127.0.0.1:${port}/arena`);
+    const frames = [];
+    await new Promise((res, rej) => { ws.on("open", res); ws.on("error", () => rej(new Error("ws error"))); setTimeout(res, 1500); });
+    ws.on("message", (m) => { try { frames.push(JSON.parse(m)); } catch {} });
+    ws.send(JSON.stringify({ t: "start-pty", id: "evilagent" }));
+    await new Promise((r) => setTimeout(r, 600));
+    const err = frames.find((f) => f.t === "error" && /unknown pty id/i.test(f.reason || ""));
+    const started = frames.find((f) => f.t === "started" && f.id === "evilagent");
+    assert.ok(err && !started, "tampered session id must be rejected, never started");
+    try { ws.close(); } catch {}
+  } finally {
+    try { proc.kill("SIGKILL"); } catch {}
+    try { fs.rmSync(repo, { recursive: true, force: true }); } catch {}
+  }
 });
 
 // ============================ TALLY ==========================================

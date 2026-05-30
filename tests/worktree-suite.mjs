@@ -168,6 +168,24 @@ await it("parallel edits to the same filename do not collide", async () => {
   } finally { await srv.stopAndWait(); }
 });
 
+section("Worktree git-status endpoint");
+await it("/api/agent/<id>/git-status reports the worktree branch", async () => {
+  const repo = makeGitRepo();
+  const srv = await boot(repo);
+  try {
+    const ws = await openWS(srv.port);
+    ws.send({ t: "start-pty", id: "forge" });
+    await ws.waitFor((f) => f.t === "started" && f.id === "forge");
+    await sleep(300);
+    const { status, json } = await srv.get("/api/agent/forge/git-status");
+    assert.equal(status, 200);
+    assert.equal(json.ok, true);
+    assert.equal(json.exists, true, "worktree should exist");
+    assert.equal(json.branch, "agentforge/forge");
+    ws.close();
+  } finally { await srv.stopAndWait(); }
+});
+
 section("Worktree lifecycle — cleanup policy");
 await it("worktree is KEPT after stop by default (no CLEANUP)", async () => {
   const repo = makeGitRepo();

@@ -10,10 +10,20 @@ permissions:
   contents: read
 
 jobs:
+  # Cross-platform gate: proves node-pty's native build + the full test suite
+  # on 3 OS × 3 Node versions (covers ROADMAP Befund #5 — Windows/macOS builds).
   gate:
-    name: bash + shellcheck + tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
+    name: gate (${{ matrix.os }} · node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["18", "20", "22"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,55 +31,87 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node }}
 
       - name: Show tool versions
         run: |
           bash --version | head -1
           git --version
           node --version
-          (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed"
+          (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed (optional)"
 
-      # The server-integration suite (tests/server-suite.mjs) spawns the
-      # real gui server, which imports node-pty + ws from gui/node_modules.
-      # node-pty is a native module — we MUST run install scripts so the
-      # prebuilt binary lands on disk. (--ignore-scripts works for the
-      # audit job below, but not here: it leaves the .node file unbuilt
-      # and the runtime import throws.)
-      - name: Install gui dependencies (for server integration suite)
+      # node-pty is a native module — `npm ci` (with install scripts) must build
+      # its binary. This step IS the cross-platform build proof.
+      - name: Install gui dependencies (builds node-pty)
         working-directory: gui
         run: npm ci
 
-      - name: Verify native modules loaded
+      - name: Verify native module loads
         working-directory: gui
         run: node -e "import('node-pty').then(()=>console.log('node-pty ok')).catch(e=>{console.error('node-pty FAIL:',e.message);process.exit(1)})"
 
       - name: Run the green gate (bash -n + shellcheck + tests/run.sh)
-        run: scripts/team-check.sh
+        run: bash scripts/team-check.sh
 
   audit:
     name: npm audit (gui + mcp)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
       - name: Audit gui dependencies
         working-directory: gui
         run: |
           npm ci --ignore-scripts
           npm audit --omit=dev --audit-level=high
-
       - name: Audit mcp dependencies
         working-directory: mcp
         run: |
           npm ci --ignore-scripts
           npm audit --omit=dev --audit-level=high
+
+  e2e:
+    name: Playwright E2E (Harness Mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install (root workspaces + dev tooling)
+        run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E + a11y
+        run: npm run test:e2e
+
+  coverage:
+    name: Coverage (c8 threshold)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install (root workspaces)
+        run: npm ci
+      - name: Run coverage (enforces .c8rc.json thresholds)
+        run: npm run coverage
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          files: ./coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

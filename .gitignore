@@ -27,6 +27,11 @@ mcp/node_modules/
 coverage/
 .nyc_output/
 
+# Playwright E2E artefacts
+test-results/
+playwright-report/
+.playwright/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
