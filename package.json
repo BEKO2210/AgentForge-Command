@@ -1,0 +1,23 @@
+{
+  "name": "agentforge-command",
+  "version": "1.0.0",
+  "description": "A premium local mission-control cockpit for orchestrating Claude Code agents.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "gui",
+    "mcp"
+  ],
+  "scripts": {
+    "start": "node gui/server.js",
+    "dev": "node gui/server.js",
+    "test": "bash tests/run.sh",
+    "test:security": "node tests/security-suite.mjs",
+    "gate": "bash scripts/team-check.sh",
+    "audit": "npm audit --workspaces --omit=dev --audit-level=high"
+  }
+}

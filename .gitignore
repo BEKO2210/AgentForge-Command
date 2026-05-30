@@ -14,8 +14,10 @@
 tools/*/target/
 tools/*/Cargo.lock
 
-# Node modules in the GUI server
+# Node modules (root workspace + per-package)
+/node_modules/
 gui/node_modules/
+mcp/node_modules/
 
 # Coverage artefacts (c8 / node --experimental-test-coverage) — see docs/BASELINE.md
 coverage/
