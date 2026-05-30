@@ -38,6 +38,21 @@ test.describe("AgentForge accessibility", () => {
     expect(serious, serious.map((v) => v.id).join(", ")).toEqual([]);
   });
 
+  test("prefers-contrast: more strengthens structural borders (Run 1.6)", async ({ page }) => {
+    // Default look: read a card's border colour.
+    await page.goto("/");
+    const card = page.locator('.tcard[data-id="sentinel"]');
+    await card.waitFor();
+    const dflt = await card.evaluate((el) => getComputedStyle(el).borderTopColor);
+    // Ask the OS for more contrast → the high-contrast block lifts the border.
+    await page.emulateMedia({ contrast: "more" });
+    const strong = await card.evaluate((el) => getComputedStyle(el).borderTopColor);
+    expect(strong).not.toEqual(dflt);
+    // sanity: the strengthened border is genuinely brighter (higher channel sum)
+    const sum = (rgb) => (rgb.match(/\d+/g) || []).slice(0, 3).reduce((a, b) => a + +b, 0);
+    expect(sum(strong)).toBeGreaterThan(sum(dflt));
+  });
+
   test("keyboard: Tab reaches a focusable control", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");

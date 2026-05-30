@@ -46,6 +46,43 @@
   --tap:44px;
 }
 
+/* ---------------------------------------------------------------------------
+ * Run 1.6 — Contrast & high-contrast support.
+ *
+ * The default palette already clears WCAG AA: every text/accent token is
+ * ≥4.5:1 on all cockpit backgrounds (verified by tests/contrast-suite.mjs).
+ * Borders are intentionally subtle (decorative non-text). For users who ask
+ * the OS for more contrast we strengthen exactly those weak, structural
+ * elements — borders, dividers, muted text and the focus offset — without
+ * touching the default look. This is purely additive and opt-in.
+ * ------------------------------------------------------------------------- */
+@media (prefers-contrast: more) {
+  :root {
+    --border:#5a6aa0;      /* faint 1.3:1 edges → 3.85:1, clearly visible */
+    --border2:#6678b0;     /* 4.69:1 — stronger inner dividers */
+    --muted:#aab4cc;       /* lift secondary text to 9.7:1 */
+    --dim:#8c97b4;         /* 6.9:1 */
+    --idle:#aab4cc;
+  }
+  /* Thicker, brighter focus ring so keyboard focus is unmistakable. */
+  :where(a, button, [tabindex], input, textarea, select):focus-visible {
+    outline:3px solid var(--good) !important;
+    outline-offset:3px !important;
+  }
+  /* Card and panel edges read as real boundaries, not hints. */
+  .tcard, .panel, .lead-panel, .drawer, .modal { border-color:var(--border2); }
+}
+
+/* Windows High Contrast / forced-colors: let the OS own the palette but make
+ * sure focus never disappears (forced-colors strips box-shadows/outlines we
+ * style by hand). Map focus to the system Highlight colour. */
+@media (forced-colors: active) {
+  :where(a, button, [tabindex], input, textarea, select):focus-visible {
+    outline:3px solid Highlight;
+    outline-offset:2px;
+  }
+}
+
 *, *::before, *::after { box-sizing:border-box; }
 html, body { height:100%; background:#02040a; }
 html { scroll-behavior:smooth; }
