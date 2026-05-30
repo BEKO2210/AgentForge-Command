@@ -7,6 +7,10 @@
 <meta name="theme-color" content="#04060c" />
 <title>AgentForge Command · Mission Control</title>
 <meta name="description" content="Atlas Prime orchestrates a specialised swarm for your repository — a local mission control for Claude Code agents." />
+<!-- Per-session capability token, injected server-side. Same-origin scripts
+     can read it; a cross-origin page cannot read this document. Blank in
+     AGENTFORGE_NO_TOKEN mode. -->
+<meta name="afc-token" content="@SESSION_TOKEN@" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

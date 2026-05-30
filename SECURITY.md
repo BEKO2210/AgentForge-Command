@@ -50,6 +50,47 @@ running in the operator's own repository. Issues that are in scope:
   clients, logs, or repository state.
 - Unauthenticated network exposure of the GUI beyond `127.0.0.1`.
 
+## Mitigations in place (as of Phase 1)
+
+The browser↔server trust boundary is enforced by four layers (details and
+threat analysis in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)):
+
+- **Origin allowlist + Host-header validation** on every WebSocket upgrade and
+  on all state-changing HTTP routes (`/api/hooks`). Only `localhost:PORT` /
+  `127.0.0.1:PORT` are trusted by default; the Host check defeats
+  DNS-rebinding. This closes the Cross-Site WebSocket Hijacking (CSWSH) /
+  drive-by-RCE path.
+- **Per-session capability token.** A `crypto.randomBytes(32)` token is minted
+  at startup, printed to the server console, and injected into `arena.html` via
+  a `<meta name="afc-token">` tag (readable only same-origin). The WS upgrade
+  and `/api/hooks` reject any request without it; the token is compared in
+  constant time. Hook scripts receive it through `AGENTFORGE_HOOK_URL`.
+- **Security headers on all served files:** `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a restrictive
+  `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'` — no
+  inline JS, Google Fonts origins allowlisted, `frame-ancestors 'none'`).
+- **WebSocket message hardening:** 256 KB per-message size cap and a
+  per-connection token-bucket rate limit (~10 msg/s), plus a length cap on
+  `input` payloads written into a PTY.
+- **Path-traversal hardening:** request paths are `decodeURIComponent`-d,
+  `path.normalize`-d, and re-checked for containment under the public root
+  (guards `%2e`/`%2f` and sibling-prefix tricks).
+
+### Deliberate loosenings (opt-in, documented)
+
+- `AGENTFORGE_ALLOWED_ORIGINS` (comma-separated) extends the origin/host
+  allowlist — e.g. for a trusted remote tunnel. Empty by default (localhost
+  only). Enabling it is a conscious widening of the trust boundary.
+- `AGENTFORGE_NO_TOKEN=1` disables the session token for a knowingly-trusted
+  single-user machine. The server prints a loud warning at boot. The
+  origin/host checks remain active even in this mode.
+
+A dedicated regression suite (`tests/security-suite.mjs`, part of the green
+gate) proves these mitigations: foreign-origin and tokenless WS upgrades are
+refused, `/api/hooks` rejects requests without the token, Host mismatches and
+path traversal are blocked, and the security headers are asserted on every
+response.
+
 ## What's out of scope
 
 - The cockpit is bound to `127.0.0.1` by design. Exposing it publicly is on

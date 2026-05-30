@@ -314,12 +314,15 @@ run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
 # `npm ci --ignore-scripts` leaves the binary unbuilt. Probe with a real
 # import so the skip-vs-run decision matches what the server itself sees.
 if ( cd "$SRC/gui" && node -e "Promise.all([import('node-pty'),import('ws')]).then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null ); then
+  run_node_suite "security regression suite" "tests/security-suite.mjs"
   run_node_suite "server integration tests" "tests/server-suite.mjs"
   run_node_suite "workflow smoke (agentforge-real-workflow-smoke)" "tests/workflow-suite.mjs"
 else
   echo
-  echo "== server integration tests =="
+  echo "== security regression suite =="
   echo "  - skipped (run \`cd gui && npm ci\` first — note: NOT --ignore-scripts, node-pty needs its build step)"
+  echo "== server integration tests =="
+  echo "  - skipped (same reason)"
   echo "== workflow smoke (agentforge-real-workflow-smoke) =="
   echo "  - skipped (same reason)"
 fi

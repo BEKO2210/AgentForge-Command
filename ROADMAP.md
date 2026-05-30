@@ -88,35 +88,35 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 
 **Warum:** Befund #1 ist ein realer RCE-Pfad. Solange er offen ist, **darf das Repo nicht beworben werden** — ein viraler Launch mit einer Drive-by-RCE-Lücke ist ein Reputations-GAU.
 
-### 1.1 Origin-Allowlist + Host-Check (CSWSH & DNS-Rebinding) ☐
+### 1.1 Origin-Allowlist + Host-Check (CSWSH & DNS-Rebinding) ☑
 - In `gui/server.js`, im `server.on("upgrade", …)`-Handler: `req.headers.origin` gegen Allowlist prüfen — erlaubt nur `http://localhost:${PORT}` und `http://127.0.0.1:${PORT}`. Bei Mismatch: `sock.write("HTTP/1.1 403 Forbidden\r\n\r\n"); sock.destroy();`
 - Gleiche Origin-Logik als Helper `isTrustedOrigin(req)`; auch auf **alle state-ändernden HTTP-Routen** anwenden (`/api/hooks`).
 - **Host-Header-Check** (DNS-Rebinding-Schutz) auf HTTP **und** Upgrade: nur `localhost:PORT` / `127.0.0.1:PORT` akzeptieren, sonst 403.
 - **Fallback:** ENV `AGENTFORGE_ALLOWED_ORIGINS` (kommagetrennt) erlaubt bewusste Erweiterung (z. B. Remote-Tunnel) — leer = nur localhost. Dokumentieren, dass das eine bewusste Lockerung ist.
 
-### 1.2 Per-Session Capability-Token ☐
+### 1.2 Per-Session Capability-Token ☑
 - Beim Start `crypto.randomBytes(32).toString("hex")` generieren, **in die Konsole drucken** und in `arena.html` server-seitig als `window.__AFC_TOKEN` injizieren (Server liest `arena.html`, ersetzt Platzhalter — same-origin kann lesen, cross-origin nicht).
 - WS-Upgrade verlangt `?token=` == Session-Token. State-ändernde HTTP-Routen verlangen Header `x-afc-token` **oder** Query-Token.
 - `AGENTFORGE_HOOK_URL`, das in PTY-Env injiziert wird, um `?token=…` erweitern → Hook-Skripte funktionieren weiter, fremde Seiten nicht.
 - **Fallback:** `AGENTFORGE_NO_TOKEN=1` für bewussten Single-User-Trust (mit lauter Warnung im Log). Default = Token an.
 
-### 1.3 `/api/hooks` absichern ☐
+### 1.3 `/api/hooks` absichern ☑
 - GET darf **keinen** State mehr ändern (nur als reiner Probe-Echo ohne Broadcast erlauben, oder GET auf 405 setzen wenn ohne Token). POST verlangt Token + Origin/Host-Check.
 - Body-Cap (64 KB) ist vorhanden — behalten, zusätzlich `Content-Type`-Allowlist.
 
-### 1.4 Security-Header & CSP ☐
+### 1.4 Security-Header & CSP ☑
 - Für ausgelieferte Dateien setzen: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (Clickjacking), `Referrer-Policy: no-referrer`, restriktive `Content-Security-Policy` (`default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; img-src 'self' data:; style-src 'self' 'unsafe-inline'`). CSP gegen tatsächliche Inline-Styles in `arena.html` testen, ggf. Nonce statt `unsafe-inline`.
 
-### 1.5 WS-Message-Härtung ☐
+### 1.5 WS-Message-Härtung ☑
 - Pro Arena-WS-Nachricht: max. Rohgröße cappen (z. B. 256 KB), JSON-Parse in try/catch (vorhanden), unbekannte `m.t` ignorieren (vorhanden). `input`/`press` zusätzlich auf plausible Länge begrenzen.
 - Simple Rate-Limit pro Connection (Token-Bucket) gegen Message-Flooding.
 
-### 1.6 Path-Traversal-Härtung (statische Files) ☐
+### 1.6 Path-Traversal-Härtung (statische Files) ☑
 - `decodeURIComponent` auf `rel` anwenden, dann `path.normalize`, dann erneut `startsWith(PUBLIC)`-Check — schützt gegen `%2e%2e`-Varianten. Regressionstest beilegen.
 
 **Tests (Phase 4 ergänzt mehr — hier die Pflicht-Minimalmenge):**
-- ☐ `tests/security-suite.mjs`: WS-Upgrade mit fremdem `Origin` → 403. WS ohne Token → 403. Host-Mismatch → 403. `/api/hooks` GET-Mutation ohne Token → blockiert. Path-Traversal `/..%2f..%2fetc%2fpasswd` → 404/403.
-- ☐ `tests/run.sh` um `security-suite` erweitern; Gate-Check muss sie ausführen.
+- ☑ `tests/security-suite.mjs`: WS-Upgrade mit fremdem `Origin` → 403. WS ohne Token → 403. Host-Mismatch → 403. `/api/hooks` GET-Mutation ohne Token → blockiert. Path-Traversal `/..%2f..%2fetc%2fpasswd` → 404/403.
+- ☑ `tests/run.sh` um `security-suite` erweitern; Gate-Check muss sie ausführen.
 
 **Akzeptanzkriterien / Gate:**
 - Alle Security-Tests grün; bestehende 165+5 weiterhin grün.
@@ -278,9 +278,9 @@ Damit das Projekt fokussiert bleibt und nicht zum 250k-LOC-Moloch wird:
 
 ## 12. Tracking-Checkliste (Kurzform)
 
-- ☐ **P0:** Phase 1.1 Origin/Host-Check
-- ☐ **P0:** Phase 1.2 Session-Token
-- ☐ **P1:** Phase 1.3–1.6 (Hooks/CSP/WS/Path)
+- ☑ **P0:** Phase 1.1 Origin/Host-Check
+- ☑ **P0:** Phase 1.2 Session-Token
+- ☑ **P1:** Phase 1.3–1.6 (Hooks/CSP/WS/Path)
 - ☐ **P1:** Phase 3.1 Worktree-Isolation
 - ☐ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
 - ☐ **P1:** Phase 6 Repo-Beschreibung + Demo + Release

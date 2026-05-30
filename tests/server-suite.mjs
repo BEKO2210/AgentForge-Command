@@ -70,6 +70,11 @@ async function startServer() {
       AGENTFORGE_BUDGET_USD: "5.00",
       FORGE_PULSE: "0", // disable Rust accelerator for deterministic timing
       ANTHROPIC_API_KEY: "", // unset → tests cover the no-key path
+      // This suite exercises FUNCTIONAL behaviour (PTY lifecycle, persist,
+      // hooks). The auth gate (origin/host/token) is owned by
+      // tests/security-suite.mjs, which runs with the token ON. Here we opt
+      // out of the token so the functional assertions stay focused.
+      AGENTFORGE_NO_TOKEN: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -117,6 +122,7 @@ async function bootServer(extraEnv = {}) {
       REPO_DIR: ROOT,
       FORGE_PULSE: "0",
       ANTHROPIC_API_KEY: "",
+      AGENTFORGE_NO_TOKEN: "1", // functional fixtures; auth is in security-suite
       ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
