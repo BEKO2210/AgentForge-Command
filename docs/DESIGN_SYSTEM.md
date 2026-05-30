@@ -70,6 +70,21 @@ a raw hex.
 `--warn → --color-accent-warn`, `--bad → --color-accent-error`, `--accent`,
 `--cta`).
 
+### Contrast (WCAG AA) — enforced by test
+
+Every text/accent token clears **WCAG 2.1 AA** (≥ 4.5:1) against all three
+cockpit backgrounds (`--color-bg`, `--color-surface`, and the gradient floor
+`--bg2`). Lowest measured is `--color-accent` at **5.89:1** on `--color-surface`
+— still comfortably above 4.5:1. This is not a one-time check: `tests/contrast-suite.mjs`
+computes the ratios from the *real* token values on every CI run, so a future
+token edit that drops a colour below AA turns the gate red.
+
+Borders are intentionally subtle (decorative, non-text). Users who request more
+contrast at the OS level get strengthened borders, dividers and muted text via
+`@media (prefers-contrast: more)`, and `@media (forced-colors: active)` keeps a
+focus outline visible under Windows High Contrast — both purely additive, with
+zero change to the default look.
+
 ## Agent colours — data-driven (not CSS tokens)
 
 > ⚠️ The roadmap sketch referenced a 4-agent model ("Atlas/Sentinel/Aurora/
