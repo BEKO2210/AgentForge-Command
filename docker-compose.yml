@@ -1,0 +1,12 @@
+# One-command try: `docker compose up --build` → http://localhost:4173
+# Port is mapped to host loopback only; the server binds 127.0.0.1 in-container.
+services:
+  agentforge:
+    build: .
+    container_name: agentforge-command
+    ports:
+      - "127.0.0.1:4173:4173"
+    environment:
+      PORT: 4173
+      AGENTFORGE_HOST: 0.0.0.0
+      AGENTFORGE_HARNESS: 1
