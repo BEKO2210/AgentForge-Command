@@ -343,6 +343,36 @@ tools/forge-pulse/    ← OPTIONAL Rust accelerator (see below)
 .team/                ← file-based coordination scaffold (unchanged)
 ```
 
+## Worktree isolation
+
+Each specialist runs in its own `git worktree` on branch `agentforge/<id>`, so
+two specialists can edit the same file in parallel without stomping each other;
+Atlas (the lead) stays on the shared repo and integrates. Worktrees live under
+`.agentforge/worktrees/<id>/` and are **kept after a run** for review unless you
+set `AGENTFORGE_WORKTREE_CLEANUP=1`. Disable the whole feature with
+`AGENTFORGE_WORKTREES=0` (falls back to the shared repo dir); a non-git repo
+auto-disables it. Session metadata is persisted to `.team/sessions.json`, so
+after a server restart the cockpit surfaces the previous run's sessions as
+**orphaned** with a one-click relaunch (PTYs don't survive a restart — no fake
+reattach).
+
+## MCP server
+
+AgentForge ships a read-only MCP server (`mcp/server.js`) that exposes the
+`.team/` coordination state (board, logs, memory, metrics, folded JSON) plus
+a read-only `swarm_status`. Add it to Claude Code:
+
+```bash
+claude mcp add agentforge -- node mcp/server.js
+```
+
+The `launch_specialist` / `dispatch_goal` tools are **guidance-only
+placeholders by design**: spawning a PTY or dispatching a goal is a
+state-changing action that must go through the cockpit's authenticated
+`/arena` WebSocket (origin + session token). The read-only MCP process holds
+no token and must never become an unauthenticated control path — see
+[`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+
 ## Optional Rust accelerator
 
 Most of the runtime is I/O-bound; Node handles it comfortably. The one place

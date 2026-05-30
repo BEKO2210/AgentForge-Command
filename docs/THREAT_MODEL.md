@@ -232,6 +232,29 @@ When Phase 3 adds opt-in MCP **action-tools** (`dispatch_goal`,
 `launch_specialist`), this document must be extended: those tools are only safe
 behind the same per-session token, and read-only must remain the default.
 
+### Phase 3 addendum — MCP action-tools & worktrees
+
+- **MCP action-tools are guidance-only placeholders.** `mcp/server.js` gained
+  `swarm_status` (read-only), `launch_specialist` and `dispatch_goal`. The
+  latter two **do not act** — they return instructions to perform the action in
+  the cockpit. Rationale: spawning a PTY / dispatching a goal is state-changing
+  and must traverse TB1's authenticated `/arena` WebSocket (origin + session
+  token). The MCP process is a separate, read-only, token-less context; making
+  it a control path would reintroduce an unauthenticated trust-boundary break.
+  Read-only remains the default; real dispatch stays cockpit-only.
+- **Worktree isolation (TB2 refinement).** Each specialist now runs in its own
+  `git worktree` on `agentforge/<id>` with `cwd` set accordingly; Atlas stays
+  on `REPO_DIR`. This *narrows* blast radius (specialists no longer share a
+  working tree) but does not change the trust boundary: a PTY still runs as the
+  operator's OS user with write access to its worktree (and thus the repo's
+  object store). `cmd` remains operator-authored (`agents.json`, now
+  schema-validated against `schema/agents.schema.json`). Git calls use
+  `execFileSync` with argument arrays (no shell) and ids are constrained to
+  `^[a-z][a-z0-9_-]*$`, so worktree paths/branches can't be injection vectors.
+- **Session metadata (`​.team/sessions.json`).** Contains ids, commands, cwd and
+  branch — no secrets. PTYs never survive a restart; orphaned sessions are
+  surfaced honestly for relaunch, never silently re-attached.
+
 ---
 
 ## 7. Phase 0 status of this model

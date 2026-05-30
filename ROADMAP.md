@@ -153,22 +153,22 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 
 **Warum:** Ohne Worktree-Isolation ist das Tool für echte Parallelarbeit unbrauchbar (Agenten überschreiben sich) — der häufigste „deal-breaker"-Kommentar bei solchen Tools.
 
-### 3.1 Git-Worktree-Isolation pro Specialist 🟠 ☐
+### 3.1 Git-Worktree-Isolation pro Specialist 🟠 ☑
 - Beim `start-pty` für einen Specialist optional ein dediziertes `git worktree` unter `.agentforge/worktrees/<id>/` auf Branch `agentforge/<id>` anlegen; PTY-`cwd` darauf setzen. Atlas (Lead) bleibt auf `REPO_DIR` (integriert/merged).
 - Lifecycle: Worktree bei `stop-pty` optional behalten (für Review) oder aufräumen (`AGENTFORGE_WORKTREE_CLEANUP`).
 - UI: Worktree-/Branch-Badge auf der Karte; Drawer zeigt `git status` des Worktrees.
 - **Fallback:** `AGENTFORGE_WORKTREES=0` → altes Verhalten (shared `REPO_DIR`). Default an, aber sauber abschaltbar. Bei Nicht-Git-Repo automatisch deaktivieren + Hinweis.
 - Tests: Worktree-Anlage, isolierte Edits stomp-frei, Cleanup, Nicht-Git-Fallback.
 
-### 3.2 Session-Reattach über Server-Neustart hinweg ☐
+### 3.2 Session-Reattach über Server-Neustart hinweg ☑
 - PTY-Metadaten (id, cmd, cwd, Branch, Startzeit) in `.team/sessions.json` persistieren. node-pty-Prozesse überleben den Server-Neustart selbst nicht — daher: beim Start erkannte verwaiste Sessions sauber als „verwaist" markieren und **Ein-Klick-Relaunch** im selben Worktree anbieten (Octogent-Parität, ehrlich umgesetzt: kein Fake-Reattach).
 - **Fallback:** Datei fehlt/korrupt → Korrupt-Backup-Muster wie bei `arena.json` wiederverwenden.
 
-### 3.3 Orchestrierung als MCP-Tools (Aufbau auf vorhandenem `mcp/`) ☐
+### 3.3 Orchestrierung als MCP-Tools (Aufbau auf vorhandenem `mcp/`) ☑
 - Der vorhandene `mcp/server.js` ist **read-only** State-Exposure. Ergänzen: opt-in **Action-Tools** (`dispatch_goal`, `launch_specialist`, `swarm_status`), die über die lokale `/arena`-WS + Token an den laufenden Server delegieren — so wird AgentForge per `claude mcp add agentforge -- node mcp/server.js` aus Claude Code heraus steuerbar.
 - **Sicherheitsgrenze:** Action-Tools nur, wenn Token vorhanden; read-only bleibt Default. In THREAT_MODEL ergänzen.
 
-### 3.4 `agents.json`-Schema-Validierung ☐
+### 3.4 `agents.json`-Schema-Validierung ☑
 - JSON-Schema für `agents.json` (analog `schema/team-state.schema.json`) + Validierung beim Start mit klarer Fehlermeldung statt stillem Fehlverhalten. `cmd` bleibt operator-authored (kein WS-Injection-Pfad) — im Schema dokumentieren, dass `cmd` Vertrauensgrenze ist.
 
 **Akzeptanzkriterien / Gate:** Zwei Specialists editieren parallel ohne Konflikt (Worktree-Beweis im Test) · Reattach-Flow dokumentiert & getestet · MCP-Action-Tools nur mit Token · Schema-Validierung bricht bei kaputter `agents.json` sauber ab · Gate grün.
@@ -281,7 +281,7 @@ Damit das Projekt fokussiert bleibt und nicht zum 250k-LOC-Moloch wird:
 - ☑ **P0:** Phase 1.1 Origin/Host-Check
 - ☑ **P0:** Phase 1.2 Session-Token
 - ☑ **P1:** Phase 1.3–1.6 (Hooks/CSP/WS/Path)
-- ☐ **P1:** Phase 3.1 Worktree-Isolation
+- ☑ **P1:** Phase 3.1 Worktree-Isolation
 - ☐ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
 - ☐ **P1:** Phase 6 Repo-Beschreibung + Demo + Release
 - ☑ **P2:** Phase 2 Robustheit/Guardrails
