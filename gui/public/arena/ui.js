@@ -221,8 +221,12 @@ export function renderGrid(root, agents, opts) {
       el = document.createElement("article");
       el.className = "tcard spawning";
       el.dataset.id = a.id;
-      el.tabIndex = 0;
-      el.setAttribute("role", "button");
+      // A card is a GROUP, not a button — it contains real buttons (launch /
+      // auto), so making the card itself interactive nests interactive
+      // controls (axe: nested-interactive). The card body is still
+      // click-to-open via the grid click handler; the per-card actions stay
+      // individually keyboard-accessible.
+      el.setAttribute("role", "group");
       el.setAttribute("aria-label", `${a.name} — ${a.title}`);
       el.innerHTML = renderCardBody(a, i);
       cardEls.set(a.id, el);
@@ -271,9 +275,12 @@ export function renderGrid(root, agents, opts) {
       }
       gridOpts.onSelect && gridOpts.onSelect(id);
     });
+    // Enter/Space opens the drawer only when focus is on the card-open button
+    // (not when activating the nested launch/auto buttons).
     root.addEventListener("keydown", (e) => {
       if (e.key !== "Enter" && e.key !== " ") return;
-      const card = e.target.closest(".tcard[data-id]"); if (!card) return;
+      const opener = e.target.closest('[data-action="open"]'); if (!opener) return;
+      const card = opener.closest(".tcard[data-id]"); if (!card) return;
       e.preventDefault();
       gridOpts.onSelect && gridOpts.onSelect(card.dataset.id);
     });
@@ -282,8 +289,9 @@ export function renderGrid(root, agents, opts) {
 
 function renderCardBody(a, channelIndex) {
   const isRunning = !!a.ptyRunning;
+  const branch = a.branch || "";
   return `
-    <header>
+    <header role="button" tabindex="0" data-action="open" aria-label="Open ${escapeHTML(a.name)} details">
       <div class="mascot-slot" style="color:${a.color}" aria-hidden="true">
         ${renderMascot({ mascot: a.mascot, level: a.evolutionLevel, color: a.color, state: a.animationState })}
       </div>
@@ -292,12 +300,13 @@ function renderCardBody(a, channelIndex) {
           <span class="channel">CH·${pad(channelIndex + 1)}</span>
         </h3>
         <div class="role">${escapeHTML(a.role)} · ${escapeHTML(a.title)}</div>
+        <span class="worktree-badge" data-worktree ${branch ? "" : "hidden"}>🌳 ${escapeHTML(branch)}</span>
       </div>
       <span class="status-badge ${isRunning ? "live" : "dormant"}" data-status>
         ${isRunning ? "LIVE" : "DORMANT"}
       </span>
     </header>
-    <div class="terminal ${isRunning ? "is-typing" : ""}" data-term aria-live="polite" aria-label="${escapeHTML(a.name)} terminal">
+    <div class="terminal ${isRunning ? "is-typing" : ""}" data-term role="log" aria-live="polite" aria-label="${escapeHTML(a.name)} terminal">
       ${renderTerminalLines(a)}
       <span class="activity-glow"></span>
     </div>
@@ -348,6 +357,13 @@ function updateCard(el, a, channelIndex) {
     badge.textContent = a.ptyRunning ? "LIVE" : "DORMANT";
     badge.classList.toggle("live",    !!a.ptyRunning);
     badge.classList.toggle("dormant", !a.ptyRunning);
+  }
+  // Worktree badge (🌳 agentforge/<id>) — shown while the specialist runs in
+  // its own git worktree; hidden otherwise.
+  const wtb = el.querySelector("[data-worktree]");
+  if (wtb) {
+    if (a.branch) { wtb.textContent = `🌳 ${a.branch}`; wtb.hidden = false; }
+    else { wtb.hidden = true; }
   }
   // Swap launch / stop button if PTY status changed.
   const launchBtn = el.querySelector('[data-action="launch-pty"]');
@@ -488,6 +504,10 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
           </button>
         </div>
       </section>
+      ${agent.branch ? `<section>
+        <h3>Worktree · ${escapeHTML(agent.branch)}</h3>
+        <pre class="git-status" data-git-status aria-label="git status">loading git status…</pre>
+      </section>` : ""}
       <section class="chat">
         <h3>Direct message — ${escapeHTML(agent.name)}</h3>
         <p class="dim">${agent.ptyRunning
@@ -522,6 +542,17 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
   `;
   backdrop.classList.add("open");
   drawer.classList.add("open");
+  // If this specialist runs in a worktree, fetch its live git status into the
+  // drawer (token-gated endpoint; same-origin meta token).
+  if (agent.branch) {
+    const slot = drawer.querySelector("[data-git-status]");
+    const tokEl = document.querySelector('meta[name="afc-token"]');
+    const tok = tokEl ? encodeURIComponent(tokEl.getAttribute("content") || "") : "";
+    fetch(`/api/agent/${encodeURIComponent(agent.id)}/git-status?token=${tok}`)
+      .then((r) => r.json())
+      .then((j) => { if (slot) slot.textContent = (j && j.output) ? j.output : "(clean — no changes)"; })
+      .catch(() => { if (slot) slot.textContent = "(git status unavailable)"; });
+  }
   drawer.onclick = (e) => {
     const btn = e.target.closest("button[data-action]"); if (!btn) return;
     const a = btn.dataset.action;

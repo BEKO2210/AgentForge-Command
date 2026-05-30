@@ -135,8 +135,15 @@ function scheduleRender() {
   requestAnimationFrame(() => { rafPending = false; render(); });
 }
 
+// Worktree branch per specialist, learned from the server's `started` frames
+// (Phase 3 plumbing → Phase 4 render). Enriched onto agents at render time.
+const branchById = new Map();
+
 function render() {
-  const agents = store.get("agents") || [];
+  const rawAgents = store.get("agents") || [];
+  const agents = branchById.size
+    ? rawAgents.map((a) => (branchById.has(a.id) ? { ...a, branch: branchById.get(a.id) } : a))
+    : rawAgents;
   const timeline = store.get("timeline") || [];
   const lead = agents.find((a) => a.id === LEAD_ID);
   const swarm = agents.length - (lead ? 1 : 0);
@@ -434,6 +441,26 @@ function launchPty(id, goal = "") {
   arenaSocket.send(JSON.stringify({ t: "start-pty", id, goal }));
   engine.appendLine(id, "[arena] launching real session…");
 }
+
+// Surface sessions left behind by a previous server run (their PTYs are gone —
+// honest, no fake reattach) with a one-click relaunch in the same worktree.
+function renderOrphaned(sessions) {
+  const el = document.getElementById("orphaned-banner");
+  if (!el) return;
+  const list = Array.isArray(sessions) ? sessions.filter((s) => s && s.id) : [];
+  if (!list.length) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.innerHTML =
+    `<span>↻ <b>${list.length}</b> orphaned session(s) from a previous run — their processes are gone. Relaunch in the same worktree:</span>`;
+  for (const s of list) {
+    const btn = document.createElement("button");
+    btn.className = "btn ghost";
+    btn.dataset.relaunch = s.id;
+    btn.textContent = `▶ ${s.id}${s.branch && s.branch !== "main" ? ` (${s.branch})` : ""}`;
+    btn.addEventListener("click", () => { launchPty(s.id); btn.disabled = true; btn.textContent = `launching ${s.id}…`; });
+    el.appendChild(btn);
+  }
+}
 function stopPty(id) {
   if (!arenaSocket || arenaSocket.readyState !== 1) return;
   arenaSocket.send(JSON.stringify({ t: "stop-pty", id }));
@@ -491,6 +518,9 @@ function handleServerMessage(m) {
       runningPtys: [],
     });
     atlasView.harness = !!m.harness; pushAtlas();
+    renderOrphaned(m.orphaned || []);
+  } else if (m.t === "orphaned-sessions") {
+    renderOrphaned(m.sessions || []);
   } else if (m.t === "atlas-brief-start") {
     // A fresh run — clear the previous dispatch list, open a streaming answer
     // line and move the workflow into "planning".
@@ -585,9 +615,11 @@ function handleServerMessage(m) {
       }, 1000);
     }
   } else if (m.t === "started") {
+    if (m.branch) branchById.set(m.id, m.branch); else branchById.delete(m.id);
     engine.setPtyRunning(m.id, true);
     if (m.id !== LEAD_ID) atlasDispatch(m.id, { running: true });
   } else if (m.t === "exit") {
+    branchById.delete(m.id);
     engine.appendLine(m.id, `[process exited code=${m.code ?? "?"}]`);
     engine.setPtyRunning(m.id, false);
     if (m.id !== LEAD_ID) atlasDispatch(m.id, { running: false });

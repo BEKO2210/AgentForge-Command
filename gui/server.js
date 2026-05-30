@@ -921,6 +921,32 @@ const server = http.createServer((req, res) => {
     }));
   }
 
+  // Worktree git-status for a specialist's drawer (Phase 4). Token+origin
+  // gated like other state routes — the output lists file paths in the repo.
+  if (url.startsWith("/api/agent/") && url.endsWith("/git-status")) {
+    if (!isTrustedOrigin(req) || !hasValidToken(req)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, reason: "forbidden" }));
+    }
+    const id = url.slice("/api/agent/".length, -"/git-status".length);
+    if (!/^[a-z][a-z0-9_-]*$/.test(id)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, reason: "bad id" }));
+    }
+    const rec = agents.get(id);
+    const wt = rec && rec.wtPath ? rec.wtPath : worktreePathFor(id);
+    let output = "", branch = null, exists = false;
+    try {
+      if (isGitRepo() && fs.existsSync(wt)) {
+        exists = true;
+        output = git(["status", "--short"], wt);
+        try { branch = git(["rev-parse", "--abbrev-ref", "HEAD"], wt).trim(); } catch { /* detached */ }
+      }
+    } catch (e) { output = `(git status failed: ${e.message})`; }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ ok: true, id, branch, exists, output }));
+  }
+
   // Tool-hook receiver — POST /api/hooks
   // Body: JSON { agent, event, tool?, ok?, summary?, file? }
   //  OR    application/x-www-form-urlencoded same fields
