@@ -21,6 +21,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { spawn as spawnProc } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildState } from "../lib/state.mjs";
@@ -47,6 +48,67 @@ try {
 
 const REPO_DIR = process.env.REPO_DIR || process.cwd();
 const PORT = Number(process.env.PORT) || 4173;
+
+/* ----- Trust boundary: origin/host allowlist + per-session token (Phase 1) ---
+ * The cockpit binds to 127.0.0.1, but loopback does NOT stop a malicious page
+ * in the SAME browser from opening ws://localhost:PORT/arena and driving real
+ * PTYs (CSWSH → drive-by RCE — see docs/THREAT_MODEL.md, Finding #1). We close
+ * that boundary three ways:
+ *   1. Host-header allowlist  → defeats DNS-rebinding.
+ *   2. Origin allowlist       → rejects cross-site WS upgrades & state writes.
+ *   3. Per-session token       → the secret a foreign origin cannot read.
+ * AGENTFORGE_ALLOWED_ORIGINS (comma-separated) is a documented, deliberate
+ * loosening (e.g. a remote tunnel). AGENTFORGE_NO_TOKEN=1 disables the token
+ * for a knowingly-trusted single-user box (loud warning at boot). */
+const NO_TOKEN = process.env.AGENTFORGE_NO_TOKEN === "1";
+const SESSION_TOKEN = crypto.randomBytes(32).toString("hex");
+const ALLOWED_ORIGINS = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
+const ALLOWED_HOSTS = [`localhost:${PORT}`, `127.0.0.1:${PORT}`];
+if (process.env.AGENTFORGE_ALLOWED_ORIGINS) {
+  for (const o of process.env.AGENTFORGE_ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)) {
+    ALLOWED_ORIGINS.push(o);
+    try { ALLOWED_HOSTS.push(new URL(o).host); } catch { /* ignore malformed entry */ }
+  }
+}
+
+// A request is trusted iff its Host is on the allowlist AND, when an Origin
+// header is present, that Origin is on the allowlist. Browsers always attach
+// Origin to cross-origin requests, so a *missing* Origin only happens for
+// non-browser callers (curl, the local hook script) — those still face the
+// Host check and the token check below.
+function isTrustedOrigin(req) {
+  const host = req.headers.host;
+  if (!host || !ALLOWED_HOSTS.includes(host)) {
+    console.warn(`[forge] blocked request — untrusted Host: ${host || "(none)"}`);
+    return false;
+  }
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    console.warn(`[forge] blocked request — untrusted Origin: ${origin}`);
+    return false;
+  }
+  return true;
+}
+
+// Constant-time compare so a token check can't be timing-probed.
+function tokenMatches(candidate) {
+  if (NO_TOKEN) return true;
+  if (!candidate || candidate.length !== SESSION_TOKEN.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(candidate), Buffer.from(SESSION_TOKEN));
+  } catch { return false; }
+}
+
+// Token may arrive as ?token= (WS + hook scripts) or x-afc-token header (XHR).
+function hasValidToken(req) {
+  if (NO_TOKEN) return true;
+  let token = null;
+  try {
+    token = new URL(req.url, `http://${req.headers.host || `127.0.0.1:${PORT}`}`).searchParams.get("token");
+  } catch { /* malformed url */ }
+  if (!token && req.headers["x-afc-token"]) token = String(req.headers["x-afc-token"]);
+  return tokenMatches(token);
+}
 // AUTOSTART now takes three values:
 //   "off" (default) — no specialist auto-runs; the operator launches from the UI
 //   "lead"          — auto-spawn only Atlas
@@ -513,7 +575,12 @@ function startAgent(def) {
   const ptyEnv = {
     ...process.env,
     AGENTFORGE_AGENT_ID: def.id,
-    AGENTFORGE_HOOK_URL: `http://127.0.0.1:${PORT}/api/hooks`,
+    // Hook scripts (curl) carry the session token so they keep working while
+    // foreign pages — which can't read the token — are rejected. In NO_TOKEN
+    // mode the query is harmless (the server ignores it).
+    AGENTFORGE_HOOK_URL: NO_TOKEN
+      ? `http://127.0.0.1:${PORT}/api/hooks`
+      : `http://127.0.0.1:${PORT}/api/hooks?token=${SESSION_TOKEN}`,
   };
   let term;
   try {
@@ -605,6 +672,13 @@ const server = http.createServer((req, res) => {
   // Always replies with the resolved state so the hook script can also be
   // used as a probe in non-production sessions.
   if (url === "/api/hooks") {
+    // CSRF / trust-boundary guard: a foreign page can fire GET (via <img>) or
+    // POST at this endpoint, but cannot supply a valid Origin *and* the
+    // session token. Both methods are gated (see THREAT_MODEL Finding #2).
+    if (!isTrustedOrigin(req) || !hasValidToken(req)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, reason: "forbidden" }));
+    }
     if (req.method === "GET") {
       const u = new URL(req.url, `http://localhost:${PORT}`);
       const body = Object.fromEntries(u.searchParams);
@@ -640,19 +714,62 @@ const server = http.createServer((req, res) => {
     res.writeHead(302, { Location: "/" });
     return res.end();
   }
+  // Static files are public assets, but a foreign page could still try to use
+  // the loopback server as a confused deputy — so we keep the Host check here
+  // too (Origin is intentionally NOT required: assets must load same-origin).
+  if (!req.headers.host || !ALLOWED_HOSTS.includes(req.headers.host)) {
+    res.writeHead(403); return res.end("forbidden");
+  }
+
   let rel;
   if (url === "/") rel = "/arena.html";
   else if (url === "/arena" || url === "/arena/") rel = "/arena.html";
-  else rel = url;
+  else {
+    // Path-traversal hardening: decode %2e/%2f variants, then normalize, then
+    // re-check containment (Finding #1 / THREAT_MODEL, defence in depth).
+    try { rel = decodeURIComponent(url); }
+    catch { res.writeHead(400); return res.end("bad request"); }
+  }
+  rel = path.normalize(rel);
 
   const file = path.join(PUBLIC, rel);
-  if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end("forbidden"); }
+  // Guard against both escapes ("/../etc") and sibling-prefix tricks
+  // ("/public-evil"): the resolved path must be PUBLIC itself or live under it.
+  if (file !== PUBLIC && !file.startsWith(PUBLIC + path.sep)) {
+    res.writeHead(403); return res.end("forbidden");
+  }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end("not found"); }
-    res.writeHead(200, {
+    const headers = {
       "Content-Type": TYPES[path.extname(file)] || "text/plain",
       "Cache-Control": "no-cache, no-store, must-revalidate",
-    });
+      // Security headers on every served file (THREAT_MODEL Finding #3).
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "no-referrer",
+      // CSP: same-origin scripts only (no inline JS — the token rides a <meta>
+      // tag, not an inline <script>). Google Fonts origins are allowlisted so
+      // the cockpit keeps its typography; ws: is scoped to loopback.
+      "Content-Security-Policy": [
+        "default-src 'self'",
+        "connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
+        "img-src 'self' data:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "script-src 'self'",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+      ].join("; "),
+    };
+    // Inject the per-session token into arena.html only. Same-origin scripts
+    // can read the served HTML; cross-origin pages cannot — so the token never
+    // leaks to a foreign origin. In NO_TOKEN mode the placeholder is blanked.
+    if (path.basename(file) === "arena.html") {
+      const html = data.toString().replace(/@SESSION_TOKEN@/g, NO_TOKEN ? "" : SESSION_TOKEN);
+      res.writeHead(200, headers);
+      return res.end(html);
+    }
+    res.writeHead(200, headers);
     res.end(data);
   });
 });
@@ -663,6 +780,14 @@ const wss = new WebSocketServer({ noServer: true });
 const arenaWss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, sock, head) => {
+  // Close the CSWSH boundary BEFORE handing the socket to ws (Finding #1):
+  // reject untrusted Host/Origin and any upgrade without the session token.
+  if (!isTrustedOrigin(req)) {
+    sock.write("HTTP/1.1 403 Forbidden\r\n\r\n"); sock.destroy(); return;
+  }
+  if (!hasValidToken(req)) {
+    sock.write("HTTP/1.1 403 Forbidden\r\n\r\n"); sock.destroy(); return;
+  }
   const url = (req.url || "/").split("?")[0];
   if (url === "/arena") {
     arenaWss.handleUpgrade(req, sock, head, (ws) => arenaWss.emit("connection", ws, req));
@@ -718,6 +843,25 @@ arenaWss.on("connection", (ws) => {
     ws.send(JSON.stringify({ t: rec.alive ? "started" : "exit", id }));
   }
   ws.on("message", (raw) => {
+    // WS message hardening (THREAT_MODEL Finding, DoS row):
+    // 1) cap raw size so a single frame can't blow up memory.
+    if (raw.length > 256 * 1024) {
+      console.warn(`[forge] oversized arena message rejected (${raw.length} bytes)`);
+      try { ws.close(1009, "message too big"); } catch {}
+      return;
+    }
+    // 2) token-bucket rate-limit (≈10 msg/s, burst 10) per connection.
+    if (!ws._rl) ws._rl = { tokens: 10, last: Date.now() };
+    const now = Date.now();
+    ws._rl.tokens = Math.min(10, ws._rl.tokens + ((now - ws._rl.last) / 1000) * 10);
+    ws._rl.last = now;
+    if (ws._rl.tokens < 1) {
+      console.warn("[forge] arena ws rate limit exceeded");
+      try { ws.close(1008, "rate limited"); } catch {}
+      return;
+    }
+    ws._rl.tokens -= 1;
+
     let m;
     try { m = JSON.parse(raw); } catch { return; }
     switch (m.t) {
@@ -760,7 +904,9 @@ arenaWss.on("connection", (ws) => {
         break;
       }
       case "input": {
-        if (agents.has(m.id)) { try { agents.get(m.id).term.write(String(m.d || "")); } catch {} }
+        // Cap a single keystroke payload — real typing/paste is small; an
+        // oversized `input` is either a bug or an attempt to flood the PTY.
+        if (agents.has(m.id)) { try { agents.get(m.id).term.write(String(m.d || "").slice(0, 64 * 1024)); } catch {} }
         break;
       }
       case "start-pty": {
@@ -934,6 +1080,17 @@ arenaWss.on("connection", (ws) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`\n[forge] AgentForge Command up on http://localhost:${PORT}`);
+  if (NO_TOKEN) {
+    console.warn("[forge] ⚠️  NO_TOKEN mode — no session token required.");
+    console.warn("[forge] ⚠️  Use only on a trusted single-user machine.");
+  } else {
+    console.log("[forge] ════════════════════════════════════════════════════");
+    console.log("[forge] session token (required for the cockpit & hooks):");
+    console.log(`[forge] ${SESSION_TOKEN}`);
+    console.log("[forge] open the cockpit via the link below — the token is");
+    console.log("[forge] injected into the page automatically (same-origin).");
+    console.log("[forge] ════════════════════════════════════════════════════");
+  }
   console.log(`[forge] mission control: http://localhost:${PORT}/`);
   console.log(`[forge] working repo:    ${REPO_DIR}`);
   console.log(`[forge] swarm:           ${swarm.map((s) => s.id).join(", ")}`);

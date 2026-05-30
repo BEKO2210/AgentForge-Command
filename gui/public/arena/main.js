@@ -448,9 +448,18 @@ function sendDirectInput(id, text) {
 /* ----- WebSocket bridge ----------------------------------------------- */
 
 let arenaSocket = null;
+// Per-session capability token, injected into <meta name="afc-token"> by the
+// server. The WS upgrade is rejected without it (closes the CSWSH boundary).
+function afcToken() {
+  const el = document.querySelector('meta[name="afc-token"]');
+  return el ? el.getAttribute("content") || "" : "";
+}
 function openArenaSocket() {
   try {
-    arenaSocket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/arena`);
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const tok = afcToken();
+    const q = tok ? `?token=${encodeURIComponent(tok)}` : "";
+    arenaSocket = new WebSocket(`${proto}://${location.host}/arena${q}`);
     arenaSocket.addEventListener("open",  () => {
       store.set("connection", { ...store.get("connection"), ws: true });
       syncAutoEnterServer();
