@@ -59,6 +59,7 @@ async function startServer() {
     REPO_DIR: ROOT, FORGE_PULSE: "0",
     // Functional smoke — the auth gate is covered by tests/security-suite.mjs.
     AGENTFORGE_NO_TOKEN: "1",
+    AGENTFORGE_WORKTREES: "0", // worktrees covered by worktree-suite
   };
   if (LIVE) { env.AGENTFORGE_HARNESS = "0"; }
   else { env.AGENTFORGE_HARNESS = "1"; env.ANTHROPIC_API_KEY = ""; }
