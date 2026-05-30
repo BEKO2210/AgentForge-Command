@@ -62,6 +62,23 @@ test.describe("AgentForge cockpit", () => {
     await expect(banner.locator('[data-relaunch="forge"]')).toBeVisible();
   });
 
+  test("broadcast bar: empty dispatch errors, typing clears it + counts (Run 1.3)", async ({ page }) => {
+    await page.goto("/");
+    const input = page.locator("#broadcast-input");
+    const error = page.locator("#broadcast-error");
+    const count = page.locator("#broadcast-count");
+    await expect(input).toHaveAttribute("maxlength", "255");
+    // empty (whitespace) Enter → error shown, no dispatch
+    await input.fill("   ");
+    await input.press("Enter");
+    await expect(error).toBeVisible();
+    await expect(input).toHaveClass(/error/);
+    // typing clears the error and updates the counter
+    await input.fill("check the build");
+    await expect(error).toBeHidden();
+    await expect(count).toHaveText("15/255");
+  });
+
   test("card opener is keyboard-focusable and hover lifts the card (Run 1.2)", async ({ page }) => {
     await page.goto("/");
     const opener = page.locator('.tcard[data-id="sentinel"] header[data-action="open"]');

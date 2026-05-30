@@ -337,12 +337,45 @@ if (autoBannerDisarm) autoBannerDisarm.addEventListener("click", () => {
 /* ----- Broadcast bar (Atlas chat or swarm broadcast) ------------------- */
 
 if (broadcastInput) {
+  const countEl = document.getElementById("broadcast-count");
+  const errorEl = document.getElementById("broadcast-error");
+  const updateCount = () => {
+    if (!countEl) return;
+    const n = broadcastInput.value.length;
+    countEl.textContent = `${n}/255`;
+    countEl.classList.toggle("near", n >= 230);
+  };
+  const clearError = () => {
+    broadcastInput.classList.remove("error");
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+  };
+  broadcastInput.addEventListener("input", () => { updateCount(); clearError(); });
+  updateCount();
   broadcastInput.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
-    const msg = broadcastInput.value.trim(); if (!msg) return;
+    const msg = broadcastInput.value.trim();
+    if (!msg) {
+      // Run 1.3: empty/whitespace → clear error state, don't dispatch.
+      e.preventDefault();
+      broadcastInput.classList.add("error");
+      if (errorEl) {
+        errorEl.textContent = broadcastMode === "atlas"
+          ? "Type a goal for Atlas first."
+          : "Type a command to broadcast first.";
+        errorEl.hidden = false;
+      }
+      return;
+    }
+    clearError();
     if (broadcastMode === "atlas") sendAtlasBrief(msg);
     else broadcastToSwarm(msg);
     broadcastInput.value = "";
+    updateCount();
+    // Run 1.3: brief success flash (restart the animation each send).
+    broadcastInput.classList.remove("sent");
+    void broadcastInput.offsetWidth;
+    broadcastInput.classList.add("sent");
+    setTimeout(() => broadcastInput.classList.remove("sent"), 400);
   });
 }
 if (broadcastModeBtn) {

@@ -311,6 +311,7 @@ run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
 run_node_suite "llm bridge unit tests"   "tests/llm-suite.mjs"
 run_node_suite "design tokens"           "tests/design-tokens-suite.mjs"
 run_node_suite "card refinement"         "tests/card-refine-suite.mjs"
+run_node_suite "broadcast bar"           "tests/broadcast-suite.mjs"
 
 # The server-integration suite needs node-pty + ws as LOADABLE modules.
 # Directory existence isn't enough — node-pty is a native module and

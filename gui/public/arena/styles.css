@@ -712,17 +712,48 @@ kbd {
   border-radius:var(--r-sm); padding:11px 14px; font:14px var(--mono);
   min-height:var(--tap);
 }
+.broadcast input {
+  transition:border-color var(--dur-fast,150ms) var(--ease-standard,ease),
+             box-shadow var(--dur-fast,150ms) var(--ease-standard,ease);
+}
+/* Run 1.3: focus = clear "ready" cue in the success accent */
 .broadcast input:focus {
-  outline:none; border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(91,140,255,.2);
+  outline:none;
+  border-color:var(--color-accent-success,#54e6a8);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent-success,#54e6a8) 28%, transparent);
 }
 .broadcast input:disabled {
   opacity:.6; cursor:not-allowed;
   border-style:dashed;
 }
+/* Run 1.3: error state (empty / whitespace dispatch) */
+.broadcast input.error {
+  border-color:var(--color-accent-error,#ff6b7d);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent-error,#ff6b7d) 26%, transparent);
+}
+/* Run 1.3: brief success flash on a successful dispatch */
+.broadcast input.sent { animation:broadcastSent var(--dur-base,240ms) var(--ease-standard,ease); }
+@keyframes broadcastSent {
+  0%   { box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent-success,#54e6a8) 55%, transparent); }
+  100% { box-shadow:0 0 0 0 transparent; }
+}
 .broadcast .meta {
   font:700 10px var(--mono); letter-spacing:.7px; color:var(--dim);
   white-space:nowrap;
+}
+/* Run 1.3: live character counter + error text */
+.broadcast-count {
+  font:700 10px var(--mono); letter-spacing:.5px; color:var(--dim);
+  white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+.broadcast-count.near { color:var(--color-accent-warn,#ffcf5c); }
+.broadcast-error {
+  max-width:1600px; margin:6px auto 0; padding:0 2px;
+  font:600 11px var(--font-ui,sans-serif); color:var(--color-accent-error,#ff6b7d);
+}
+.broadcast-error[hidden] { display:none; }
+@media (prefers-reduced-motion: reduce) {
+  .broadcast input.sent { animation:none; }
 }
 
 /* ----- Spawn timeline ----- */
@@ -2728,6 +2759,9 @@ kbd {
   .broadcast { padding:10px 14px; }
   .broadcast input { font-size:13px; padding:10px 12px; }
   .broadcast .meta { display:none; }
+  /* Run 1.3: reclaim width on phones — counter + prompt step aside, the
+     maxlength still applies and the input stays full-width. */
+  .broadcast-count, .broadcast-prompt { display:none; }
   .lead-panel h2 { flex-direction:column; align-items:flex-start; gap:2px; }
   .drawer header { grid-template-columns:72px 1fr auto; }
   .drawer header .mascot-large { width:72px; height:72px; }

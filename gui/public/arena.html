@@ -86,9 +86,12 @@
       <span class="broadcast-prompt" aria-hidden="true">&gt;</span>
       <label class="sr-only" for="broadcast-input">Brief Atlas, or broadcast directly to the swarm</label>
       <input id="broadcast-input" type="text" autocomplete="off" spellcheck="false"
+             maxlength="255" aria-describedby="broadcast-error"
              placeholder="Talk to Atlas — he briefs the swarm…" />
+      <span class="broadcast-count" id="broadcast-count" aria-hidden="true">0/255</span>
       <span class="meta" id="broadcast-meta" aria-hidden="true">⏎ DISPATCH · / FOCUS</span>
     </div>
+    <div class="broadcast-error" id="broadcast-error" role="alert" hidden></div>
   </footer>
 
   <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
