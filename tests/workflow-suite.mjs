@@ -49,6 +49,10 @@ let ptyOk = true, ptyError = "";
 try { await loadGuiModule("node-pty"); await loadGuiModule("ws"); }
 catch (e) { ptyOk = false; ptyError = String(e.message || e); }
 
+// WebSocket client: global on Node 22+, `ws` package on 18/20.
+let WS = globalThis.WebSocket;
+if (!WS && ptyOk) { const m = await loadGuiModule("ws"); WS = m.WebSocket || m.default || m; }
+
 const LIVE = process.env.AGENTFORGE_LIVE_TEST === "1" && !!process.env.ANTHROPIC_API_KEY;
 
 let server = null;
@@ -78,7 +82,7 @@ process.on("exit", stopServer);
 process.on("SIGINT", () => { stopServer(); process.exit(130); });
 
 function openWS(pathname) {
-  const ws = new WebSocket(WSBASE + pathname);
+  const ws = new WS(WSBASE + pathname);
   return new Promise((resolve, reject) => {
     ws.addEventListener("open", () => resolve(ws), { once: true });
     ws.addEventListener("error", () => reject(new Error("ws open error")), { once: true });

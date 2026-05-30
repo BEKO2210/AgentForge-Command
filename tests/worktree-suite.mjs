@@ -38,6 +38,10 @@ try {
   process.exit(0);
 }
 
+// WebSocket client: global on Node 22+, `ws` package on 18/20.
+let WS = globalThis.WebSocket;
+if (!WS) { const r = createRequire(new URL("../gui/", import.meta.url)); const m = await import(r.resolve("ws")); WS = m.WebSocket || m.default || m; }
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const procs = [];
 const tmpDirs = [];
@@ -95,7 +99,7 @@ async function boot(repoDir, extraEnv = {}) {
 }
 
 function openWS(port) {
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/arena`);
+  const ws = new WS(`ws://127.0.0.1:${port}/arena`);
   const frames = [];
   ws.addEventListener("message", (ev) => { try { frames.push(JSON.parse(ev.data)); } catch {} });
   return new Promise((resolve, reject) => {

@@ -37,6 +37,10 @@ try {
   process.exit(0);
 }
 
+// WebSocket client: global on Node 22+, `ws` package on 18/20.
+let WS = globalThis.WebSocket;
+if (!WS) { const r = createRequire(new URL("../gui/", import.meta.url)); const m = await import(r.resolve("ws")); WS = m.WebSocket || m.default || m; }
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const procs = [];
 process.on("exit", () => { for (const p of procs) { try { p.kill("SIGKILL"); } catch {} } });
@@ -71,7 +75,7 @@ async function boot(extraEnv = {}) {
 
 // Open an arena WS, returning helpers to send and collect frames.
 function openWS(wsbase) {
-  const ws = new WebSocket(wsbase + "/arena");
+  const ws = new WS(wsbase + "/arena");
   const frames = [];
   ws.addEventListener("message", (ev) => { try { frames.push(JSON.parse(ev.data)); } catch {} });
   return new Promise((resolve, reject) => {
