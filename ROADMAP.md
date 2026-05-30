@@ -182,13 +182,13 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 **Warum:** Viral-Traffic bringt kritische Augen (Show HN/Reddit). Ein widerlegter Claim („sub-ms" ohne Zahl) kostet mehr Glaubwürdigkeit, als er je gebracht hat.
 
 **Aufgaben:**
-- ☐ **Security-Regression-Suite** (aus Phase 1) als Dauer-Bestandteil des Gates.
-- ☐ **Playwright-E2E:** echter Headless-Browser fährt das Cockpit im **Harness-Mode** (kein Key nötig): Atlas dispatcht → Stepper läuft → Dispatch-Panel zeigt Specialists → „TEST HARNESS"-Badge sichtbar. Deckt die UI ab, die die Server-Suite nicht sieht.
-- ☐ **a11y automatisiert:** `axe-core` gegen `arena.html` (Kontrast, ARIA, Fokus) — der README behauptet a11y, also belegen. `prefers-reduced-motion` testen.
-- ☐ **Performance-Benchmark `forge-pulse` vs. JS-Matcher:** Mikro-Benchmark (z. B. 1 Mio. PTY-Byte-Chunks), reale Zahlen (p50/p99 Latenz, Durchsatz) in `docs/BENCHMARKS.md`. **Entweder Claim mit Zahl belegen oder Claim entschärfen.**
-- ☐ **CI-Matrix:** `ubuntu-latest`, `macos-latest`, `windows-latest` × Node `18/20/22`. node-pty-Build auf allen dreien verifizieren (deckt Befund #5 ab). Windows ist erfahrungsgemäß der Bruchpunkt — bewusst testen.
-- ☐ **Coverage-Reporting** (`c8`) mit Schwellwert (Start: Ist-Wert + 5 %, nicht utopisch), Badge in README.
-- ☐ **CI-Status-Badge** (gate) + Coverage-Badge ins README.
+- ☑ **Security-Regression-Suite** (aus Phase 1) als Dauer-Bestandteil des Gates.
+- ☑ **Playwright-E2E:** echter Headless-Browser fährt das Cockpit im **Harness-Mode** (kein Key nötig): Atlas dispatcht → Stepper läuft → Dispatch-Panel zeigt Specialists → „TEST HARNESS"-Badge sichtbar. Deckt die UI ab, die die Server-Suite nicht sieht.
+- ☑ **a11y automatisiert:** `axe-core` gegen `arena.html` (Kontrast, ARIA, Fokus) — der README behauptet a11y, also belegen. `prefers-reduced-motion` testen.
+- ☑ **Performance-Benchmark `forge-pulse` vs. JS-Matcher:** Mikro-Benchmark (z. B. 1 Mio. PTY-Byte-Chunks), reale Zahlen (p50/p99 Latenz, Durchsatz) in `docs/BENCHMARKS.md`. **Entweder Claim mit Zahl belegen oder Claim entschärfen.**
+- ☑ **CI-Matrix:** `ubuntu-latest`, `macos-latest`, `windows-latest` × Node `18/20/22`. node-pty-Build auf allen dreien verifizieren (deckt Befund #5 ab). Windows ist erfahrungsgemäß der Bruchpunkt — bewusst testen.
+- ☑ **Coverage-Reporting** (`c8`) mit Schwellwert (Start: Ist-Wert + 5 %, nicht utopisch), Badge in README.
+- ☑ **CI-Status-Badge** (gate) + Coverage-Badge ins README.
 - ☐ *(optional)* Lasttest: 8 parallele PTYs + Broadcast-Sturm, Speicher-/CPU-Profil dokumentieren.
 
 **Akzeptanzkriterien / Gate:** E2E grün in CI · a11y ohne Violations (oder dokumentierte, bewusste Ausnahmen) · `BENCHMARKS.md` mit echten Zahlen · CI-Matrix grün auf 3 OS × 3 Node · Coverage-Schwelle erzwungen.
@@ -285,7 +285,7 @@ Damit das Projekt fokussiert bleibt und nicht zum 250k-LOC-Moloch wird:
 - ☐ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
 - ☐ **P1:** Phase 6 Repo-Beschreibung + Demo + Release
 - ☑ **P2:** Phase 2 Robustheit/Guardrails
-- ☐ **P2:** Phase 4 Tests/Benchmarks/CI-Matrix
+- ☑ **P2:** Phase 4 Tests/Benchmarks/CI-Matrix
 - ☐ **P3:** Branding/Pricing-Pflege
 
 ---
