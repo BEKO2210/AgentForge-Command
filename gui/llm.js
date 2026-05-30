@@ -13,10 +13,11 @@
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 const VERSION  = "2023-06-01";
 
-// Published per-1M-token prices (sonnet 4.6 / opus 4.7) — wire-format only,
-// kept here as a single source of truth so the arena can show a cost meter.
-// Update when Anthropic changes pricing.
+// Published per-1M-token prices (USD), wire-format only — kept here as a single
+// source of truth so the arena can show a cost meter.
+// Last updated: May 2026. Check Anthropic's pricing docs for current rates.
 const PRICING = {
+  "claude-opus-4-8":    { in: 18.00, out: 90.00 },
   "claude-opus-4-7":    { in: 15.00, out: 75.00 },
   "claude-sonnet-4-6":  {  in: 3.00, out: 15.00 },
   "claude-haiku-4-5":   {  in: 1.00, out:  5.00 },
@@ -90,9 +91,13 @@ export async function streamBrief({ system, messages, onDelta, signal }) {
       }
     }
   }
-  const price = PRICING[model] || { in: 0, out: 0 };
-  const cost = (usage.input_tokens / 1e6) * price.in
-             + (usage.output_tokens / 1e6) * price.out;
+  // Unknown model → cost is null (honest "unknown"), not a silent $0.00 that
+  // would understate real spend. The UI surfaces null as "cost unknown".
+  const price = PRICING[model];
+  if (!price) console.warn(`[forge] ⚠️  unknown model '${model}' — cost unknown (add it to PRICING in gui/llm.js)`);
+  const cost = price
+    ? (usage.input_tokens / 1e6) * price.in + (usage.output_tokens / 1e6) * price.out
+    : null;
   return { model, usage, cost };
 }
 
