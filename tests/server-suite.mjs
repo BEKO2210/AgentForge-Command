@@ -159,30 +159,33 @@ process.on("exit", () => { for (const p of extraServers) { try { p.kill("SIGKILL
 
 async function openWS(pathname) {
   const ws = new WS(WSBASE + pathname);
+  // Buffer EVERY frame from connect-time. The server sends `hello` (and fast
+  // acks) immediately; attaching the listener only inside nextMsg would race
+  // and lose early messages — native WebSocket (Node 22) happened to win that
+  // race, the ws package (Node 18/20) did not. Buffering makes it deterministic.
+  ws._frames = [];
+  ws.addEventListener("message", (ev) => { try { ws._frames.push(JSON.parse(ev.data)); } catch {} });
   await new Promise((resolve, reject) => {
     const onOpen  = () => { ws.removeEventListener("error", onError); resolve(); };
-    const onError = (e) => { ws.removeEventListener("open", onOpen); reject(new Error("ws open error")); };
+    const onError = () => { ws.removeEventListener("open", onOpen); reject(new Error("ws open error")); };
     ws.addEventListener("open",  onOpen,  { once: true });
     ws.addEventListener("error", onError, { once: true });
     setTimeout(() => reject(new Error("ws open timeout")), 5000);
   });
   return ws;
 }
-function nextMsg(ws, predicate, timeoutMs = 3000) {
+// Resolve with the first buffered frame matching `predicate` (past or future),
+// consuming it so repeated waits get distinct frames.
+function nextMsg(ws, predicate, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
-    const handler = (ev) => {
-      let m; try { m = JSON.parse(ev.data); } catch { return; }
-      if (!predicate || predicate(m)) {
-        ws.removeEventListener("message", handler);
-        clearTimeout(t);
-        resolve(m);
-      }
+    const t0 = Date.now();
+    const tick = () => {
+      const i = (ws._frames || []).findIndex((m) => !predicate || predicate(m));
+      if (i >= 0) { const m = ws._frames[i]; ws._frames.splice(i, 1); return resolve(m); }
+      if (Date.now() - t0 > timeoutMs) return reject(new Error("ws msg timeout"));
+      setTimeout(tick, 20);
     };
-    ws.addEventListener("message", handler);
-    const t = setTimeout(() => {
-      ws.removeEventListener("message", handler);
-      reject(new Error("ws msg timeout"));
-    }, timeoutMs);
+    tick();
   });
 }
 
