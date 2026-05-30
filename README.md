@@ -40,6 +40,25 @@ Claude stream.
 Local-first, file-coordinated and dependency-light. The optional Rust
 accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 
+> ### ⚠️ Policy notice (April 2026)
+>
+> Anthropic restricts **Pro/Max subscription** access for third-party,
+> PTY-based agent frameworks. In practice, for AgentForge:
+>
+> - **Test-harness mode (no key):** ✅ Works — deterministic, no LLM calls.
+> - **Your own Anthropic API key:** ✅ Works — your account, your key, your
+>   consumption, via the official Messages API.
+> - **A shared Pro/Max account driven through this framework:** ❌ Not
+>   permitted by Anthropic's terms.
+>
+> You are responsible for ensuring your usage complies with the
+> [Anthropic Usage Policies](https://www.anthropic.com/legal/aup) and
+> [Consumer/Commercial Terms](https://www.anthropic.com/legal/consumer-terms).
+> This is our good-faith reading, **not legal advice**, and AgentForge ships
+> **no** mechanism to circumvent any provider limit. See
+> [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md#8-anthropic-usage-policy-pty-vs-api)
+> for the full breakdown.
+
 ## The cockpit
 
 <p align="center">
@@ -445,3 +464,21 @@ rules.
 
 [MIT](LICENSE) — Copyright © 2026 Belkis Aslani (BEKO2210). Use it freely,
 including commercially.
+
+## Legal
+
+**Trademark & non-endorsement.** "Claude," "Claude Code," and related marks
+are trademarks of **Anthropic PBC**. AgentForge Command is an **independent,
+unofficial** community project — **not** endorsed by, affiliated with, or
+officially connected to Anthropic. It is provided as-is for educational and
+experimental use. See [`TRADEMARK.md`](TRADEMARK.md).
+
+**Privacy / Datenschutz.** AgentForge is local-first and ships zero telemetry.
+See [`PRIVACY.md`](PRIVACY.md) (incl. a DSGVO/GDPR note for the DACH region).
+
+**Third-party software.** Built on open-source components (all permissive
+licenses). Inventory + SBOM: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+**Boundaries.** Honest limits and trade-offs: [`KNOWN_LIMITS.md`](KNOWN_LIMITS.md).
+Security model + reporting: [`SECURITY.md`](SECURITY.md) ·
+[`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
