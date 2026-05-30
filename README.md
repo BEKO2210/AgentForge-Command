@@ -158,9 +158,9 @@ docs, CI). Competitor cells are from the survey in [`ROADMAP.md`](ROADMAP.md) §
 | Cross-platform CI (3 OS × 3 Node) | ✅ | ? | ? | ? |
 | Documented threat model + privacy | ✅ | ◑ | ? | ◑ |
 | License | MIT | MIT | MIT | MIT |
-| Stars | new (0) | ~31k | ~472 | ~7.9k |
+| Stars | ![GitHub stars](https://img.shields.io/github/stars/BEKO2210/AgentForge-Command?label=&style=flat) | ~31k | ~472 | ~7.9k |
 
-We're new and small — the honest pitch isn't "most stars," it's: **the most
+We're new and small — the honest pitch isn't "most stars"; it's **the most
 polished local cockpit, with no fake activity, the lowest activation energy
 (harness mode), and production-grade testing to back the claims.** Where we
 can't verify a competitor's capability we mark it `?` rather than guess.

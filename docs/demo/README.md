@@ -6,6 +6,9 @@
 The demo runs entirely in **test-harness mode** — no API key, deterministic,
 nothing leaves the machine.
 
+> **Tip:** `scripts/record-demo.sh` boots the server in harness mode with the
+> right flags — both recording options below can delegate setup to it.
+
 ## What to show (15–30s)
 
 1. `npm install && npm start` → server boots, prints the session token + URL.
@@ -19,11 +22,11 @@ nothing leaves the machine.
 ## Option A — asciinema (best for a technical audience)
 
 ```bash
-# Terminal pane (the server side of the story)
-AGENTFORGE_HARNESS=1 asciinema rec docs/demo/agentforge.cast --idle-time-limit=2 \
-  --title "AgentForge Command — harness walkthrough"
-#   inside the recording:  npm install && npm start
-#   then drive the cockpit in the browser; Ctrl-D to stop.
+# Let the helper boot the server in harness mode (consistent setup):
+asciinema rec docs/demo/agentforge.cast --idle-time-limit=2 \
+  --title "AgentForge Command — harness walkthrough" \
+  --command "bash scripts/record-demo.sh"
+# Then drive the cockpit in the browser; Ctrl-C stops the server and recording.
 ```
 
 Upload + get a shareable link:

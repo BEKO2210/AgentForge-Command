@@ -12,6 +12,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const server = path.join(here, "..", "gui", "server.js");
 
 const child = spawn(process.execPath, [server, ...process.argv.slice(2)], { stdio: "inherit" });
+// Relay Ctrl-C / termination to the server so it can shut down its PTYs cleanly.
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(sig, () => { try { child.kill(sig); } catch {} });
+}
 child.on("exit", (code, signal) => {
   if (signal) process.kill(process.pid, signal);
   else process.exit(code ?? 0);
