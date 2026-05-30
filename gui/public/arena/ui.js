@@ -11,6 +11,22 @@ const escapeHTML = (s) =>
   String(s).replace(/[&<>"']/g, (c) =>
     ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
+// Run 1.4: colour `git status --short` porcelain (added/modified/deleted/
+// untracked) — dependency-free, content escaped (these are repo file paths).
+function gitStatusHTML(output) {
+  const text = String(output || "").replace(/\s+$/, "");
+  if (!text) return `<span class="gs-clean">✓ clean — no changes</span>`;
+  return text.split("\n").map((line) => {
+    const code = line.slice(0, 2);
+    let kind = "other";
+    if (code.trim() === "??") kind = "untracked";
+    else if (code.includes("D")) kind = "deleted";
+    else if (code.includes("A") || code.includes("C")) kind = "added";
+    else if (code.includes("M") || code.includes("R")) kind = "modified";
+    return `<div class="gs-line gs-${kind}">${escapeHTML(line)}</div>`;
+  }).join("");
+}
+
 const pct = (v) => Math.round((Number(v) || 0) * 100);
 const trendArrow = (t) => t === "rising" ? "↑" : t === "falling" ? "↓" : "→";
 function fmtDuration(sec) {
@@ -550,7 +566,7 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
     const tok = tokEl ? encodeURIComponent(tokEl.getAttribute("content") || "") : "";
     fetch(`/api/agent/${encodeURIComponent(agent.id)}/git-status?token=${tok}`)
       .then((r) => r.json())
-      .then((j) => { if (slot) slot.textContent = (j && j.output) ? j.output : "(clean — no changes)"; })
+      .then((j) => { if (slot) slot.innerHTML = gitStatusHTML(j && j.output); })
       .catch(() => { if (slot) slot.textContent = "(git status unavailable)"; });
   }
   drawer.onclick = (e) => {

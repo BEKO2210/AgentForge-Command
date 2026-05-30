@@ -104,5 +104,8 @@ test.describe("AgentForge cockpit", () => {
     const gs = page.locator("#drawer [data-git-status]");
     await expect(gs).toBeVisible();
     await expect(gs).not.toHaveText("loading git status…", { timeout: 6000 });
+    // Run 1.4: status is rendered as coloured lines (or the clean marker),
+    // not raw text — a fresh worktree has no changes → ".gs-clean".
+    await expect(gs.locator(".gs-clean, .gs-line").first()).toBeVisible();
   });
 });

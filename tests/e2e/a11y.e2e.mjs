@@ -28,6 +28,16 @@ test.describe("AgentForge accessibility", () => {
     expect(["0s", "0ms"]).toContain(dur);
   });
 
+  test("an open specialist drawer has no serious/critical axe violations (Run 1.4)", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.tcard[data-id="sentinel"] header[data-action="open"]').click();
+    await page.locator("#drawer.open").waitFor({ timeout: 5000 });
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    if (serious.length) for (const v of serious) console.log(`  - ${v.id} (${v.impact}): ${v.help}`);
+    expect(serious, serious.map((v) => v.id).join(", ")).toEqual([]);
+  });
+
   test("keyboard: Tab reaches a focusable control", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");
