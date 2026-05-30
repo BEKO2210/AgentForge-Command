@@ -295,6 +295,14 @@ focus, `Enter` to dispatch, `Esc` to close any drawer.
 A per-PTY watchdog presses Enter on clear permission prompts so the operator
 doesn't keep approving them by hand.
 
+> [!WARNING]
+> **Responsible use.** Auto-enter **auto-approves permission prompts** on your
+> behalf — including tool/command approvals in the agent's session. Only arm it
+> in **repositories and tasks you trust**, and only for agents you're actively
+> supervising. It's **off by default**, fires once per prompt with a 1.5 s
+> cooldown, and every fire is announced in the timeline — but it is still you
+> consenting in advance. See [`SECURITY.md`](SECURITY.md).
+
 Server-side, the watchdog matches a conservative whitelist:
 
 ```

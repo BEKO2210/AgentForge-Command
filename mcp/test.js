@@ -1,4 +1,4 @@
-// Self-contained smoke test for the team-mcp server. Spawns the server, drives the MCP
+// Self-contained smoke test for the agentforge-mcp server. Spawns the server, drives the MCP
 // stdio JSON-RPC, and asserts on the responses. Run from this directory:
 //   node test.js
 import { spawn } from "node:child_process";
@@ -47,7 +47,7 @@ try {
   send({ jsonrpc: "2.0", id: 1, method: "initialize",
     params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "smoke", version: "0" } } });
   const init = await wait(1);
-  expect(init.result?.serverInfo?.name === "team-mcp", "initialize: serverInfo.name === 'team-mcp'");
+  expect(init.result?.serverInfo?.name === "agentforge-mcp", "initialize: serverInfo.name === 'agentforge-mcp'");
 
   send({ jsonrpc: "2.0", method: "notifications/initialized" });
 
