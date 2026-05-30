@@ -108,4 +108,22 @@ test.describe("AgentForge cockpit", () => {
     // not raw text — a fresh worktree has no changes → ".gs-clean".
     await expect(gs.locator(".gs-clean, .gs-line").first()).toBeVisible();
   });
+
+  test("a launched specialist's mascot gains live vibrancy (Run 1.5)", async ({ page }) => {
+    await page.goto("/");
+    // Use a specialist no other test launches, so it starts dormant.
+    const card = page.locator('.tcard[data-id="prism"]');
+    const svg = card.locator(".mascot-slot svg");
+    // Dormant: no saturation boost.
+    const flat = await svg.evaluate((el) => getComputedStyle(el).filter);
+    expect(flat === "none" || !/saturate/.test(flat)).toBeTruthy();
+    // Launch → card flips to .live → the mascot saturates (comes alive).
+    // The card re-renders on launch, so poll a freshly-located svg.
+    await card.locator('[data-action="launch-pty"]').click();
+    await expect(card).toHaveClass(/\blive\b/, { timeout: 12000 });
+    await expect.poll(
+      () => card.locator(".mascot-slot svg").evaluate((el) => getComputedStyle(el).filter),
+      { timeout: 6000 }
+    ).toMatch(/saturate/);
+  });
 });

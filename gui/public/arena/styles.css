@@ -682,6 +682,17 @@ kbd {
 .tcard .status-badge.dormant { color:var(--muted); border-color:var(--border2); background:transparent; }
 .tcard .status-badge.dormant::before { background:var(--idle); box-shadow:none; }
 .tcard.live { box-shadow:0 0 0 1px color-mix(in srgb,var(--good) 40%, transparent), var(--shadow-card); }
+/* Run 1.5: a running specialist's mascot "comes alive" — fuller colour + a
+   warmer slot glow — so an active agent reads as vivid vs. a dormant one.
+   This is a static visual change (no motion), so it applies regardless of
+   prefers-reduced-motion; the bob it pairs with is motion-guarded below. */
+.tcard.live .mascot-slot svg { filter:saturate(1.35) brightness(1.06); }
+.tcard.live .mascot-slot {
+  border-color:color-mix(in srgb, var(--good) 45%, var(--border2));
+}
+.tcard.live .mascot-slot::after {
+  background:radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--good) 30%, transparent), transparent 65%);
+}
 
 /* ----- Broadcast bar ----- */
 .broadcast {
@@ -2730,6 +2741,18 @@ kbd {
   @keyframes m-work  { from { transform:translateY(0); } to { transform:translateY(-1.2px); } }
   @keyframes m-pop   { 0% { transform:scale(.92); } 60% { transform:scale(1.08); } 100% { transform:none; } }
   @keyframes m-shake { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1px); } }
+
+  /* Run 1.5: hovering a card gives its mascot a friendly "hello" bob — a
+     one-off greeting that adds personality without competing with the
+     per-state idle loops. Scoped to the body group so it layers over the
+     species idle transform cleanly. Motion-guarded by this media query. */
+  .tcard:hover .mascot-slot .mascot-body { animation: m-card-hello .5s var(--ease-standard, ease) 1; }
+  @keyframes m-card-hello {
+    0%   { transform:translateY(0) scale(1); }
+    35%  { transform:translateY(-1.6px) scale(1.05); }
+    70%  { transform:translateY(.4px) scale(.99); }
+    100% { transform:translateY(0) scale(1); }
+  }
 }
 
 /* ----- Reduced motion: kill animations cleanly ----- */
