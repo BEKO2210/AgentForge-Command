@@ -12,6 +12,10 @@
     "gui",
     "mcp"
   ],
+  "bin": {
+    "agentforge-command": "bin/agentforge.mjs",
+    "agentforge": "bin/agentforge.mjs"
+  },
   "scripts": {
     "start": "node gui/server.js",
     "dev": "node gui/server.js",
