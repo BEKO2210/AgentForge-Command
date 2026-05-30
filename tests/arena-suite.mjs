@@ -6,10 +6,12 @@
 // composes naturally with tests/run.sh.
 
 import * as assert from "node:assert/strict";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// Dynamic import of an absolute path needs a file:// URL on Windows.
+const importLocal = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 
 let pass = 0;
 let fail = 0;
@@ -49,7 +51,7 @@ function it(name, fn) {
 /* ----- lib/state.mjs --------------------------------------------------- */
 
 describe("lib/state.mjs · buildState / parseBoard", async () => {
-  const mod = await import(path.join(ROOT, "lib/state.mjs"));
+  const mod = await importLocal("lib/state.mjs");
   const fs = await import("node:fs");
   const os = await import("node:os");
 
@@ -88,7 +90,7 @@ describe("lib/state.mjs · buildState / parseBoard", async () => {
 /* ----- gui/public/arena/state.js --------------------------------------- */
 
 describe("arena/state.js · createStore", async () => {
-  const mod = await import(path.join(ROOT, "gui/public/arena/state.js"));
+  const mod = await importLocal("gui/public/arena/state.js");
   const s = mod.createStore({ a: 1, b: 2 });
 
   it("get returns initial values", () => {
@@ -132,7 +134,7 @@ describe("arena/state.js · createStore", async () => {
 /* ----- gui/public/arena/data.js ---------------------------------------- */
 
 describe("arena/data.js · roster integrity", async () => {
-  const mod = await import(path.join(ROOT, "gui/public/arena/data.js"));
+  const mod = await importLocal("gui/public/arena/data.js");
 
   it("12 specialists, atlas first with lead role", () => {
     assert.equal(mod.SEED_AGENTS.length, 12);
@@ -181,7 +183,7 @@ describe("arena/data.js · roster integrity", async () => {
 /* ----- gui/public/arena/mascots.js ------------------------------------- */
 
 describe("arena/mascots.js · renderMascot", async () => {
-  const mod = await import(path.join(ROOT, "gui/public/arena/mascots.js"));
+  const mod = await importLocal("gui/public/arena/mascots.js");
 
   it("exports 12 mascot ids", () => {
     assert.equal(mod.MASCOT_IDS.length, 12);
@@ -230,8 +232,8 @@ describe("arena/mascots.js · renderMascot", async () => {
 /* ----- gui/public/arena/spawner.js ------------------------------------- */
 
 describe("arena/spawner.js · createSpawnEngine", async () => {
-  const stateMod   = await import(path.join(ROOT, "gui/public/arena/state.js"));
-  const spawnerMod = await import(path.join(ROOT, "gui/public/arena/spawner.js"));
+  const stateMod   = await importLocal("gui/public/arena/state.js");
+  const spawnerMod = await importLocal("gui/public/arena/spawner.js");
 
   function freshEngine(persisted = {}) {
     const store = stateMod.createStore({ agents: [], timeline: [] });
@@ -311,7 +313,7 @@ describe("arena/spawner.js · createSpawnEngine", async () => {
 /* ----- gui/llm.js ------------------------------------------------------ */
 
 describe("gui/llm.js · config + pricing", async () => {
-  const mod = await import(path.join(ROOT, "gui/llm.js"));
+  const mod = await importLocal("gui/llm.js");
 
   it("PRICING covers the three model tiers", () => {
     for (const id of ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"]) {

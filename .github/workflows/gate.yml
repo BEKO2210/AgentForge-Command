@@ -10,58 +10,76 @@ permissions:
   contents: read
 
 jobs:
-  # Cross-platform gate: proves node-pty's native build + the full test suite
-  # on 3 OS × 3 Node versions (covers ROADMAP Befund #5 — Windows/macOS builds).
+  # Deep gate: lint + the full test suite incl. PTY-integration + the bash
+  # coordination-kit tests. PTYs/bash are reliable on Linux (the supported
+  # runtime; Windows users run via Docker/WSL — see docs/INSTALL.md), so the
+  # heavy integration runs here across every supported Node version.
   gate:
-    name: gate (${{ matrix.os }} · node ${{ matrix.node }})
+    name: gate (ubuntu · node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20", "22"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Tool versions
+        run: |
+          bash --version | head -1; git --version; node --version
+          (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed (optional)"
+      - name: Install gui deps (builds node-pty)
+        working-directory: gui
+        run: npm ci
+      - name: Verify native module loads
+        working-directory: gui
+        run: node -e "import('node-pty').then(()=>console.log('node-pty ok')).catch(e=>{console.error('node-pty FAIL:',e.message);process.exit(1)})"
+      - name: Green gate (bash -n + shellcheck + tests/run.sh)
+        run: bash scripts/team-check.sh
+
+  # Cross-platform build + portable smoke: proves node-pty's NATIVE BUILD and
+  # load on every OS × Node combo (ROADMAP Befund #5), plus the pure-Node unit
+  # tests, benchmark and schema check. No PTY/bash-kit here — those are the
+  # gate's job on Linux. This is the broad "it builds everywhere" assurance.
+  build:
+    name: build (${{ matrix.os }} · node ${{ matrix.node }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node: ["18", "20", "22"]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 15
     defaults:
       run:
         shell: bash
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-
-      - name: Show tool versions
-        run: |
-          bash --version | head -1
-          git --version
-          node --version
-          (command -v shellcheck && shellcheck --version | head -2) || echo "shellcheck not installed (optional)"
-
-      # node-pty is a native module — `npm ci` (with install scripts) must build
-      # its binary. This step IS the cross-platform build proof.
-      - name: Install gui dependencies (builds node-pty)
+      - name: Install gui deps (builds node-pty natively)
         working-directory: gui
         run: npm ci
-
       - name: Verify native module loads
         working-directory: gui
         run: node -e "import('node-pty').then(()=>console.log('node-pty ok')).catch(e=>{console.error('node-pty FAIL:',e.message);process.exit(1)})"
-
-      - name: Run the green gate (bash -n + shellcheck + tests/run.sh)
-        run: bash scripts/team-check.sh
+      - name: Portable unit tests (no PTY)
+        run: |
+          node tests/arena-suite.mjs
+          node tests/validate-schema.mjs
+          node tests/perf-bench.mjs
 
   audit:
     name: npm audit (gui + mcp)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Audit gui dependencies
@@ -80,10 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install (root workspaces + dev tooling)
@@ -98,10 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install (root workspaces)

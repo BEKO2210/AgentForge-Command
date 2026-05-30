@@ -38,6 +38,10 @@ try {
   process.exit(0);
 }
 
+// WebSocket client: global on Node 22+, `ws` package on 18/20.
+let WS = globalThis.WebSocket;
+if (!WS) { const r = createRequire(new URL("../gui/", import.meta.url)); const m = await import(r.resolve("ws")); WS = m.WebSocket || m.default || m; }
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const procs = [];
 const tmpDirs = [];
@@ -95,7 +99,7 @@ async function boot(repoDir, extraEnv = {}) {
 }
 
 function openWS(port) {
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/arena`);
+  const ws = new WS(`ws://127.0.0.1:${port}/arena`);
   const frames = [];
   ws.addEventListener("message", (ev) => { try { frames.push(JSON.parse(ev.data)); } catch {} });
   return new Promise((resolve, reject) => {
@@ -161,9 +165,12 @@ await it("parallel edits to the same filename do not collide", async () => {
     await sleep(400); // let bash settle
     ws.send({ t: "input", id: "forge", d: "printf forge-edit > shared.txt\r" });
     ws.send({ t: "input", id: "sentinel", d: "printf sentinel-edit > shared.txt\r" });
-    await sleep(700);
-    assert.equal(fs.readFileSync(path.join(wt(repo, "forge"), "shared.txt"), "utf8"), "forge-edit");
-    assert.equal(fs.readFileSync(path.join(wt(repo, "sentinel"), "shared.txt"), "utf8"), "sentinel-edit");
+    // Poll for the PTY-written files instead of a fixed sleep (CI runners vary).
+    const read = (id) => { try { return fs.readFileSync(path.join(wt(repo, id), "shared.txt"), "utf8"); } catch { return ""; } };
+    const t0 = Date.now();
+    while (Date.now() - t0 < 5000 && (read("forge") !== "forge-edit" || read("sentinel") !== "sentinel-edit")) await sleep(80);
+    assert.equal(read("forge"), "forge-edit");
+    assert.equal(read("sentinel"), "sentinel-edit");
     ws.close();
   } finally { await srv.stopAndWait(); }
 });

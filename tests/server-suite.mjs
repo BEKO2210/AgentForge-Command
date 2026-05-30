@@ -53,6 +53,11 @@ try {
   ptyError = String(e.message || e);
 }
 
+// WebSocket client constructor: global on Node 22+, the `ws` package on 18/20
+// (the server depends on `ws` anyway, so it's always available here).
+let WS = globalThis.WebSocket;
+if (!WS && ptyOk) { const m = await loadGuiModule("ws"); WS = m.WebSocket || m.default || m; }
+
 let server = null;
 async function startServer() {
   if (!ptyOk) {
@@ -153,13 +158,13 @@ async function bootServer(extraEnv = {}) {
 process.on("exit", () => { for (const p of extraServers) { try { p.kill("SIGKILL"); } catch {} } });
 
 async function openWS(pathname) {
-  const ws = new WebSocket(WSBASE + pathname);
+  const ws = new WS(WSBASE + pathname);
   await new Promise((resolve, reject) => {
     const onOpen  = () => { ws.removeEventListener("error", onError); resolve(); };
     const onError = (e) => { ws.removeEventListener("open", onOpen); reject(new Error("ws open error")); };
     ws.addEventListener("open",  onOpen,  { once: true });
     ws.addEventListener("error", onError, { once: true });
-    setTimeout(() => reject(new Error("ws open timeout")), 2000);
+    setTimeout(() => reject(new Error("ws open timeout")), 5000);
   });
   return ws;
 }
@@ -407,8 +412,8 @@ await it("started events reach two arena clients", async () => {
   // Both sockets collect every frame as it arrives, so consecutive waits
   // on the same socket can't deadlock each other.
   const fa = []; const fb = [];
-  const a = new WebSocket(WSBASE + "/arena");
-  const b = new WebSocket(WSBASE + "/arena");
+  const a = new WS(WSBASE + "/arena");
+  const b = new WS(WSBASE + "/arena");
   a.addEventListener("message", (e) => { try { fa.push(JSON.parse(e.data)); } catch {} });
   b.addEventListener("message", (e) => { try { fb.push(JSON.parse(e.data)); } catch {} });
   await new Promise((r) => a.addEventListener("open", r, { once: true }));
@@ -523,7 +528,7 @@ await it("a fresh server with nothing launched emits hello and NO activity frame
   const srv = await bootServer();
   try {
     const frames = [];
-    const ws = new WebSocket(srv.wsbase + "/arena");
+    const ws = new WS(srv.wsbase + "/arena");
     ws.addEventListener("message", (e) => { try { frames.push(JSON.parse(e.data)); } catch {} });
     await new Promise((r) => ws.addEventListener("open", r, { once: true }));
     await new Promise((r) => setTimeout(r, 1200));
@@ -540,7 +545,7 @@ section("Launch failure · missing command surfaces a clear error");
 await it("start-pty with a missing command emits launch-error, server survives", async () => {
   const srv = await bootServer({ TEST_CMD: "agentforge-nonexistent-binary-xyz" });
   try {
-    const ws = new WebSocket(srv.wsbase + "/arena");
+    const ws = new WS(srv.wsbase + "/arena");
     const frames = [];
     ws.addEventListener("message", (e) => { try { frames.push(JSON.parse(e.data)); } catch {} });
     await new Promise((r) => ws.addEventListener("open", r, { once: true }));
