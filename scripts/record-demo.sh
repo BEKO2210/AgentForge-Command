@@ -7,7 +7,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
 echo "🚀 AgentForge Command — demo (harness mode)"
-node -v >/dev/null 2>&1 || { echo "Node.js 18+ required"; exit 1; }
+command -v node >/dev/null 2>&1 || { echo "Node.js 18+ required (not found)"; exit 1; }
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+[ "${NODE_MAJOR:-0}" -ge 18 ] 2>/dev/null || { echo "Node.js 18+ required (have $(node -v))"; exit 1; }
 [ -d gui/node_modules ] || { echo "📦 installing…"; (cd gui && npm ci); }
 
 export AGENTFORGE_HARNESS=1
