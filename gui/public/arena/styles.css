@@ -27,13 +27,15 @@
   --fg:#f1f5fb;
   --muted:#8a96b0;
   --dim:#6b7591;
-  --accent:#5b8cff;
+  /* Semantic colors now flow from design-tokens.css (Run 1.1). Identical
+     values via var() fallback → zero visual change; tokens are the source. */
+  --accent:var(--color-accent,#5b8cff);
   --accent-fade:rgba(91,140,255,.18);
-  --cta:#22c55e;
+  --cta:var(--color-cta,#22c55e);
   --cta2:#34d399;
-  --good:#54e6a8;
-  --warn:#ffcf5c;
-  --bad:#ff6b7d;
+  --good:var(--color-accent-success,#54e6a8);
+  --warn:var(--color-accent-warn,#ffcf5c);
+  --bad:var(--color-accent-error,#ff6b7d);
   --idle:#8a93ad;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --ui:"IBM Plex Sans",ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
