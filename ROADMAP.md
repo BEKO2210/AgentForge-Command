@@ -204,15 +204,15 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 > ⚠️ **Hinweis:** Ich bin kein Anwalt; das ist keine Rechtsberatung. Die Punkte unten sind Standard-OSS-Hygiene. Für die Trademark-/Policy-Formulierungen im Zweifel kurz fachlich gegenlesen lassen.
 
 **Aufgaben:**
-- ☐ **Anthropic-Policy offen adressieren** (Befund #8): README-Abschnitt „Pro/Max vs. API". Klarstellen: Der **LLM-Bridge-Pfad nutzt deinen API-Key** (von der 04.04.2026-Sperre unberührt). Der **PTY-Pfad startet deine lokale `claude`-CLI** — Nutzer sind selbst dafür verantwortlich, dass ihre Nutzung den Anthropic-Nutzungsbedingungen entspricht. Keine Umgehungs-Anleitung, nur ehrliche Einordnung.
-- ☐ **Trademark-/Non-Endorsement-Notice:** „Claude" und „Claude Code" sind Marken von Anthropic; AgentForge ist ein **inoffizielles, unabhängiges** Community-Tool, **nicht** von Anthropic unterstützt oder gesponsert. In README + `NOTICE`.
-- ☐ **Third-Party-Notices / Lizenz-Inventar:** `THIRD_PARTY_NOTICES.md` für `node-pty`, `ws`, `@modelcontextprotocol/sdk` (Lizenztexte/Verweise). MIT-Kompatibilität bestätigen.
-- ☐ **SBOM:** CycloneDX im CI generieren (`@cyclonedx/cyclonedx-npm`) und als Release-Artefakt anhängen.
-- ☐ **Kosten-/Datenfluss-Transparenz:** README-Abschnitt „Was verlässt deine Maschine?" — nur API-Calls an `api.anthropic.com` **wenn** Key gesetzt; sonst nichts. Spend-Ledger erklärt, dass **du** die Token-Kosten trägst. (Die „No telemetry"-Aussage ist bereits gut — hier nur schärfen.)
-- ☐ **Datenschutz/DSGVO-Notiz** (DACH): kurze `PRIVACY.md` — keine personenbezogene Datenverarbeitung serverseitig, alles lokal, keine Cookies/Tracker. Passt zu deinem „privacy-first"-Profil.
-- ☐ **Responsible-Use / Auto-Enter-Warnung:** Prominenter Hinweis, dass Auto-Enter Berechtigungs-Prompts **automatisch bestätigt** und nur in vertrauenswürdigen Repos genutzt werden sollte. (SECURITY.md nennt das bereits als in-scope — ins README hochziehen.)
-- ☐ **SECURITY.md finalisieren:** Coordinated-Disclosure-Fenster (z. B. 90 Tage), das neue Token-Modell, unterstützte Versionen-Tabelle.
-- ☐ **Branding-Konsistenz:** `package.json`-Name `team-gui` → `agentforge-command` (bzw. scoped), Versionierung an Releases koppeln (Phase 6).
+- ☑ **Anthropic-Policy offen adressieren** (Befund #8): README-Abschnitt „Pro/Max vs. API". Klarstellen: Der **LLM-Bridge-Pfad nutzt deinen API-Key** (von der 04.04.2026-Sperre unberührt). Der **PTY-Pfad startet deine lokale `claude`-CLI** — Nutzer sind selbst dafür verantwortlich, dass ihre Nutzung den Anthropic-Nutzungsbedingungen entspricht. Keine Umgehungs-Anleitung, nur ehrliche Einordnung.
+- ☑ **Trademark-/Non-Endorsement-Notice:** „Claude" und „Claude Code" sind Marken von Anthropic; AgentForge ist ein **inoffizielles, unabhängiges** Community-Tool, **nicht** von Anthropic unterstützt oder gesponsert. In README + `NOTICE`.
+- ☑ **Third-Party-Notices / Lizenz-Inventar:** `THIRD_PARTY_NOTICES.md` für `node-pty`, `ws`, `@modelcontextprotocol/sdk` (Lizenztexte/Verweise). MIT-Kompatibilität bestätigen.
+- ◑ **SBOM:** CycloneDX im CI generieren (`@cyclonedx/cyclonedx-npm`) und als Release-Artefakt anhängen.
+- ☑ **Kosten-/Datenfluss-Transparenz:** README-Abschnitt „Was verlässt deine Maschine?" — nur API-Calls an `api.anthropic.com` **wenn** Key gesetzt; sonst nichts. Spend-Ledger erklärt, dass **du** die Token-Kosten trägst. (Die „No telemetry"-Aussage ist bereits gut — hier nur schärfen.)
+- ☑ **Datenschutz/DSGVO-Notiz** (DACH): kurze `PRIVACY.md` — keine personenbezogene Datenverarbeitung serverseitig, alles lokal, keine Cookies/Tracker. Passt zu deinem „privacy-first"-Profil.
+- ☑ **Responsible-Use / Auto-Enter-Warnung:** Prominenter Hinweis, dass Auto-Enter Berechtigungs-Prompts **automatisch bestätigt** und nur in vertrauenswürdigen Repos genutzt werden sollte. (SECURITY.md nennt das bereits als in-scope — ins README hochziehen.)
+- ☑ **SECURITY.md finalisieren:** Coordinated-Disclosure-Fenster (z. B. 90 Tage), das neue Token-Modell, unterstützte Versionen-Tabelle.
+- ☑ **Branding-Konsistenz:** `package.json`-Name `team-gui` → `agentforge-command` (bzw. scoped), Versionierung an Releases koppeln (Phase 6).
 
 **Akzeptanzkriterien / Gate:** Alle genannten Dateien existieren & sind im README verlinkt · SBOM-Artefakt im CI · keine Marken-/Lizenz-Falschaussagen · Gate grün.
 
@@ -225,17 +225,17 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 **Warum:** Du hast bereits Launch-Entwürfe (`docs/launch/show-hn.md`, `reddit-claudeai.md`, `blog-intro.md`) — aber „Comming soon..." als Repo-Beschreibung, 0 Topics, kein Release und kein Demo-GIF verschenken jeden Klick. Das hier ist der Hebel mit dem höchsten ROI pro Stunde.
 
 **Aufgaben:**
-- ☐ **Repo-Metadaten fixen:** Beschreibung (statt „Comming soon...") z. B. *„A premium local mission-control cockpit for orchestrating a swarm of Claude Code agents — honest, local-first, zero telemetry."* + Topics: `claude-code`, `ai-agents`, `agent-orchestration`, `multi-agent`, `mission-control`, `nodejs`, `rust`, `local-first`, `developer-tools`.
-- ☐ **Demo-Asset (wichtigster Einzel-Hebel):** 10–20 s **asciinema**/GIF/MP4 oben im README — Atlas bekommt ein Ziel, dispatcht, Mascots animieren, Stepper läuft. Im Harness-Mode aufnehmbar (kein Key nötig). Das verkauft die Politur, die deine Konkurrenz nicht hat.
-- ☐ **Hosted „Try without key"-Demo:** Harness-Mode statisch/als Read-Only-Replay deployen (GitHub Pages/Netlify/Cloudflare — du hast die Infra). Ruflos Erfolgsmuster: ausprobieren ohne Install/Key.
-- ☐ **One-command try:** `npx agentforge-command` **oder** `docker run …` als allererster Schritt im README (über `git clone`). Niedrigste Hürde gewinnt.
-- ☐ **Vergleichstabelle ins README** (aus Abschnitt 1 dieser Datei, neutral & fair — eigene Schwächen offen, eigene Stärke Politur+Ehrlichkeit hervorgehoben).
-- ☐ **„Why AgentForge"-Abschnitt:** 3 Sätze, die das Alleinstellungsmerkmal auf den Punkt bringen (no fake activity · premium cockpit · local-first/zero-telemetry).
-- ☐ **GitHub Release v1.0.0 + semver-Tags:** CHANGELOG + `docs/release-notes/*` existieren bereits → echtes Release ziehen, SBOM anhängen. Ab dann Tag pro Release.
-- ☐ **Badges:** CI-Gate, Coverage, License, „tested on Linux/macOS/Windows", Node-Version. Tote/Platzhalter-Badges entfernen.
-- ☐ **README EN/DE synchron halten** (`README.de.md` existiert — Diff prüfen, dein DACH-Publikum bedienen).
-- ☐ **`.github/FUNDING.yml`** verifizieren (existiert) + Sponsor-CTA dezent.
-- ☐ **Launch-Sequenzierung** (deine Entwürfe finalisieren): Tag 0 Show HN (vormittags US-Zeit) → r/ClaudeAI + r/ClaudeCode (menschlicher Ton, kein Marketing-Sprech) → dev.to-Artikel → in `awesome-claude-code-toolkit` als PR eintragen (kuratierte Liste = nachhaltiger Traffic). **Erst posten, wenn Demo-GIF + One-command-try + Release live sind.**
+- ◑ **Repo-Metadaten fixen:** *(operator: GitHub Settings — not scriptable here)*  Beschreibung (statt „Comming soon...") z. B. *„A premium local mission-control cockpit for orchestrating a swarm of Claude Code agents — honest, local-first, zero telemetry."* + Topics: `claude-code`, `ai-agents`, `agent-orchestration`, `multi-agent`, `mission-control`, `nodejs`, `rust`, `local-first`, `developer-tools`.
+- ◑ **Demo-Asset (wichtigster Einzel-Hebel):** *(recording steps in `docs/demo/`; operator records)*  10–20 s **asciinema**/GIF/MP4 oben im README — Atlas bekommt ein Ziel, dispatcht, Mascots animieren, Stepper läuft. Im Harness-Mode aufnehmbar (kein Key nötig). Das verkauft die Politur, die deine Konkurrenz nicht hat.
+- ◑ **Hosted „Try without key"-Demo:** *(static landing page `site/` + Pages workflow ready; operator enables Pages)*  Harness-Mode statisch/als Read-Only-Replay deployen (GitHub Pages/Netlify/Cloudflare — du hast die Infra). Ruflos Erfolgsmuster: ausprobieren ohne Install/Key.
+- ☑ **One-command try:** `npx agentforge-command` **oder** `docker run …` als allererster Schritt im README (über `git clone`). Niedrigste Hürde gewinnt.
+- ☑ **Vergleichstabelle ins README** (aus Abschnitt 1 dieser Datei, neutral & fair — eigene Schwächen offen, eigene Stärke Politur+Ehrlichkeit hervorgehoben).
+- ☑ **„Why AgentForge"-Abschnitt:** 3 Sätze, die das Alleinstellungsmerkmal auf den Punkt bringen (no fake activity · premium cockpit · local-first/zero-telemetry).
+- ◑ **GitHub Release v1.0.0 + semver-Tags:** *(notes ready in `docs/release-notes/v1.0.0.md`; operator tags/publishes)*  CHANGELOG + `docs/release-notes/*` existieren bereits → echtes Release ziehen, SBOM anhängen. Ab dann Tag pro Release.
+- ☑ **Badges:** CI-Gate, Coverage, License, „tested on Linux/macOS/Windows", Node-Version. Tote/Platzhalter-Badges entfernen.
+- ◑ **README EN/DE synchron halten** *(EN finalized; `README.de.md` sync pending)*  (`README.de.md` existiert — Diff prüfen, dein DACH-Publikum bedienen).
+- ☑ **`.github/FUNDING.yml`** verifizieren (existiert) + Sponsor-CTA dezent.
+- ☑ **Launch-Sequenzierung** (deine Entwürfe finalisieren): Tag 0 Show HN (vormittags US-Zeit) → r/ClaudeAI + r/ClaudeCode (menschlicher Ton, kein Marketing-Sprech) → dev.to-Artikel → in `awesome-claude-code-toolkit` als PR eintragen (kuratierte Liste = nachhaltiger Traffic). **Erst posten, wenn Demo-GIF + One-command-try + Release live sind.**
 
 **Akzeptanzkriterien / Gate:** Repo-Beschreibung/Topics gesetzt · Demo-Asset im README · One-command-try funktioniert frisch geklont · v1.0.0-Release publiziert · Vergleichstabelle live · Launch-Posts terminiert (nicht vor Phase 1).
 
@@ -282,11 +282,11 @@ Damit das Projekt fokussiert bleibt und nicht zum 250k-LOC-Moloch wird:
 - ☑ **P0:** Phase 1.2 Session-Token
 - ☑ **P1:** Phase 1.3–1.6 (Hooks/CSP/WS/Path)
 - ☑ **P1:** Phase 3.1 Worktree-Isolation
-- ☐ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
-- ☐ **P1:** Phase 6 Repo-Beschreibung + Demo + Release
+- ☑ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
+- ◑ **P1:** Phase 6 — assets ready; operator: repo description/topics, demo recording, v1.0.0 release
 - ☑ **P2:** Phase 2 Robustheit/Guardrails
 - ☑ **P2:** Phase 4 Tests/Benchmarks/CI-Matrix
-- ☐ **P3:** Branding/Pricing-Pflege
+- ☑ **P3:** Branding/Pricing-Pflege
 
 ---
 
