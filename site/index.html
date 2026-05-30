@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentForge Command — local cockpit for Claude agent swarms</title>
+<meta name="description" content="A premium local mission-control cockpit for orchestrating a swarm of Claude Code agents. Honest, local-first, zero telemetry. MIT-licensed." />
+<meta property="og:title" content="AgentForge Command" />
+<meta property="og:description" content="Premium local cockpit for Claude agent swarms — honest, local-first, zero telemetry." />
+<meta property="og:image" content="https://raw.githubusercontent.com/BEKO2210/AgentForge-Command/main/docs/screenshots/01-mission-control.png" />
+<style>
+  :root { color-scheme: dark; --bg:#04060c; --card:#0b1018; --line:#1c2433; --text:#e8eef7; --muted:#8aa0b8; --accent:#5b8cff; --ok:#2ea043; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  a { color:var(--accent); }
+  .wrap { max-width: 980px; margin:0 auto; padding: 0 20px; }
+  header { text-align:center; padding: 64px 20px 32px; }
+  h1 { font-size: clamp(32px, 6vw, 52px); margin:0 0 8px; letter-spacing:-.5px; }
+  .tag { color:var(--muted); font-size: clamp(15px,2.4vw,20px); margin:0 auto 24px; max-width:680px; }
+  .badges img { height:20px; margin:3px; vertical-align:middle; }
+  .cta { display:inline-flex; gap:8px; align-items:center; background:var(--accent); color:#06101f; font-weight:700; text-decoration:none; padding:11px 18px; border-radius:10px; margin:8px 6px; }
+  .cta.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  .note { color:var(--muted); font-size:13px; margin-top:10px; }
+  .shot { width:100%; border:1px solid var(--line); border-radius:14px; margin:14px 0; display:block; }
+  section { padding: 28px 0; border-top:1px solid var(--line); }
+  h2 { font-size:22px; }
+  pre { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  ul { padding-left: 1.1em; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .feat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  footer { text-align:center; color:var(--muted); font-size:13px; padding:32px 20px 56px; }
+  .warn { background:rgba(245,166,35,.10); border:1px solid rgba(245,166,35,.4); border-radius:10px; padding:12px 14px; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AgentForge&nbsp;Command</h1>
+    <p class="tag">A premium <b>local mission-control cockpit</b> for orchestrating a swarm of Claude&nbsp;Code agents — honest, local-first, zero telemetry. MIT-licensed.</p>
+    <p class="badges">
+      <img alt="CI" src="https://github.com/BEKO2210/AgentForge-Command/actions/workflows/gate.yml/badge.svg?branch=main" />
+      <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-2ea043" />
+      <img alt="Node 18 | 20 | 22" src="https://img.shields.io/badge/node-18%20%7C%2020%20%7C%2022-3c873a" />
+      <img alt="Tested Linux | macOS | Windows" src="https://img.shields.io/badge/tested-Linux%20%7C%20macOS%20%7C%20Windows-2ea043" />
+    </p>
+    <p>
+      <a class="cta" href="https://github.com/BEKO2210/AgentForge-Command">★ View on GitHub</a>
+      <a class="cta ghost" href="#run">Run it locally</a>
+    </p>
+    <p class="note">This is the project page. The cockpit is a local app (it needs the Node server) — run it with one command below.</p>
+  </header>
+
+  <img class="shot" src="https://raw.githubusercontent.com/BEKO2210/AgentForge-Command/main/docs/screenshots/01-mission-control.png" alt="AgentForge Mission Control cockpit" loading="lazy" />
+  <img class="shot" src="https://raw.githubusercontent.com/BEKO2210/AgentForge-Command/main/docs/screenshots/08-atlas-workflow.png" alt="Atlas dispatching a swarm-check, shown in test-harness mode" loading="lazy" />
+
+  <section id="run">
+    <h2>Try it — one command</h2>
+    <div class="warn">✨ <b>Test-harness mode needs no API key</b> — deterministic, nothing leaves your machine.</div>
+    <pre><code># Local
+npm install &amp;&amp; npm start      # → http://localhost:4173
+
+# Or containerised
+docker compose up --build</code></pre>
+    <p class="note">Live LLM briefings use <b>your own</b> Anthropic API key. Pro/Max subscriptions via third-party PTY frameworks are not permitted by Anthropic — see the policy notice in the README.</p>
+  </section>
+
+  <section>
+    <h2>What makes it different</h2>
+    <div class="grid">
+      <div class="feat">🎮 <b>Premium cockpit</b><br/>Atlas Prime orchestrates; specialist cards, mascots, live workflow stepper.</div>
+      <div class="feat">🧭 <b>No fake activity</b><br/>Idle is honestly idle. Every line is a real PTY or a live Claude stream.</div>
+      <div class="feat">🌳 <b>Worktree isolation</b><br/>Each specialist edits in its own git branch — no stomping.</div>
+      <div class="feat">🔒 <b>Security-audited</b><br/>CSWSH closed, schema-validated config, rate limits (Phases 1–4).</div>
+      <div class="feat">✅ <b>Proven quality</b><br/>Playwright E2E, axe a11y, cross-platform CI (3 OS × 3 Node).</div>
+      <div class="feat">🪶 <b>Local-first</b><br/>Zero telemetry, minimal deps (all MIT). Your machine, your keys.</div>
+    </div>
+  </section>
+
+  <footer>
+    Independent, unofficial community project. "Claude" is a trademark of Anthropic PBC; not endorsed by or affiliated with Anthropic.<br/>
+    MIT-licensed · <a href="https://github.com/BEKO2210/AgentForge-Command">github.com/BEKO2210/AgentForge-Command</a>
+  </footer>
+</div>
+</body>
+</html>
