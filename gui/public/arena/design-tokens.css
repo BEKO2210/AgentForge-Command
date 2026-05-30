@@ -1,0 +1,62 @@
+/* ============================================================================
+ * AgentForge Command — Design Tokens (single source of truth)
+ * Run 1.1 · ROADMAP 2.0 Tier 1.
+ *
+ * The canonical design vocabulary: spacing, shadows, radii, motion, typography
+ * and SEMANTIC colors. Values intentionally match the existing palette so this
+ * introduces ZERO visual change — it just gives everything a named token.
+ * styles.css references these; later Tier-1 runs migrate remaining literals.
+ *
+ * Agent colors are NOT defined here on purpose: they are data-driven (one per
+ * specialist in gui/public/arena/data.js) — the single source for those is the
+ * registry, so duplicating them as CSS would only risk drift. See
+ * docs/DESIGN_SYSTEM.md.
+ * ========================================================================== */
+
+:root {
+  /* ----- Spacing — 8px-based modular scale (xs…2xl) ----- */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ----- Radii ----- */
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+
+  /* ----- Elevation / shadows ----- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.20);
+  /* Deep cockpit shadows (existing look, tokenized) */
+  --shadow-card: 0 22px 50px -30px rgba(0, 0, 0, 0.95);
+  --shadow-deep: 0 30px 70px -32px rgba(0, 0, 0, 1);
+
+  /* ----- Motion ----- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+
+  /* ----- Typography ----- */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* ----- Semantic colors (match the existing palette; no visual change) ----- */
+  --color-bg: #040611;
+  --color-surface: #0c1224;
+  --color-border: #1a2540;
+  --color-text: #f1f5fb;
+  --color-text-muted: #8a96b0;
+  --color-accent: #5b8cff;            /* primary / focus */
+  --color-accent-success: #54e6a8;    /* "good" */
+  --color-accent-warn: #ffcf5c;       /* "warn" */
+  --color-accent-error: #ff6b7d;      /* "bad" */
+  --color-cta: #22c55e;               /* call-to-action / launch */
+
+  /* ----- A11y ----- */
+  --focus-ring: 2px solid var(--color-accent-success);
+  --tap-target: 44px;
+}
