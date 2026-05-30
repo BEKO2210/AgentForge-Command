@@ -153,6 +153,14 @@ async function bootServer(extraEnv = {}) {
     stdout: () => outBuf,
     stderr: () => errBuf,
     stop: () => { try { proc.kill("SIGTERM"); } catch {} },
+    // Resolve only once the process has actually exited — the shutdown handler
+    // writes .team/sessions.json on its way out, so callers that delete the
+    // REPO_DIR must wait for exit first (else ENOTEMPTY race).
+    stopAndWait: () => new Promise((res) => {
+      proc.once("exit", () => res());
+      try { proc.kill("SIGTERM"); } catch { res(); }
+      setTimeout(res, 3000);
+    }),
   };
 }
 process.on("exit", () => { for (const p of extraServers) { try { p.kill("SIGKILL"); } catch {} } });
@@ -589,8 +597,8 @@ await it("a corrupt .team/arena.json boots to empty state + leaves a backup", as
     assert.ok(files.some((f) => f.startsWith("arena.json.corrupt-")),
       `expected a corrupt backup, saw: ${files.join(",")}`);
   } finally {
-    srv.stop();
-    fs.rmSync(dir, { recursive: true, force: true });
+    await srv.stopAndWait(); // wait for the server to finish writing before delete
+    try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {}
   }
 });
 

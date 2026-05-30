@@ -137,7 +137,33 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 - [Architecture](#architecture)
 - [Optional Rust accelerator](#optional-rust-accelerator)
 - [Quality and security](#quality-and-security)
+- [How it compares](#how-it-compares)
 - [License](#license)
+
+## How it compares
+
+A fair look at where AgentForge sits among local Claude-agent orchestrators.
+The **AgentForge** column reflects what's verifiable in *this* repo (tests,
+docs, CI). Competitor cells are from the survey in [`ROADMAP.md`](ROADMAP.md) §1
+(≈ May 2026) — **verify before quoting**; star counts and features move.
+
+| | **AgentForge Command** | Ruflo | Octogent | ccpm |
+|---|:--:|:--:|:--:|:--:|
+| Premium web cockpit | ✅ | ◑ chat UI | ✅ | ☐ CLI |
+| Try without a key | ✅ harness mode | ✅ hosted | ☐ | ☐ |
+| Git worktree isolation | ✅ | ✅ | ✅ | ✅ |
+| Session reattach | ✅ honest (no fake) | ✅ | ◑ | ✅ |
+| Playwright E2E | ✅ | ? | ? | ? |
+| Automated a11y (axe) | ✅ | ? | ? | ? |
+| Cross-platform CI (3 OS × 3 Node) | ✅ | ? | ? | ? |
+| Documented threat model + privacy | ✅ | ◑ | ? | ◑ |
+| License | MIT | MIT | MIT | MIT |
+| Stars | ![GitHub stars](https://img.shields.io/github/stars/BEKO2210/AgentForge-Command?label=&style=flat) | ~31k | ~472 | ~7.9k |
+
+We're new and small — the honest pitch isn't "most stars"; it's **the most
+polished local cockpit, with no fake activity, the lowest activation energy
+(harness mode), and production-grade testing to back the claims.** Where we
+can't verify a competitor's capability we mark it `?` rather than guess.
 
 ## Quickstart
 
@@ -459,6 +485,25 @@ Control.)
 See [`gui/README.md`](gui/README.md) for the server's own documentation, and
 [`.team/PROTOCOL.md`](.team/PROTOCOL.md) for the file-based coordination
 rules.
+
+## Documentation
+
+| Doc | What |
+|-----|------|
+| [`docs/INSTALL.md`](docs/INSTALL.md) | Per-OS setup, Docker, env-var reference |
+| [`ROADMAP.md`](ROADMAP.md) | The full Phase 0–6 plan + competitive survey |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Trust boundaries, STRIDE, Anthropic policy, fallbacks |
+| [`SECURITY.md`](SECURITY.md) | Disclosure policy + Phase 1–4 audit history |
+| [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Auto-enter matcher benchmark (sub-ms proof) |
+| [`KNOWN_LIMITS.md`](KNOWN_LIMITS.md) | Honest boundaries & trade-offs |
+| [`PRIVACY.md`](PRIVACY.md) | Local-first data handling + DSGVO/GDPR |
+| [`TRADEMARK.md`](TRADEMARK.md) · [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Legal + license inventory |
+| [`docs/LAUNCH.md`](docs/LAUNCH.md) | Launch sequence & checklist |
+
+> **Try without a key:** test-harness mode runs the whole cockpit with no
+> Anthropic key — `npm install && npm start` (or `docker compose up --build`),
+> then open <http://localhost:4173>. To record a demo, see
+> [`docs/demo/`](docs/demo/).
 
 ## License
 
