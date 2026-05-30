@@ -125,10 +125,18 @@ accelerator (`forge-pulse`) sharpens prompt detection but is never required.
 ```bash
 git clone https://github.com/BEKO2210/AgentForge-Command
 cd AgentForge-Command
-cd gui && npm install && cd ..
-node gui/server.js
-# open http://localhost:4173/   → Mission Control
+npm install     # installs the gui + mcp workspaces from the root
+npm start       # → http://localhost:4173/   (Mission Control)
 ```
+
+Prefer no local toolchain? **Try it in Docker** (Harness Mode, no API key):
+
+```bash
+docker compose up --build      # → http://localhost:4173/
+```
+
+Build details, per-OS prerequisites, the full environment-variable reference,
+and node-pty troubleshooting live in **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 Optional — build the Rust accelerator (auto-detected on next launch):
 

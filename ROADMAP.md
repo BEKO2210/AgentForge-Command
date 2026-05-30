@@ -132,16 +132,16 @@ Das Projekt ist **technisch deutlich reifer als der „Comming soon"-Eindruck** 
 **Warum:** Installations-Hürden und Native-Build-Fehler sind die Top-Ursache für „funktioniert bei mir nicht"-Issues → tötet Star-Conversion direkt nach dem Klick.
 
 **Aufgaben:**
-- ☐ **Node-Version festnageln:** `engines` (`"node": ">=18"`) in `gui/package.json` + `mcp/package.json`, `.nvmrc` (`20`) im Root. CI-Inkonsistenz beheben → eine Quelle der Wahrheit.
-- ☐ **Root-`package.json`** als npm-Workspace (`workspaces: ["gui", "mcp"]`) + Root-Scripts (`npm run dev`, `npm test`, `npm run gate`) → ein Einstiegspunkt statt „cd gui && …". `start` muss aus dem Root funktionieren.
-- ☐ **node-pty-Resilienz:** beim Import-Fehler bereits guter Hinweis (vorhanden). Ergänzen: `docs/INSTALL.md` mit Build-Tool-Voraussetzungen pro OS (Linux `build-essential python3`, macOS `xcode-select --install`, Windows `windows-build-tools`). **Fallback-Pfad dokumentieren:** Docker-Image (siehe unten) für User ohne Build-Kette.
-- ☐ **Dockerfile + `docker-compose.yml`:** ein `docker run`-Pfad, der Harness-Mode ohne lokale Toolchain startet (Viral-Hebel + Test-Reproduzierbarkeit). `127.0.0.1`-Binding im Container beachten (Port-Mapping nur an localhost).
-- ☐ **`/api/health`-Endpoint:** `{ status, uptime, activePtys, budget, version }` für Supervisor/Probes. Kein Secret im Output.
-- ☐ **PTY-Cap:** `AGENTFORGE_MAX_PTYS` (Default z. B. 8), `start-pty` lehnt über Limit mit klarer Meldung ab (Octogent-Parität: dort 32). Schützt vor versehentlichem 12-Session-Sturm.
-- ☐ **Zombie-Reaping:** idle/exited PTY-Records nach Timeout aus `agents`-Map entfernen; `onExit` räumt `autoLastFire` etc. auf.
-- ☐ **Strukturiertes Logging:** dünner Logger (`log.info/warn/error`) mit `AGENTFORGE_LOG_LEVEL` (`debug|info|warn|error`, Default `info`) + `--quiet`. Kein Verhalten ändern, nur Konsistenz.
-- ☐ **Spend-Ledger optional persistieren:** `AGENTFORGE_SPEND_FILE` → JSONL-Append, beim Start einlesen. **Fallback:** ohne ENV exakt wie heute (in-memory, Reset bei Neustart).
-- ☐ **Modell-/Pricing-Pflege** (`gui/llm.js`): `claude-opus-4-8` ergänzen, Pricing-Tabelle + Default kommentiert „zuletzt geprüft am …", unbekanntes Modell → `cost: null` statt stiller 0, sichtbarer Hinweis im UI.
+- ☑ **Node-Version festnageln:** `engines` (`"node": ">=18"`) in `gui/package.json` + `mcp/package.json`, `.nvmrc` (`20`) im Root. CI-Inkonsistenz beheben → eine Quelle der Wahrheit.
+- ☑ **Root-`package.json`** als npm-Workspace (`workspaces: ["gui", "mcp"]`) + Root-Scripts (`npm run dev`, `npm test`, `npm run gate`) → ein Einstiegspunkt statt „cd gui && …". `start` muss aus dem Root funktionieren.
+- ☑ **node-pty-Resilienz:** beim Import-Fehler bereits guter Hinweis (vorhanden). Ergänzen: `docs/INSTALL.md` mit Build-Tool-Voraussetzungen pro OS (Linux `build-essential python3`, macOS `xcode-select --install`, Windows `windows-build-tools`). **Fallback-Pfad dokumentieren:** Docker-Image (siehe unten) für User ohne Build-Kette.
+- ☑ **Dockerfile + `docker-compose.yml`:** ein `docker run`-Pfad, der Harness-Mode ohne lokale Toolchain startet (Viral-Hebel + Test-Reproduzierbarkeit). `127.0.0.1`-Binding im Container beachten (Port-Mapping nur an localhost).
+- ☑ **`/api/health`-Endpoint:** `{ status, uptime, activePtys, budget, version }` für Supervisor/Probes. Kein Secret im Output.
+- ☑ **PTY-Cap:** `AGENTFORGE_MAX_PTYS` (Default z. B. 8), `start-pty` lehnt über Limit mit klarer Meldung ab (Octogent-Parität: dort 32). Schützt vor versehentlichem 12-Session-Sturm.
+- ☑ **Zombie-Reaping:** idle/exited PTY-Records nach Timeout aus `agents`-Map entfernen; `onExit` räumt `autoLastFire` etc. auf.
+- ☑ **Strukturiertes Logging:** dünner Logger (`log.info/warn/error`) mit `AGENTFORGE_LOG_LEVEL` (`debug|info|warn|error`, Default `info`) + `--quiet`. Kein Verhalten ändern, nur Konsistenz.
+- ☑ **Spend-Ledger optional persistieren:** `AGENTFORGE_SPEND_FILE` → JSONL-Append, beim Start einlesen. **Fallback:** ohne ENV exakt wie heute (in-memory, Reset bei Neustart).
+- ☑ **Modell-/Pricing-Pflege** (`gui/llm.js`): `claude-opus-4-8` ergänzen, Pricing-Tabelle + Default kommentiert „zuletzt geprüft am …", unbekanntes Modell → `cost: null` statt stiller 0, sichtbarer Hinweis im UI.
 
 **Akzeptanzkriterien / Gate:** `npm start` aus Root läuft · `/api/health` liefert validen JSON · PTY-Cap greift (Test) · Docker-Image baut & startet Harness · Gate grün · `npm audit` ohne High/Critical.
 
@@ -284,7 +284,7 @@ Damit das Projekt fokussiert bleibt und nicht zum 250k-LOC-Moloch wird:
 - ☐ **P1:** Phase 3.1 Worktree-Isolation
 - ☐ **P1:** Phase 5 Anthropic-Policy + Trademark + Notices
 - ☐ **P1:** Phase 6 Repo-Beschreibung + Demo + Release
-- ☐ **P2:** Phase 2 Robustheit/Guardrails
+- ☑ **P2:** Phase 2 Robustheit/Guardrails
 - ☐ **P2:** Phase 4 Tests/Benchmarks/CI-Matrix
 - ☐ **P3:** Branding/Pricing-Pflege
 

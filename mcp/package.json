@@ -4,6 +4,9 @@
   "private": true,
   "description": "Read-only MCP server that exposes the .team/ coordination state",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "team-mcp": "./server.js"
   },

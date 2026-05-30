@@ -46,8 +46,34 @@ try {
   process.exit(1);
 }
 
+/* ----- Structured logging (Phase 2) -----
+ * A thin level-aware logger so operational output is consistent and tunable
+ * via AGENTFORGE_LOG_LEVEL (debug|info|warn|error, default info). --quiet /
+ * AGENTFORGE_QUIET drops everything below error. This changes formatting only,
+ * not behaviour. The startup banner + session-token print stay on raw
+ * console.log: they are essential UX that must show even under --quiet. */
+const QUIET = process.env.AGENTFORGE_QUIET === "1" || process.argv.includes("--quiet");
+const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+const LOG_LEVEL = (process.env.AGENTFORGE_LOG_LEVEL || "info").toLowerCase();
+const currentLevel = QUIET ? LEVELS.error : (LEVELS[LOG_LEVEL] ?? LEVELS.info);
+const log = {
+  debug: (msg) => { if (currentLevel <= LEVELS.debug) console.log(`[forge:debug] ${msg}`); },
+  info:  (msg) => { if (currentLevel <= LEVELS.info)  console.log(`[forge] ${msg}`); },
+  warn:  (msg) => { if (currentLevel <= LEVELS.warn)  console.warn(`[forge] ⚠️  ${msg}`); },
+  error: (msg) => { if (currentLevel <= LEVELS.error) console.error(`[forge] ❌ ${msg}`); },
+};
+
+// App version for /api/health + diagnostics (read once, best-effort).
+let APP_VERSION = "0.0.0";
+try { APP_VERSION = JSON.parse(fs.readFileSync(path.join(HERE, "package.json"), "utf8")).version || APP_VERSION; } catch { /* keep default */ }
+
 const REPO_DIR = process.env.REPO_DIR || process.cwd();
 const PORT = Number(process.env.PORT) || 4173;
+// Bind host. Defaults to loopback (the secure local-first default). Containers
+// must bind 0.0.0.0 to be reachable through Docker's published ports — set
+// AGENTFORGE_HOST=0.0.0.0 there and map the host port to 127.0.0.1 only. The
+// Origin/Host allowlist + session token still gate every request.
+const BIND_HOST = process.env.AGENTFORGE_HOST || "127.0.0.1";
 
 /* ----- Trust boundary: origin/host allowlist + per-session token (Phase 1) ---
  * The cockpit binds to 127.0.0.1, but loopback does NOT stop a malicious page
@@ -79,12 +105,12 @@ if (process.env.AGENTFORGE_ALLOWED_ORIGINS) {
 function isTrustedOrigin(req) {
   const host = req.headers.host;
   if (!host || !ALLOWED_HOSTS.includes(host)) {
-    console.warn(`[forge] blocked request — untrusted Host: ${host || "(none)"}`);
+    log.warn(`blocked request — untrusted Host: ${host || "(none)"}`);
     return false;
   }
   const origin = req.headers.origin;
   if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-    console.warn(`[forge] blocked request — untrusted Origin: ${origin}`);
+    log.warn(`blocked request — untrusted Origin: ${origin}`);
     return false;
   }
   return true;
@@ -137,9 +163,17 @@ if (process.env.TEST_CMD) {
   for (const a of swarm) { a.cmd = process.env.TEST_CMD; a.args = []; }
 }
 
-const agents = new Map(); // id -> { def, term, buf, alive, tail }
+const agents = new Map(); // id -> { def, term, buf, alive, tail, exitTime }
 const clients = new Set();
 const arenaClients = new Set();
+
+/* ----- Resource guardrails (Phase 2) -----
+ * Cap concurrent PTYs so an accidental dispatch storm can't fork-bomb the box
+ * (Octogent caps at 32; we default to a conservative 8). Exited PTY records
+ * linger briefly so a reconnecting browser can still read the final buffer,
+ * then a reaper sweeps them out of the map. Both are tunable via env. */
+const MAX_PTYS = Number(process.env.AGENTFORGE_MAX_PTYS || 8);
+const IDLE_TIMEOUT_MS = Number(process.env.AGENTFORGE_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 
 /* ----- Spend / budget tracking -----
  * Every Atlas brief stream returns usage + cost. We aggregate them into a
@@ -147,23 +181,61 @@ const arenaClients = new Set();
  * show live spend without polling. AGENTFORGE_BUDGET_USD enforces a soft cap:
  * once exceeded, new briefs are refused with a clear error. 0 = unlimited. */
 const BUDGET_USD = Number(process.env.AGENTFORGE_BUDGET_USD || 0);
-const spend = {
-  totalIn: 0, totalOut: 0, totalUsd: 0, briefs: [],
-  startedAt: Date.now(), budgetUsd: BUDGET_USD,
-};
+// Optional persistence: AGENTFORGE_SPEND_FILE points at a JSONL append-log so
+// the ledger survives restarts. Unset → in-memory only (resets each boot),
+// exactly as before. Corrupt/missing file → start empty (honest fallback).
+const SPEND_FILE = process.env.AGENTFORGE_SPEND_FILE || null;
+function emptySpend() {
+  return { totalIn: 0, totalOut: 0, totalUsd: 0, briefs: [], startedAt: Date.now(), budgetUsd: BUDGET_USD };
+}
+function loadSpend() {
+  const s = emptySpend();
+  if (!SPEND_FILE) return s;
+  try {
+    const raw = fs.readFileSync(SPEND_FILE, "utf8");
+    for (const line of raw.split("\n")) {
+      const t = line.trim(); if (!t) continue;
+      let e; try { e = JSON.parse(t); } catch { continue; }
+      const input  = e.usage?.input_tokens  ?? e.input  ?? 0;
+      const output = e.usage?.output_tokens ?? e.output ?? 0;
+      s.totalIn += input; s.totalOut += output; s.totalUsd += e.cost || 0;
+      s.briefs.push({ ts: e.ts || Date.now(), model: e.model, input, output, cost: e.cost || 0, goal: (e.goal || "").slice(0, 120) });
+    }
+    if (s.briefs.length > 100) s.briefs.splice(0, s.briefs.length - 100);
+    log.info(`spend ledger restored from ${SPEND_FILE} (${s.briefs.length} entries, $${s.totalUsd.toFixed(4)})`);
+  } catch (e) {
+    if (e.code !== "ENOENT") log.warn(`could not load spend file: ${e.message}`);
+  }
+  return s;
+}
+let spend = loadSpend();
 function recordSpend(entry) {
-  spend.totalIn  += entry.usage?.input_tokens  || 0;
-  spend.totalOut += entry.usage?.output_tokens || 0;
+  const input  = entry.usage?.input_tokens  || 0;
+  const output = entry.usage?.output_tokens || 0;
+  spend.totalIn  += input;
+  spend.totalOut += output;
   spend.totalUsd += entry.cost || 0;
-  spend.briefs.push({
+  const brief = {
     ts: Date.now(),
     model: entry.model,
-    input: entry.usage?.input_tokens  || 0,
-    output: entry.usage?.output_tokens || 0,
+    input,
+    output,
     cost: entry.cost || 0,
     goal: (entry.goal || "").slice(0, 120),
-  });
+  };
+  spend.briefs.push(brief);
   if (spend.briefs.length > 100) spend.briefs.splice(0, spend.briefs.length - 100);
+  // Append to the persistence log (best-effort; a write failure must not break
+  // the live ledger). Store usage in wire shape so loadSpend round-trips it.
+  if (SPEND_FILE) {
+    try {
+      fs.appendFileSync(SPEND_FILE, JSON.stringify({
+        ts: brief.ts, model: brief.model,
+        usage: { input_tokens: input, output_tokens: output },
+        cost: brief.cost, goal: brief.goal,
+      }) + "\n");
+    } catch (e) { log.warn(`could not write spend file: ${e.message}`); }
+  }
   arenaBroadcastSafe({ t: "spend-update", spend: spendSnapshot() });
 }
 function spendSnapshot() {
@@ -420,9 +492,9 @@ function loadArenaState() {
     try {
       const backup = `${ARENA_FILE}.corrupt-${Date.now()}`;
       fs.renameSync(ARENA_FILE, backup);
-      console.error(`[forge] .team/arena.json was corrupt (${e.message}). Backed up to ${path.basename(backup)} and reset to empty state.`);
+      log.error(`.team/arena.json was corrupt (${e.message}). Backed up to ${path.basename(backup)} and reset to empty state.`);
     } catch (e2) {
-      console.error(`[forge] .team/arena.json was corrupt and could not be backed up: ${e2.message}`);
+      log.error(`.team/arena.json was corrupt and could not be backed up: ${e2.message}`);
     }
     return EMPTY_ARENA();
   }
@@ -432,7 +504,7 @@ function saveArenaState(next) {
     fs.mkdirSync(path.dirname(ARENA_FILE), { recursive: true });
     fs.writeFileSync(ARENA_FILE, JSON.stringify(next, null, 2));
   } catch (e) {
-    console.error(`[forge] failed to save arena state: ${e.message}`);
+    log.error(`failed to save arena state: ${e.message}`);
   }
 }
 let arenaState = loadArenaState();
@@ -454,7 +526,7 @@ function fireAutoEnter(id, reasonLine) {
   for (const c of arenaClients) if (c.readyState === 1) {
     try { c.send(JSON.stringify(note)); } catch {}
   }
-  console.log(`[forge] auto-enter → ${id} (reason: ${reasonLine.trim().slice(0, 60)})`);
+  log.info(`auto-enter → ${id} (reason: ${reasonLine.trim().slice(0, 60)})`);
 }
 
 /* ----- Optional Rust accelerator: forge-pulse -----
@@ -503,9 +575,9 @@ function startForgePulse() {
         } catch { /* ignore malformed */ }
       }
     });
-    console.log(`[forge] forge-pulse Rust accelerator: ${bin}`);
+    log.info(`forge-pulse Rust accelerator: ${bin}`);
   } catch (e) {
-    console.warn(`[forge] forge-pulse failed to start: ${e.message}`);
+    log.warn(`forge-pulse failed to start: ${e.message}`);
     pulse = null;
   }
 }
@@ -548,7 +620,7 @@ function arenaBroadcast(msg) {
 }
 
 function launchError(id, reason) {
-  console.error(`[forge] launch failed for '${id}': ${reason}`);
+  log.error(`launch failed for '${id}': ${reason}`);
   broadcast({ t: "launch-error", id, reason });
   arenaBroadcast({ t: "launch-error", id, reason });
 }
@@ -566,6 +638,14 @@ function startAgent(def) {
     return false;
   }
   const prev = agents.get(def.id);
+  // PTY cap: refuse to exceed MAX_PTYS. Re-launching an id that already has a
+  // record is fine (it replaces, no net increase) — only genuinely new ids
+  // count against the limit.
+  if (!prev && agents.size >= MAX_PTYS) {
+    launchError(def.id,
+      `PTY limit reached (${MAX_PTYS}). Stop an agent or raise AGENTFORGE_MAX_PTYS.`);
+    return false;
+  }
   if (prev && prev.term) {
     try { prev.term.kill(); } catch {}
   }
@@ -610,13 +690,14 @@ function startAgent(def) {
   });
   term.onExit(({ exitCode }) => {
     rec.alive = false;
+    rec.exitTime = Date.now(); // marks the record eligible for reaping
     broadcast({ t: "exit", id: def.id, code: exitCode });
     arenaBroadcast({ t: "exit", id: def.id, code: exitCode });
   });
   agents.set(def.id, rec);
   broadcast({ t: "started", id: def.id });
   arenaBroadcast({ t: "started", id: def.id });
-  console.log(`[forge] started '${def.id}' (${def.cmd}) in ${REPO_DIR}`);
+  log.info(`started '${def.id}' (${def.cmd}) in ${REPO_DIR}`);
   return true;
 }
 
@@ -646,6 +727,21 @@ const server = http.createServer((req, res) => {
   if (url === "/api/state" || url === "/state") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify(buildState({ repoDir: REPO_DIR })));
+  }
+  // Liveness/readiness probe for supervisors. No secrets in the output.
+  if (url === "/api/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      status: "ok",
+      version: APP_VERSION,
+      uptime: Math.round(process.uptime()),
+      activePtys: agents.size,
+      maxPtys: MAX_PTYS,
+      pulse: !!pulse,
+      budgetUsd: BUDGET_USD,
+      spentUsd: spend.totalUsd,
+      timestamp: Date.now(),
+    }));
   }
   if (url === "/api/arena" || url === "/arena/state") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -846,7 +942,7 @@ arenaWss.on("connection", (ws) => {
     // WS message hardening (THREAT_MODEL Finding, DoS row):
     // 1) cap raw size so a single frame can't blow up memory.
     if (raw.length > 256 * 1024) {
-      console.warn(`[forge] oversized arena message rejected (${raw.length} bytes)`);
+      log.warn(`oversized arena message rejected (${raw.length} bytes)`);
       try { ws.close(1009, "message too big"); } catch {}
       return;
     }
@@ -856,7 +952,7 @@ arenaWss.on("connection", (ws) => {
     ws._rl.tokens = Math.min(10, ws._rl.tokens + ((now - ws._rl.last) / 1000) * 10);
     ws._rl.last = now;
     if (ws._rl.tokens < 1) {
-      console.warn("[forge] arena ws rate limit exceeded");
+      log.warn("arena ws rate limit exceeded");
       try { ws.close(1008, "rate limited"); } catch {}
       return;
     }
@@ -884,7 +980,7 @@ arenaWss.on("connection", (ws) => {
         arenaState.autoEnter = Array.from(autoEnter);
         saveArenaState(arenaState);
         ws.send(JSON.stringify({ t: "auto-config-ack", autoEnter: Array.from(autoEnter) }));
-        console.log(`[forge] auto-enter armed: ${[...autoEnter].join(", ") || "(none)"}`);
+        log.info(`auto-enter armed: ${[...autoEnter].join(", ") || "(none)"}`);
         break;
       }
       case "persist": {
@@ -1078,7 +1174,7 @@ arenaWss.on("connection", (ws) => {
   ws.on("close", () => arenaClients.delete(ws));
 });
 
-server.listen(PORT, "127.0.0.1", () => {
+server.listen(PORT, BIND_HOST, () => {
   console.log(`\n[forge] AgentForge Command up on http://localhost:${PORT}`);
   if (NO_TOKEN) {
     console.warn("[forge] ⚠️  NO_TOKEN mode — no session token required.");
@@ -1117,9 +1213,26 @@ server.on("error", (e) => {
     console.error(`\n[forge] port ${PORT} is already in use. Stop the other process or start with a different port:\n  PORT=${PORT + 1} node gui/server.js\n`);
     process.exit(1);
   }
-  console.error(`[forge] server error: ${e.message}`);
+  log.error(`server error: ${e.message}`);
   process.exit(1);
 });
+
+/* ----- Zombie reaping ----- */
+// Sweep exited PTY records out of the map once they've been idle past the
+// timeout, so a long-running server doesn't accumulate dead entries. Live
+// PTYs and recently-exited ones (still readable by a reconnecting browser)
+// are left alone. Unref'd so it never holds the process open on its own.
+const REAP_INTERVAL_MS = Number(process.env.AGENTFORGE_REAP_INTERVAL_MS || 60 * 1000);
+const reapInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [id, rec] of agents) {
+    if (!rec.alive && rec.exitTime && (now - rec.exitTime) > IDLE_TIMEOUT_MS) {
+      agents.delete(id);
+      log.debug(`reaped idle exited agent '${id}'`);
+    }
+  }
+}, REAP_INTERVAL_MS);
+reapInterval.unref();
 
 /* ----- Clean shutdown ----- */
 // Kill every live PTY, hang up the Rust accelerator and close the WebSocket
@@ -1128,7 +1241,8 @@ let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`\n[forge] ${signal} — shutting down: killing ${agents.size} PTY(s)…`);
+  clearInterval(reapInterval);
+  log.info(`${signal} — shutting down: killing ${agents.size} PTY(s)…`);
   for (const [, rec] of agents) { try { rec.term.kill(); } catch {} }
   if (pulse) { try { pulse.kill(); } catch {} }
   for (const c of clients)      { try { c.close(); } catch {} }
