@@ -121,7 +121,7 @@ response.
 | 1 | P0 blocker (CSWSH) + origin/token/CSP/path hardening | 175 |
 | 2 | Runtime robustness, guardrails, persistence | 179 |
 | 3 | Worktree isolation + session reattach + schema validation | 186 |
-| 4 | Security regressions + Playwright E2E + axe a11y + coverage | 193 (76.55% lines) |
+| 4 | Security regressions + Playwright E2E + axe a11y + coverage | 201 (82.84% lines) |
 
 The security suite, E2E, a11y, coverage threshold and a cross-platform build
 matrix (Linux/macOS/Windows × Node 18/20/22) all run in CI on every change.

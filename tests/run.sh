@@ -308,6 +308,7 @@ run_node_suite() {
 }
 
 run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
+run_node_suite "llm bridge unit tests"   "tests/llm-suite.mjs"
 
 # The server-integration suite needs node-pty + ws as LOADABLE modules.
 # Directory existence isn't enough — node-pty is a native module and
