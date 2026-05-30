@@ -21,7 +21,7 @@ Append to the table. Keep it terse; link to file/line where useful.
 
 | Date | Found in phase | Severity | Area | Finding | Suggested phase / action |
 |------|---------------|----------|------|---------|--------------------------|
-| _(none yet)_ | | | | | |
+| 2026-05-30 | Phase 2 | low | UI (`arena/ui.js`) | Phase 2.7 makes `streamBrief` return `cost: null` for an unknown model (+ a server warning), but `recordSpend`/`spendSnapshot` still coerce `null → 0`, so the Ledger card renders `$0.00` rather than "cost unknown". Propagating `null` to the UI touches the untested browser bundle and the spend contract that `server-suite` asserts. | Phase 4 — add E2E first, then render `null` as "cost unknown" without risking the contract. |
 
 ---
 
