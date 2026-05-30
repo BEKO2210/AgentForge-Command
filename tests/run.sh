@@ -315,6 +315,7 @@ run_node_suite "broadcast bar"           "tests/broadcast-suite.mjs"
 run_node_suite "drawer polish"           "tests/drawer-suite.mjs"
 run_node_suite "mascot polish"           "tests/mascot-suite.mjs"
 run_node_suite "contrast (WCAG AA)"      "tests/contrast-suite.mjs"
+run_node_suite "responsive layout"       "tests/responsive-suite.mjs"
 
 # The server-integration suite needs node-pty + ws as LOADABLE modules.
 # Directory existence isn't enough — node-pty is a native module and

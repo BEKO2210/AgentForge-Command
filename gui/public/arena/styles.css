@@ -85,7 +85,14 @@
 
 *, *::before, *::after { box-sizing:border-box; }
 html, body { height:100%; background:#02040a; }
-html { scroll-behavior:smooth; }
+html {
+  scroll-behavior:smooth;
+  /* Run 1.7: clip horizontal overflow at the viewport so off-canvas elements
+     (the closed drawer, card activity-glows) can't create a horizontal
+     scrollbar on phones. `clip` (vs hidden) doesn't establish a scroll
+     container, so position:fixed/sticky keep working. */
+  overflow-x:clip;
+}
 body {
   margin:0; color:var(--fg); font:14px/1.5 var(--ui);
   background:
@@ -2825,7 +2832,10 @@ kbd {
   .lead-grid { grid-template-columns:1fr; }
 }
 @media (max-width: 760px) {
-  .appbar { gap:10px; padding:11px 14px; }
+  /* Let the top bar wrap instead of pushing the document wider than the
+     viewport (Run 1.7: fixes a 43px horizontal overflow at ≤360px). */
+  .appbar { gap:10px; padding:11px 14px; flex-wrap:wrap; }
+  .appbar .brand { min-width:0; }
   .nav-tabs { width:100%; order:5; justify-content:flex-end; }
   .stat-strip, .atlas-stage { padding:14px 14px 0; }
   .hero-stats { grid-template-columns:repeat(2, 1fr); }
@@ -2850,6 +2860,38 @@ kbd {
   .lead-mascot-wrap { max-width:100px; }
   .modal .row { grid-template-columns:1fr; }
   .modal .mascot-picker { grid-template-columns:repeat(4, 1fr); }
+}
+@media (max-width: 360px) {
+  /* Smallest phones (320–360): single-column stats so nothing clips. */
+  .hero-stats { grid-template-columns:1fr; }
+  .ledger-grid, .ledger-forecast .forecast-grid { grid-template-columns:1fr; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Run 1.7 — Touch ergonomics.
+ *
+ * On a coarse pointer (finger) every interactive control must clear the 44px
+ * tap target (WCAG 2.5.5 / platform HIG). The desktop sizing stays compact for
+ * mouse users — this only kicks in on touch devices, so it never bloats the
+ * pointer-precise layout. Selectors mirror the originals so they win on
+ * specificity inside the query.
+ * ------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .nav-tabs a,
+  .toolbar .seg button,
+  .tcard .auto-toggle, .tcard .card-btn,
+  .broadcast-mode,
+  .drawer .close, .help-card header .close, .cmd-card .close,
+  .modal .mascot-picker button, .modal .swatch,
+  .btn {
+    min-height:var(--tap, 44px);
+    /* keep the label centred once the box grows */
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  /* Icon-ish square controls also need the horizontal target. */
+  .drawer .close, .help-card header .close, .modal .swatch {
+    min-width:var(--tap, 44px);
+  }
 }
 
 /* ----- Command mode + Help overlay ----- */
