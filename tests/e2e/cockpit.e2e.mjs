@@ -62,6 +62,20 @@ test.describe("AgentForge cockpit", () => {
     await expect(banner.locator('[data-relaunch="forge"]')).toBeVisible();
   });
 
+  test("card opener is keyboard-focusable and hover lifts the card (Run 1.2)", async ({ page }) => {
+    await page.goto("/");
+    const opener = page.locator('.tcard[data-id="sentinel"] header[data-action="open"]');
+    await expect(opener).toHaveAttribute("tabindex", "0");
+    await expect(opener).toHaveAttribute("aria-label", /sentinel/i);
+    const card = page.locator('.tcard[data-id="sentinel"]');
+    const flat = await card.evaluate((el) => getComputedStyle(el).transform);
+    await card.hover();
+    await page.waitForTimeout(250);
+    const lifted = await card.evaluate((el) => getComputedStyle(el).transform);
+    // hover applies translateY(-3px) → transform matrix changes from the resting state
+    expect(lifted).not.toEqual(flat);
+  });
+
   test("worktree badge + drawer git-status after launching a specialist", async ({ page }) => {
     await page.goto("/");
     await page.locator('.tcard[data-id="sentinel"] [data-action="launch-pty"]').click();

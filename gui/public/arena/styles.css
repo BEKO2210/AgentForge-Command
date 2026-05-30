@@ -471,12 +471,25 @@ kbd {
   position:relative; overflow:hidden; cursor:pointer;
   display:flex; flex-direction:column; min-height:310px;
   box-shadow:var(--shadow-card);
-  transition:border-color .18s, transform .14s, box-shadow .2s;
+  /* Run 1.2: tokenized, consistent easing */
+  transition:border-color var(--dur-fast,150ms) var(--ease-standard,ease),
+             transform var(--dur-fast,150ms) var(--ease-standard,ease),
+             box-shadow var(--dur-base,240ms) var(--ease-standard,ease);
 }
 .tcard:hover {
-  transform:translateY(-2px);
+  transform:translateY(-3px);
   border-color:color-mix(in srgb, var(--accent) 50%, var(--border));
   box-shadow:0 26px 60px -28px color-mix(in srgb, var(--accent) 45%, #000);
+}
+/* Run 1.2: keyboard focus ring on the card's open affordance (the header is the
+   role="button" opener). :focus-visible → keyboard only, not on mouse click. */
+.tcard header[data-action="open"]:focus-visible {
+  outline: var(--focus-ring, 2px solid #54e6a8);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.tcard:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent-success,#54e6a8) 55%, var(--border));
 }
 .tcard::before {
   content:""; position:absolute; inset:0 0 auto 0; height:2px;
@@ -639,9 +652,16 @@ kbd {
 .tcard .auto-toggle, .tcard .card-btn {
   font:700 10.5px var(--mono); letter-spacing:.6px; padding:5px 10px; border-radius:6px;
   border:1px solid var(--border2); background:transparent; cursor:pointer; color:var(--muted);
-  transition:.15s; min-height:30px;
+  transition:color var(--dur-fast,150ms) var(--ease-standard,ease),
+             border-color var(--dur-fast,150ms) var(--ease-standard,ease),
+             filter var(--dur-fast,150ms) var(--ease-standard,ease);
+  min-height:30px;
 }
 .tcard .auto-toggle:hover, .tcard .card-btn:hover { color:var(--fg); border-color:var(--accent); }
+/* Run 1.2: visible keyboard focus on per-card actions */
+.tcard .auto-toggle:focus-visible, .tcard .card-btn:focus-visible {
+  outline: var(--focus-ring, 2px solid #54e6a8); outline-offset: 2px;
+}
 .tcard .auto-toggle.on {
   color:#04140a; background:linear-gradient(180deg, var(--cta2), var(--cta));
   border-color:var(--cta2);
@@ -2784,12 +2804,19 @@ kbd {
 }
 
 /* ----- Worktree badge + orphaned-session banner (Phase 3/4) ----- */
+/* Run 1.2: badge sits on its own line under the role, never overlapping or
+   overflowing the card — long branch names truncate with an ellipsis. */
 .worktree-badge {
   display: inline-block;
-  margin-top: 4px;
-  padding: 1px 6px;
-  border-radius: 6px;
-  font: 600 10px/1.4 var(--mono, monospace);
+  margin-top: var(--spacing-xs, 4px);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  padding: 1px var(--spacing-sm, 8px);
+  border-radius: var(--radius-sm, 6px);
+  font: 600 10px/1.4 var(--font-mono, var(--mono, monospace));
   letter-spacing: .3px;
   color: var(--accent, #6cf);
   background: color-mix(in srgb, var(--accent, #6cf) 14%, transparent);
