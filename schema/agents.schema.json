@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/BEKO2210/AgentForge-Command/schema/agents.schema.json",
+  "title": "AgentForge swarm configuration (gui/agents.json)",
+  "type": "object",
+  "properties": {
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/agent" }
+    },
+    "specialists": {
+      "type": "array",
+      "description": "Deprecated alias for 'agents'. Honoured as a fallback.",
+      "items": { "$ref": "#/$defs/agent" }
+    }
+  },
+  "required": ["agents"],
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Lowercase slug; used for branch names and worktree paths."
+        },
+        "name": { "type": "string" },
+        "label": { "type": "string" },
+        "lane": { "type": "string", "enum": ["lead", "backend", "frontend", "quality"] },
+        "lead": { "type": "boolean" },
+        "cmd": {
+          "type": "string",
+          "description": "Operator-authored command to spawn. TRUST BOUNDARY — never client-supplied (see docs/THREAT_MODEL.md)."
+        },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "prompt": { "type": "string" },
+        "role": { "type": "string" },
+        "superSkill": { "type": "string" },
+        "capabilities": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "cmd"],
+      "additionalProperties": true
+    }
+  }
+}

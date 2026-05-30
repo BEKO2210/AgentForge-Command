@@ -316,6 +316,7 @@ run_node_suite "arena unit tests"        "tests/arena-suite.mjs"
 if ( cd "$SRC/gui" && node -e "Promise.all([import('node-pty'),import('ws')]).then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null ); then
   run_node_suite "security regression suite" "tests/security-suite.mjs"
   run_node_suite "robustness suite" "tests/robustness-suite.mjs"
+  run_node_suite "worktree isolation suite" "tests/worktree-suite.mjs"
   run_node_suite "server integration tests" "tests/server-suite.mjs"
   run_node_suite "workflow smoke (agentforge-real-workflow-smoke)" "tests/workflow-suite.mjs"
 else
@@ -323,6 +324,8 @@ else
   echo "== security regression suite =="
   echo "  - skipped (run \`cd gui && npm ci\` first — note: NOT --ignore-scripts, node-pty needs its build step)"
   echo "== robustness suite =="
+  echo "  - skipped (same reason)"
+  echo "== worktree isolation suite =="
   echo "  - skipped (same reason)"
   echo "== server integration tests =="
   echo "  - skipped (same reason)"

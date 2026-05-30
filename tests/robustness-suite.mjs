@@ -48,7 +48,7 @@ async function boot(extraEnv = {}) {
     env: {
       ...process.env, PORT: String(port), TEST_CMD: "bash", AUTOSTART: "off",
       REPO_DIR: ROOT, FORGE_PULSE: "0", ANTHROPIC_API_KEY: "",
-      AGENTFORGE_NO_TOKEN: "1", ...extraEnv,
+      AGENTFORGE_NO_TOKEN: "1", AGENTFORGE_WORKTREES: "0", ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

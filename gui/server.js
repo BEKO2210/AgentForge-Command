@@ -22,7 +22,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { spawn as spawnProc } from "node:child_process";
+import { spawn as spawnProc, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildState } from "../lib/state.mjs";
 import { atlasBrief, specialistBrief, llmConfig } from "./llm.js";
@@ -151,7 +151,56 @@ const ARENA_FILE = path.join(REPO_DIR, ".team", "arena.json");
 // and the cockpit shows a "TEST HARNESS" badge. Never on by accident.
 const HARNESS = process.env.AGENTFORGE_HARNESS === "1" || process.env.AGENTFORGE_TEST_HARNESS === "1";
 
-const config = JSON.parse(fs.readFileSync(path.join(HERE, "agents.json"), "utf8"));
+// agents.json is operator-authored config. Validate it against
+// schema/agents.schema.json at startup so a typo fails loudly with a clear
+// message instead of causing silent mis-behaviour later. Zero-dependency
+// structural check — same philosophy as tests/validate-schema.mjs (we don't
+// pull in a full JSON-Schema engine). The path is overridable for testing.
+const AGENTS_FILE = process.env.AGENTFORGE_AGENTS_FILE || path.join(HERE, "agents.json");
+
+// Returns an array of human-readable problems; empty array means valid.
+function validateAgentsConfig(cfg) {
+  const errs = [];
+  if (cfg === null || typeof cfg !== "object" || Array.isArray(cfg)) {
+    return ["root must be a JSON object"];
+  }
+  const list = Array.isArray(cfg.agents) ? cfg.agents
+    : (Array.isArray(cfg.specialists) ? cfg.specialists : null);
+  if (!list) return ["missing required array 'agents'"];
+  if (list.length < 1) errs.push("'agents' must list at least one agent");
+  const idRe = /^[a-z][a-z0-9_-]*$/;
+  const lanes = new Set(["lead", "backend", "frontend", "quality"]);
+  const seen = new Set();
+  list.forEach((a, i) => {
+    const at = `agents[${i}]`;
+    if (a === null || typeof a !== "object") { errs.push(`${at} must be an object`); return; }
+    if (typeof a.id !== "string" || !idRe.test(a.id)) errs.push(`${at}.id must match ${idRe} (got ${JSON.stringify(a.id)})`);
+    else if (seen.has(a.id)) errs.push(`${at}.id '${a.id}' is duplicated`);
+    else seen.add(a.id);
+    if (typeof a.name !== "string" || !a.name) errs.push(`${at}.name must be a non-empty string`);
+    if (typeof a.cmd !== "string" || !a.cmd) errs.push(`${at}.cmd must be a non-empty string`);
+    if (a.args !== undefined && !(Array.isArray(a.args) && a.args.every((x) => typeof x === "string"))) errs.push(`${at}.args must be an array of strings`);
+    if (a.lane !== undefined && !lanes.has(a.lane)) errs.push(`${at}.lane must be one of ${[...lanes].join(", ")}`);
+    if (a.lead !== undefined && typeof a.lead !== "boolean") errs.push(`${at}.lead must be a boolean`);
+  });
+  return errs;
+}
+
+let config;
+try {
+  config = JSON.parse(fs.readFileSync(AGENTS_FILE, "utf8"));
+} catch (e) {
+  console.error(`[forge] ❌ could not read/parse ${AGENTS_FILE}: ${e.message}`);
+  process.exit(1);
+}
+{
+  const problems = validateAgentsConfig(config);
+  if (problems.length) {
+    console.error(`[forge] ❌ ${path.basename(AGENTS_FILE)} failed validation (schema/agents.schema.json):`);
+    for (const p of problems) console.error(`[forge]    - ${p}`);
+    process.exit(1);
+  }
+}
 // One swarm, one list. ATLAS PRIME is the lead; everyone else reports to
 // Atlas. `specialists` from older configs is honoured as a fallback.
 const swarm = Array.isArray(config.agents) && config.agents.length
@@ -625,6 +674,109 @@ function launchError(id, reason) {
   arenaBroadcast({ t: "launch-error", id, reason });
 }
 
+/* ----- Git worktree isolation (Phase 3) -----
+ * Each specialist runs in its own `git worktree` on branch `agentforge/<id>`
+ * so two specialists can edit the same file in parallel without stomping each
+ * other. Atlas (the lead/integrator) stays on the shared REPO_DIR. All git
+ * calls use execFileSync with arg arrays (no shell) — agent ids are
+ * schema-validated, but we avoid string-built shell commands on principle.
+ * Fallbacks: AGENTFORGE_WORKTREES=0 → shared REPO_DIR (old behaviour); a
+ * non-git REPO_DIR auto-disables with no error. Worktrees are kept after
+ * stop for review unless AGENTFORGE_WORKTREE_CLEANUP=1. */
+const WORKTREES_DIR = path.join(REPO_DIR, ".agentforge", "worktrees");
+const WORKTREE_ENABLED = process.env.AGENTFORGE_WORKTREES !== "0";
+const WORKTREE_CLEANUP = process.env.AGENTFORGE_WORKTREE_CLEANUP === "1";
+
+function git(args, cwd = REPO_DIR) {
+  return execFileSync("git", args, { cwd, stdio: "pipe", encoding: "utf8" });
+}
+function isGitRepo() {
+  try { git(["rev-parse", "--git-dir"]); return true; } catch { return false; }
+}
+function worktreeList() {
+  try { return git(["worktree", "list", "--porcelain"]); } catch { return ""; }
+}
+function worktreePathFor(agentId) { return path.join(WORKTREES_DIR, agentId); }
+
+// Create (or reuse) an isolated worktree for a specialist. Returns the path,
+// or null when worktrees are off / not applicable / failed (→ caller uses
+// REPO_DIR, so a failure degrades gracefully instead of blocking the launch).
+function createWorktree(agentId) {
+  if (!WORKTREE_ENABLED || agentId === "atlas" || !isGitRepo()) return null;
+  const wtPath = worktreePathFor(agentId);
+  const branch = `agentforge/${agentId}`;
+  try {
+    if (worktreeList().includes(wtPath)) {
+      log.info(`worktree '${agentId}' exists — reusing`);
+      return wtPath;
+    }
+    fs.mkdirSync(WORKTREES_DIR, { recursive: true });
+    // The branch may already exist (worktree was removed but branch kept).
+    let branchExists = false;
+    try { git(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]); branchExists = true; } catch { /* no such branch */ }
+    if (branchExists) git(["worktree", "add", wtPath, branch]);
+    else git(["worktree", "add", "-b", branch, wtPath, "HEAD"]);
+    log.info(`created worktree '${agentId}' at ${wtPath} on ${branch}`);
+    return wtPath;
+  } catch (e) {
+    log.warn(`failed to create worktree for '${agentId}': ${e.message} — using shared repo dir`);
+    return null;
+  }
+}
+
+// Remove a specialist's worktree — only when explicitly opted in
+// (AGENTFORGE_WORKTREE_CLEANUP=1); otherwise we keep it so the operator can
+// review the branch. The branch itself is left intact either way.
+function cleanupWorktree(agentId) {
+  if (!WORKTREE_ENABLED || !WORKTREE_CLEANUP || !isGitRepo()) return;
+  const wtPath = worktreePathFor(agentId);
+  try {
+    if (!worktreeList().includes(wtPath)) return;
+    git(["worktree", "remove", "-f", wtPath]);
+    log.info(`cleaned up worktree '${agentId}'`);
+  } catch (e) {
+    log.warn(`could not cleanup worktree '${agentId}': ${e.message}`);
+  }
+}
+
+/* ----- Session reattach metadata (Phase 3) -----
+ * node-pty processes do NOT survive a server restart — so we never fake a
+ * reattach. Instead we persist lightweight session metadata to
+ * .team/sessions.json; on the next boot any session from the previous run is
+ * surfaced as "orphaned" with a one-click relaunch (same id, same worktree).
+ * Corrupt/missing file → empty (honest fallback, like arena.json). */
+const SESSIONS_FILE = path.join(REPO_DIR, ".team", "sessions.json");
+let orphanedSessions = [];
+
+function saveSessions() {
+  const sessions = Array.from(agents.entries()).map(([id, rec]) => ({
+    id,
+    started: rec.startedAt || Date.now(),
+    cmd: rec.def.cmd,
+    args: rec.def.args || [],
+    cwd: rec.cwd || REPO_DIR,
+    wtPath: rec.wtPath || null,
+    branch: rec.wtPath ? `agentforge/${id}` : "main",
+    status: rec.alive ? "running" : "exited",
+  }));
+  try {
+    fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({ sessions }, null, 2));
+  } catch (e) { log.warn(`could not save sessions: ${e.message}`); }
+}
+
+function loadOrphanedSessions() {
+  try {
+    const { sessions } = JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8"));
+    if (!Array.isArray(sessions)) return [];
+    // Every session from a prior run is orphaned — the PTY is gone. We don't
+    // pretend otherwise; we just offer to relaunch it in the same worktree.
+    return sessions
+      .filter((s) => s && typeof s.id === "string")
+      .map((s) => ({ id: s.id, cmd: s.cmd, cwd: s.cwd, wtPath: s.wtPath || null, branch: s.branch || "main", started: s.started || null, status: "orphaned" }));
+  } catch { return []; }
+}
+
 function startAgent(def) {
   // Preflight: a missing command must surface as a clear, actionable error —
   // not a silent crash or cryptic terminal noise. Returns false so callers
@@ -649,6 +801,9 @@ function startAgent(def) {
   if (prev && prev.term) {
     try { prev.term.kill(); } catch {}
   }
+  // Isolate this specialist in its own worktree (null → shared REPO_DIR).
+  const wtPath = createWorktree(def.id);
+  const cwd = wtPath || REPO_DIR;
   // Inject env vars so Claude Code hooks running inside this PTY know
   // which specialist they belong to and where to POST events. The hook
   // script in .claude/settings.json reads these to build its curl call.
@@ -659,19 +814,20 @@ function startAgent(def) {
     // foreign pages — which can't read the token — are rejected. In NO_TOKEN
     // mode the query is harmless (the server ignores it).
     AGENTFORGE_HOOK_URL: NO_TOKEN
-      ? `http://127.0.0.1:${PORT}/api/hooks`
-      : `http://127.0.0.1:${PORT}/api/hooks?token=${SESSION_TOKEN}`,
+      ? `http://${BIND_HOST === "0.0.0.0" ? "127.0.0.1" : BIND_HOST}:${PORT}/api/hooks`
+      : `http://${BIND_HOST === "0.0.0.0" ? "127.0.0.1" : BIND_HOST}:${PORT}/api/hooks?token=${SESSION_TOKEN}`,
+    AGENTFORGE_WORKTREE: wtPath ? "1" : "0",
   };
   let term;
   try {
     term = pty.spawn(def.cmd, def.args || [], {
-      name: "xterm-256color", cols: 140, rows: 30, cwd: REPO_DIR, env: ptyEnv,
+      name: "xterm-256color", cols: 140, rows: 30, cwd, env: ptyEnv,
     });
   } catch (e) {
     launchError(def.id, `failed to start ${def.cmd}: ${e.message}`);
     return false;
   }
-  const rec = { def, term, buf: "", alive: true, tail: "" };
+  const rec = { def, term, buf: "", alive: true, tail: "", wtPath, cwd, startedAt: Date.now() };
   term.onData((d) => {
     rec.buf = (rec.buf + d).slice(-200000);
     rec.tail = (rec.tail + d).slice(-1200);
@@ -688,16 +844,19 @@ function startAgent(def) {
       }
     }
   });
+  const branch = wtPath ? `agentforge/${def.id}` : null;
   term.onExit(({ exitCode }) => {
     rec.alive = false;
     rec.exitTime = Date.now(); // marks the record eligible for reaping
     broadcast({ t: "exit", id: def.id, code: exitCode });
     arenaBroadcast({ t: "exit", id: def.id, code: exitCode });
+    saveSessions();
   });
   agents.set(def.id, rec);
   broadcast({ t: "started", id: def.id });
-  arenaBroadcast({ t: "started", id: def.id });
-  log.info(`started '${def.id}' (${def.cmd}) in ${REPO_DIR}`);
+  arenaBroadcast({ t: "started", id: def.id, worktree: !!wtPath, branch });
+  log.info(`started '${def.id}' (${def.cmd}) in ${cwd}`);
+  saveSessions();
   return true;
 }
 
@@ -753,6 +912,7 @@ const server = http.createServer((req, res) => {
       ptyAgents: swarm.map((a) => a.id),
       leadId: LEAD ? LEAD.id : null,
       runningPtys: Array.from(agents.keys()),
+      orphaned: orphanedSessions,
       pulse: !!pulse,
       claudeCli: claudeCliPresent(),
       harness: HARNESS && !process.env.ANTHROPIC_API_KEY,
@@ -927,6 +1087,7 @@ arenaWss.on("connection", (ws) => {
     atlasMission: arenaState.atlasMission,
     ptyAgents: swarm.map((a) => a.id),
     leadId: LEAD ? LEAD.id : null,
+    orphaned: orphanedSessions,
     pulse: !!pulse,
     claudeCli: claudeCliPresent(),
     harness: HARNESS && !process.env.ANTHROPIC_API_KEY,
@@ -1034,7 +1195,11 @@ arenaWss.on("connection", (ws) => {
         break;
       }
       case "stop-pty": {
-        const rec = agents.get(m.id); if (rec) try { rec.term.kill(); } catch {}
+        const rec = agents.get(m.id);
+        if (rec) {
+          try { rec.term.kill(); } catch {}
+          cleanupWorktree(m.id); // no-op unless AGENTFORGE_WORKTREE_CLEANUP=1
+        }
         break;
       }
       case "atlas-brief": {
@@ -1196,6 +1361,15 @@ server.listen(PORT, BIND_HOST, () => {
     console.log(`[forge] test harness:    ON — atlas-brief runs the deterministic routing harness (no live LLM). Frames are tagged harness:true.`);
   }
   startForgePulse();
+  // Surface any sessions left behind by a previous run as "orphaned" (their
+  // PTYs are gone) so the cockpit can offer a one-click relaunch. Read BEFORE
+  // AUTOSTART so its saveSessions() doesn't overwrite the previous file first.
+  orphanedSessions = loadOrphanedSessions();
+  if (orphanedSessions.length) {
+    log.info(`${orphanedSessions.length} orphaned session(s) from last run — relaunch from the cockpit`);
+    arenaBroadcast({ t: "orphaned-sessions", sessions: orphanedSessions });
+  }
+  saveSessions(); // reset the file to the live (currently empty) state
   // No autostart by default — Atlas decides which specialists run, and the
   // operator launches them from the cockpit. Set AUTOSTART=lead to auto-spawn
   // only Atlas, or AUTOSTART=all to spawn every specialist (12 sessions).
@@ -1243,7 +1417,10 @@ function shutdown(signal) {
   shuttingDown = true;
   clearInterval(reapInterval);
   log.info(`${signal} — shutting down: killing ${agents.size} PTY(s)…`);
+  saveSessions(); // persist metadata so the next boot can offer a relaunch
   for (const [, rec] of agents) { try { rec.term.kill(); } catch {} }
+  // Worktrees are kept by default (review); only swept when opted in.
+  for (const id of agents.keys()) cleanupWorktree(id);
   if (pulse) { try { pulse.kill(); } catch {} }
   for (const c of clients)      { try { c.close(); } catch {} }
   for (const c of arenaClients) { try { c.close(); } catch {} }

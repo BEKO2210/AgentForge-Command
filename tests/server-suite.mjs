@@ -75,6 +75,9 @@ async function startServer() {
       // tests/security-suite.mjs, which runs with the token ON. Here we opt
       // out of the token so the functional assertions stay focused.
       AGENTFORGE_NO_TOKEN: "1",
+      // Worktree isolation is covered by tests/worktree-suite.mjs in a throwaway
+      // git repo. Disable it here so these tests don't mutate the real repo.
+      AGENTFORGE_WORKTREES: "0",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -123,6 +126,7 @@ async function bootServer(extraEnv = {}) {
       FORGE_PULSE: "0",
       ANTHROPIC_API_KEY: "",
       AGENTFORGE_NO_TOKEN: "1", // functional fixtures; auth is in security-suite
+      AGENTFORGE_WORKTREES: "0", // worktrees covered by worktree-suite
       ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
