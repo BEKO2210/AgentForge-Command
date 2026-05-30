@@ -1,0 +1,22 @@
+{
+  "//": "Coverage scope = the NODE-executed surface. The browser bundle (gui/public/arena/*.js) runs in the browser and is covered by the Playwright E2E suite, not by node unit/integration tests — including it here would report a false 0%. Thresholds are set just below the measured baseline (lines 76.6 / branches 67.7 / functions 86.5) so coverage can't silently regress.",
+  "all": true,
+  "include": [
+    "gui/server.js",
+    "gui/llm.js",
+    "lib/**/*.mjs"
+  ],
+  "exclude": [
+    "tests/**",
+    "mcp/**",
+    "gui/public/**",
+    "node_modules/**",
+    "**/*.config.*"
+  ],
+  "reporter": ["text-summary", "html", "json", "lcov"],
+  "lines": 74,
+  "statements": 74,
+  "branches": 64,
+  "functions": 80,
+  "check-coverage": true
+}
