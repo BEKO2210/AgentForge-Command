@@ -17,7 +17,15 @@
     "dev": "node gui/server.js",
     "test": "bash tests/run.sh",
     "test:security": "node tests/security-suite.mjs",
+    "test:perf": "node tests/perf-bench.mjs",
+    "test:e2e": "playwright test",
+    "coverage": "c8 --config .c8rc.json bash tests/run.sh",
     "gate": "bash scripts/team-check.sh",
     "audit": "npm audit --workspaces --omit=dev --audit-level=high"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.48.0",
+    "c8": "^10.1.0"
   }
 }
