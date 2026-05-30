@@ -25,6 +25,10 @@ You should expect an acknowledgement within a few working days. Concrete fix
 timelines depend on severity and complexity; the maintainer will keep you in
 the loop.
 
+**Coordinated disclosure.** Please allow up to **90 days** (or sooner once a
+fix ships) before public disclosure, and at minimum **30 days** for a
+maintainer response. We'll credit reporters who wish to be named.
+
 ## What's in scope
 
 AgentForge Command is a local cockpit that drives Claude Code sessions
@@ -50,7 +54,7 @@ running in the operator's own repository. Issues that are in scope:
   clients, logs, or repository state.
 - Unauthenticated network exposure of the GUI beyond `127.0.0.1`.
 
-## Mitigations in place (as of Phase 1)
+## Mitigations in place (Phases 1–4)
 
 The browser↔server trust boundary is enforced by four layers (details and
 threat analysis in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)):
@@ -90,6 +94,39 @@ gate) proves these mitigations: foreign-origin and tokenless WS upgrades are
 refused, `/api/hooks` rejects requests without the token, Host mismatches and
 path traversal are blocked, and the security headers are asserted on every
 response.
+
+### Hardening landed across Phases 1–4
+
+- ✅ **CSWSH closed** — Origin allowlist + Host-header check + per-session
+  capability token on the `/arena` WS upgrade and state-changing routes.
+- ✅ **Path traversal hardened** — `decodeURIComponent` → `normalize` →
+  containment re-check; sibling-prefix and `%2e`/`%2f` variants covered.
+- ✅ **No RCE-by-config** — PTYs spawn only from operator-authored
+  `agents.json` commands; no `eval`/`exec` of client input. A tampered
+  `.team/sessions.json` cannot launch anything (relaunch goes through
+  `agents.json`, not the persisted metadata).
+- ✅ **Schema validation** — an invalid `agents.json` exits cleanly with a
+  clear message (`schema/agents.schema.json`).
+- ✅ **WS hardening** — per-message size cap + token-bucket rate limit;
+  `input` length cap.
+- ✅ **Secret hygiene** — `ANTHROPIC_API_KEY` is server-only, never logged or
+  sent to the browser; the session token is the only secret printed (by
+  design, for the operator).
+
+## Audit history
+
+| Phase | Focus | Test count |
+|-------|-------|-----------|
+| 0 | Threat model + baseline audit (`docs/THREAT_MODEL.md`, `docs/BASELINE.md`) | 165 + 5 Rust |
+| 1 | P0 blocker (CSWSH) + origin/token/CSP/path hardening | 175 |
+| 2 | Runtime robustness, guardrails, persistence | 179 |
+| 3 | Worktree isolation + session reattach + schema validation | 186 |
+| 4 | Security regressions + Playwright E2E + axe a11y + coverage | 193 (76.55% lines) |
+
+The security suite, E2E, a11y, coverage threshold and a cross-platform build
+matrix (Linux/macOS/Windows × Node 18/20/22) all run in CI on every change.
+See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the full attack-surface
+analysis.
 
 ## What's out of scope
 
