@@ -1,4 +1,4 @@
-# team-mcp — read-only MCP server for AgentForge state
+# agentforge-mcp — read-only MCP server for AgentForge state
 
 Exposes AgentForge's coordination state (board, logs, memory, health, metrics)
 as [Model Context Protocol](https://modelcontextprotocol.io) resources, so any

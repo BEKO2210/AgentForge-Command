@@ -46,7 +46,7 @@ const STATIC_RESOURCES = [
 ];
 
 const server = new Server(
-  { name: "team-mcp", version: "0.1.0" },
+  { name: "agentforge-mcp", version: "0.1.0" },
   { capabilities: { resources: {}, tools: {} } }
 );
 
@@ -120,4 +120,4 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-process.stderr.write("team-mcp: ready\n");
+process.stderr.write("agentforge-mcp: ready\n");
