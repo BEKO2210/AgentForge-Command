@@ -265,3 +265,62 @@ behind the same per-session token, and read-only must remain the default.
   sketch for #1, to be turned into a measured before/after in Phase 1. ✅
 - **No production code changed in Phase 0.** The fixes referenced above are
   scheduled, not applied.
+
+---
+
+## 8. Anthropic usage policy (PTY vs API)
+
+This is a **policy/compliance** boundary, not a code vulnerability — but it
+materially affects how AgentForge may be used, so it belongs in the model.
+
+Since **April 2026**, Anthropic restricts **Pro/Max subscription** access for
+third-party, PTY-based agent frameworks. AgentForge has three ways to reach a
+model, with different policy footing:
+
+| Path | What happens | Policy footing |
+|------|--------------|----------------|
+| **Test-harness** (`AGENTFORGE_HARNESS=1`, no key) | Deterministic mock routing; **no** model calls | ✅ Unaffected — nothing leaves the machine |
+| **API key** (`ANTHROPIC_API_KEY`) | Official Messages API on **your** account/key | ✅ Your consumption under your API terms |
+| **Local `claude` PTY** | Bridges to your locally-installed `claude` CLI | ⚠️ You are responsible for ensuring *your* CLI's account/usage complies with Anthropic's terms |
+| **A shared Pro/Max account via this framework** | — | ❌ Not permitted by Anthropic |
+
+**Stance.** AgentForge ships **no** mechanism to circumvent any provider limit
+and gives **no** circumvention guidance. The operator is responsible for
+complying with the [Anthropic Usage Policies](https://www.anthropic.com/legal/aup)
+and applicable terms. This is the maintainer's good-faith reading, **not legal
+advice** (cf. the README **Policy notice** and [`TRADEMARK.md`](../TRADEMARK.md)).
+
+## 9. Dependency trust
+
+The runtime trusts a deliberately small set of third parties (full inventory:
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)):
+
+- **`node-pty`** (MIT, Microsoft) — native addon that spawns PTYs. High trust
+  (it runs subprocesses), well-maintained, rebuilt per Node ABI by `npm ci`.
+- **`ws`** (MIT) — WebSocket server. `npm audit --omit=dev --audit-level=high`
+  runs in CI and must stay clean (gate).
+- **`@modelcontextprotocol/sdk`** (MIT) — used only by the read-only MCP
+  server; not in the cockpit's request path.
+- **`forge-pulse`** (first-party, optional Rust) — advisory only; the JS
+  matcher is authoritative, so a compromised/absent binary cannot change
+  correctness.
+- **Dev-only tooling** (Playwright, axe-core, c8) never ships to users.
+
+Supply-chain posture: lockfiles are committed; `npm ci` (not `npm install`) in
+CI; `npm audit` gate; a CycloneDX SBOM is generated as a release artifact.
+
+## 10. Fallbacks & safe degradation
+
+Every capability has an honest degradation path — a missing/disabled feature
+falls back to a working state, never a fake one:
+
+| Feature off / unavailable | Fallback |
+|---------------------------|----------|
+| No `ANTHROPIC_API_KEY` | Harness mode (deterministic) or local `claude` PTY; UI labels the mode honestly |
+| No `claude` CLI | Launches surface a clear error; cockpit stays usable |
+| `forge-pulse` binary absent | JS matcher (authoritative) |
+| `AGENTFORGE_WORKTREES=0` or non-git repo | Shared `REPO_DIR` (pre-Phase-3 behaviour) |
+| Server restart | PTYs are gone; sessions surface as **orphaned** for relaunch (no fake reattach) |
+| Corrupt `.team/arena.json` / `sessions.json` | Backed up and reset to empty (recovery, not crash) |
+| Token mode unwanted (trusted single user) | `AGENTFORGE_NO_TOKEN=1` (loud warning; origin/host checks remain) |
+| `node-pty`/`ws` not built | Server exits with an actionable install hint; test suites skip rather than false-fail |
