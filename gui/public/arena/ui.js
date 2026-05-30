@@ -245,11 +245,14 @@ export function renderGrid(root, agents, opts) {
       el.setAttribute("role", "group");
       el.setAttribute("aria-label", `${a.name} — ${a.title}`);
       el.innerHTML = renderCardBody(a, i);
+      // Run 1.8: stagger the entrance ~50ms per card (capped so a big swarm
+      // doesn't crawl in). Cleared with the spawn class below.
+      el.style.setProperty("--stagger", String(Math.min(i, 12)));
       cardEls.set(a.id, el);
       root.appendChild(el);
       // Strip the spawn class after the animation finishes so a future update
       // doesn't re-trigger it.
-      setTimeout(() => el.classList.remove("spawning"), 700);
+      setTimeout(() => { el.classList.remove("spawning"); el.style.removeProperty("--stagger"); }, 700 + Math.min(i, 12) * 50);
     } else {
       // Re-order if needed (rare; only when filter shuffles list)
       const want = Array.from(root.children).indexOf(el);
@@ -522,7 +525,7 @@ export function renderDrawer(backdrop, drawer, agent, handlers) {
       </section>
       ${agent.branch ? `<section>
         <h3>Worktree · ${escapeHTML(agent.branch)}</h3>
-        <pre class="git-status" data-git-status aria-label="git status">loading git status…</pre>
+        <pre class="git-status" data-git-status aria-label="git status"><span class="spinner" aria-hidden="true"></span> loading git status…</pre>
       </section>` : ""}
       <section class="chat">
         <h3>Direct message — ${escapeHTML(agent.name)}</h3>

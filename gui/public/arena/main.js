@@ -13,6 +13,7 @@ import {
   renderTimeline, renderDrawer, renderModal,
 } from "./ui.js";
 import { LEAD_ID } from "./data.js";
+import { showToast } from "./toast.js";
 
 const store = createStore({
   agents: [], timeline: [], filter: "all",
@@ -453,8 +454,10 @@ autoAllBtn.addEventListener("click", () => {
 });
 
 evolveAllBtn.addEventListener("click", () => {
+  const n = store.get("agents").length;
   for (const a of store.get("agents")) engine.evolve(a.id);
   persistSoon();
+  showToast(`Evolved ${n} mascot${n === 1 ? "" : "s"} a level`, { type: "success" });
 });
 
 resetBtn.addEventListener("click", () => {
@@ -469,10 +472,30 @@ newAgentBtn.addEventListener("click", () => store.set("modalOpen", true));
 
 /* ----- PTY lifecycle controls ----------------------------------------- */
 
+// While a launch is in flight, disable that card's launch button and show a
+// spinner so the click has immediate, honest feedback (no double-launch, no
+// dead air until the PTY confirms). Cleared on `started` or `launch-error`.
+function setLaunchPending(id) {
+  const btn = document.querySelector(`.tcard[data-id="${id}"] [data-action="launch-pty"]`);
+  if (!btn || btn.dataset.pending === "1") return;
+  btn.dataset.pending = "1";
+  btn.dataset.label = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner" aria-hidden="true"></span> launching…`;
+}
+function clearLaunchPending(id) {
+  const btn = document.querySelector(`.tcard[data-id="${id}"] [data-action="launch-pty"]`);
+  if (!btn || btn.dataset.pending !== "1") return;
+  delete btn.dataset.pending;
+  btn.disabled = false;
+  if (btn.dataset.label) { btn.textContent = btn.dataset.label; delete btn.dataset.label; }
+}
+
 function launchPty(id, goal = "") {
   if (!arenaSocket || arenaSocket.readyState !== 1) return;
   arenaSocket.send(JSON.stringify({ t: "start-pty", id, goal }));
   engine.appendLine(id, "[arena] launching real session…");
+  setLaunchPending(id);
 }
 
 // Surface sessions left behind by a previous server run (their PTYs are gone —
@@ -607,6 +630,7 @@ function handleServerMessage(m) {
     engine.appendLine(m.id, `[brief failed] ${m.reason}`);
     engine.setAnimationState(m.id, "warning");
     setTimeout(() => engine.setAnimationState(m.id, "idle"), 1800);
+    showToast(`${m.id}: brief failed — ${m.reason || "unknown error"}`, { type: "error" });
   } else if (m.t === "specialist-report") {
     // A specialist reported back to Atlas — the visible answer, honestly
     // flagged running vs. not.
@@ -627,6 +651,7 @@ function handleServerMessage(m) {
     const hard = /quota|rate|5\d{2}|over budget|abort/i.test(m.reason || "");
     engine.setAnimationState(LEAD_ID, hard ? "error" : "warning");
     setTimeout(() => engine.setAnimationState(LEAD_ID, "idle"), 1800);
+    showToast(`Atlas: ${m.reason || "live brief failed"}`, { type: "error" });
   } else if (m.t === "auto-config-ack") {
     /* server confirmed */
   } else if (m.t === "auto-fired") {
@@ -649,6 +674,7 @@ function handleServerMessage(m) {
     }
   } else if (m.t === "started") {
     if (m.branch) branchById.set(m.id, m.branch); else branchById.delete(m.id);
+    clearLaunchPending(m.id);
     engine.setPtyRunning(m.id, true);
     if (m.id !== LEAD_ID) atlasDispatch(m.id, { running: true });
   } else if (m.t === "exit") {
@@ -678,6 +704,8 @@ function handleServerMessage(m) {
     if (m.id === LEAD_ID) { atlasSay(`ATLAS ▸ launch failed: ${m.reason || "could not start session"}`); setWorkflow("failed"); }
     else atlasDispatch(m.id, { status: "error", report: m.reason || "launch failed", running: false });
     atlasTech(`[server] launch failed for ${m.id}: ${m.reason || "could not start session"}`);
+    showToast(`${m.id}: launch failed — ${m.reason || "could not start session"}`, { type: "error" });
+    clearLaunchPending(m.id);
     setTimeout(() => {
       const cur = engine.get(m.id);
       if (cur && cur.animationState === "error") engine.setAnimationState(m.id, "idle");

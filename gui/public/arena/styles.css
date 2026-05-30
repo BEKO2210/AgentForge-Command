@@ -2894,6 +2894,90 @@ kbd {
   }
 }
 
+/* ===========================================================================
+ * Run 1.8 — Loading states, transitions & feedback.
+ * Toasts (success auto-dismiss / error persistent), an on-brand spinner, a
+ * skeleton shimmer, disabled affordances, and a staggered card entrance.
+ * ========================================================================= */
+
+/* ----- Toasts ----- */
+.toast-region {
+  position:fixed; top:14px; right:14px; z-index:90;
+  display:flex; flex-direction:column; gap:8px;
+  max-width:min(360px, 92vw); pointer-events:none;
+}
+.toast {
+  pointer-events:auto;
+  display:flex; align-items:center; gap:10px;
+  padding:11px 12px 11px 14px; border-radius:var(--r-sm);
+  background:linear-gradient(180deg, #0e1530, #0a1020);
+  border:1px solid var(--border2); border-left-width:3px;
+  box-shadow:var(--shadow-md); color:var(--fg);
+  font:600 12.5px var(--ui); line-height:1.35;
+  opacity:0; transform:translateX(12px);
+  /* roadmap: 200ms appear/dismiss */
+  transition:opacity 200ms var(--ease-standard, ease),
+             transform 200ms var(--ease-standard, ease);
+}
+.toast.show { opacity:1; transform:none; }
+.toast.hide { opacity:0; transform:translateX(12px); }
+.toast-success { border-left-color:var(--good); }
+.toast-error   { border-left-color:var(--bad); }
+.toast-info    { border-left-color:var(--accent); }
+.toast-msg { flex:1 1 auto; min-width:0; word-break:break-word; }
+.toast-close {
+  flex:none; min-width:24px; min-height:24px;
+  background:transparent; border:none; color:var(--muted);
+  cursor:pointer; font:700 12px var(--mono); border-radius:5px; line-height:1;
+}
+.toast-close:hover { color:var(--fg); }
+.toast-close:focus-visible { outline:var(--focus-ring, 2px solid #54e6a8); outline-offset:1px; }
+
+/* ----- Spinner (inherits currentColor → can wear a mascot colour) ----- */
+.spinner {
+  display:inline-block; width:13px; height:13px; vertical-align:-2px;
+  border:2px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color:currentColor; border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ----- Skeleton shimmer ----- */
+.skeleton {
+  position:relative; overflow:hidden;
+  background:color-mix(in srgb, var(--fg) 6%, transparent);
+  border-radius:6px; min-height:12px;
+}
+.skeleton::after {
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg, transparent,
+            color-mix(in srgb, var(--fg) 10%, transparent), transparent);
+  transform:translateX(-100%);
+  animation:skeletonSweep 1.2s ease-in-out infinite;
+}
+@keyframes skeletonSweep { to { transform:translateX(100%); } }
+
+/* ----- Disabled affordances ----- */
+button:disabled, .btn:disabled, .btn[disabled],
+.tcard .card-btn:disabled, .tcard .auto-toggle:disabled,
+.broadcast-mode:disabled {
+  opacity:.45; cursor:not-allowed; filter:grayscale(.25);
+  pointer-events:none;
+}
+
+/* ----- Staggered card entrance (50ms between cards) -----
+   The spawnIn animation is declared above; this only adds the per-card delay,
+   set as --stagger by renderGrid. (This rule cascades after the original, so
+   the delay survives the `animation` shorthand's implicit delay:0.) */
+.tcard.spawning { animation-delay:calc(var(--stagger, 0) * 50ms); }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration:1.4s; }
+  .skeleton::after { animation:none; }
+  .toast { transition-duration:0.001s; }
+  .tcard.spawning { animation:none; }
+}
+
 /* ----- Command mode + Help overlay ----- */
 .cmd-overlay, .help-overlay {
   position:fixed; inset:0; z-index:70;
