@@ -9,6 +9,10 @@
 
 # Arena UI persistence (runtime state, not source of truth)
 .team/arena.json
+.team/sessions.json
+
+# Git worktrees created per specialist (Phase 3 isolation)
+.agentforge/
 
 # Rust build artefacts for the optional forge-pulse sidecar
 tools/*/target/
