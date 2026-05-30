@@ -17,6 +17,10 @@ tools/*/Cargo.lock
 # Node modules in the GUI server
 gui/node_modules/
 
+# Coverage artefacts (c8 / node --experimental-test-coverage) — see docs/BASELINE.md
+coverage/
+.nyc_output/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
