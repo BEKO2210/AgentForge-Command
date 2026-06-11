@@ -218,10 +218,12 @@ const arenaClients = new Set();
 
 /* ----- Resource guardrails (Phase 2) -----
  * Cap concurrent PTYs so an accidental dispatch storm can't fork-bomb the box
- * (Octogent caps at 32; we default to a conservative 8). Exited PTY records
- * linger briefly so a reconnecting browser can still read the final buffer,
- * then a reaper sweeps them out of the map. Both are tunable via env. */
-const MAX_PTYS = Number(process.env.AGENTFORGE_MAX_PTYS || 8);
+ * (Octogent caps at 32). Default 12 = the full seed swarm (Atlas + 11
+ * specialists), so "launch all" can bring up the whole roster without tripping
+ * the guardrail; lower it to throttle cost, raise it for a bigger custom swarm.
+ * Exited PTY records linger briefly so a reconnecting browser can still read the
+ * final buffer, then a reaper sweeps them out of the map. Both tunable via env. */
+const MAX_PTYS = Number(process.env.AGENTFORGE_MAX_PTYS || 12);
 const IDLE_TIMEOUT_MS = Number(process.env.AGENTFORGE_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 
 /* ----- Spend / budget tracking -----
@@ -1029,15 +1031,16 @@ const server = http.createServer((req, res) => {
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "no-referrer",
-      // CSP: same-origin scripts only (no inline JS — the token rides a <meta>
-      // tag, not an inline <script>). Google Fonts origins are allowlisted so
-      // the cockpit keeps its typography; ws: is scoped to loopback.
+      // CSP: same-origin only — no inline JS (the token rides a <meta> tag, not
+      // an inline <script>) and no third-party origins. Fonts are self-hosted
+      // (gui/public/arena/fonts/), so nothing is fetched off-box; ws: is scoped
+      // to loopback. This keeps the cockpit fully local-first (see PRIVACY.md).
       "Content-Security-Policy": [
         "default-src 'self'",
         "connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
         "img-src 'self' data:",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
+        "style-src 'self' 'unsafe-inline'",
+        "font-src 'self'",
         "script-src 'self'",
         "frame-ancestors 'none'",
         "base-uri 'self'",

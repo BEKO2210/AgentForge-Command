@@ -343,8 +343,8 @@ if (broadcastInput) {
   const updateCount = () => {
     if (!countEl) return;
     const n = broadcastInput.value.length;
-    countEl.textContent = `${n}/255`;
-    countEl.classList.toggle("near", n >= 230);
+    countEl.textContent = `${n}/2000`;
+    countEl.classList.toggle("near", n >= 1800);
   };
   const clearError = () => {
     broadcastInput.classList.remove("error");

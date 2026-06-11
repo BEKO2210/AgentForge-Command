@@ -105,7 +105,7 @@ await it("returns status ok with the documented shape", async () => {
     assert.equal(json.status, "ok");
     assert.equal(typeof json.uptime, "number");
     assert.equal(typeof json.activePtys, "number");
-    assert.equal(json.maxPtys, 8); // default
+    assert.equal(json.maxPtys, 12); // default = full seed swarm (Atlas + 11)
     assert.equal(typeof json.timestamp, "number");
     assert.ok("version" in json && "budgetUsd" in json && "spentUsd" in json);
     // never leak secrets
