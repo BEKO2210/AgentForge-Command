@@ -1,0 +1,30 @@
+/* ============================================================================
+ * AgentForge Command — self-hosted webfonts (local-first / DSGVO).
+ *
+ * These fonts are served from the local loopback interface, NOT a third-party
+ * CDN. AgentForge is local-first and embeds no third-party requests (see
+ * PRIVACY.md): loading fonts from fonts.googleapis.com would leak the operator's
+ * IP/User-Agent to Google on every page load and break in offline/air-gapped
+ * use, so we self-host the latin subset instead. Both files are variable fonts
+ * covering the full weight range we use; if they ever fail to load the system
+ * stacks in design-tokens.css (--font-mono / --font-ui) take over.
+ *
+ * Source: Google Fonts (JetBrains Mono v24, IBM Plex Sans v23), latin subset.
+ * Licenses: SIL Open Font License 1.1 — see THIRD_PARTY_NOTICES.md.
+ * ========================================================================== */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 700;        /* variable font — covers 400/500/600/700 */
+  font-display: swap;
+  src: url("/arena/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;        /* variable font — covers 400/500/700 */
+  font-display: swap;
+  src: url("/arena/fonts/jetbrains-mono-latin.woff2") format("woff2");
+}

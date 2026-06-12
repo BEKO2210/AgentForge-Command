@@ -17,6 +17,20 @@ re-run the commands in [§ Regenerating](#regenerating-this-inventory) to refres
 by the read-only MCP server (`mcp/`). All three — and their transitive
 dependencies — are **permissive (MIT)**.
 
+## Bundled fonts (self-hosted runtime assets)
+
+Served locally from `gui/public/arena/fonts/` so the cockpit never makes a
+third-party request (no Google Fonts CDN call → local-first / DSGVO, see
+[`PRIVACY.md`](PRIVACY.md)). Latin subset only, variable woff2.
+
+| Font | Subset | License | Source |
+|------|--------|---------|--------|
+| JetBrains Mono | latin (variable) | SIL Open Font License 1.1 | <https://github.com/JetBrains/JetBrainsMono> |
+| IBM Plex Sans | latin (variable) | SIL Open Font License 1.1 | <https://github.com/IBM/plex> |
+
+The OFL permits redistribution of the font files; both fall back to the system
+font stacks in `design-tokens.css` if they fail to load.
+
 ## Development dependencies (tooling only — NOT shipped)
 
 | Package | Version | License | Source |

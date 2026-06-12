@@ -19,7 +19,7 @@ function it(name, cond, msg) {
 }
 
 section("Run 1.3 — broadcast bar markup");
-it("input enforces a 255-char max length", /id="broadcast-input"[^>]*maxlength="255"/s.test(html), "maxlength=255 missing");
+it("input enforces a 2000-char max length", /id="broadcast-input"[^>]*maxlength="2000"/s.test(html), "maxlength=2000 missing");
 it("input has an accessible label (sr-only)", /<label class="sr-only" for="broadcast-input"/.test(html), "sr-only label missing");
 it("input is described by the error region", /id="broadcast-input"[^>]*aria-describedby="broadcast-error"/s.test(html), "aria-describedby missing");
 it("a live char counter exists", /id="broadcast-count"/.test(html), "#broadcast-count missing");

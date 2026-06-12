@@ -11,9 +11,8 @@
      can read it; a cross-origin page cannot read this document. Blank in
      AGENTFORGE_NO_TOKEN mode. -->
 <meta name="afc-token" content="@SESSION_TOKEN@" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Self-hosted fonts — local-first, no third-party requests (see PRIVACY.md). -->
+<link rel="stylesheet" href="/arena/fonts.css" />
 <link rel="stylesheet" href="/arena/design-tokens.css" />
 <link rel="stylesheet" href="/arena/styles.css" />
 </head>
@@ -86,9 +85,9 @@
       <span class="broadcast-prompt" aria-hidden="true">&gt;</span>
       <label class="sr-only" for="broadcast-input">Brief Atlas, or broadcast directly to the swarm</label>
       <input id="broadcast-input" type="text" autocomplete="off" spellcheck="false"
-             maxlength="255" aria-describedby="broadcast-error"
+             maxlength="2000" aria-describedby="broadcast-error"
              placeholder="Talk to Atlas — he briefs the swarm…" />
-      <span class="broadcast-count" id="broadcast-count" aria-hidden="true">0/255</span>
+      <span class="broadcast-count" id="broadcast-count" aria-hidden="true">0/2000</span>
       <span class="meta" id="broadcast-meta" aria-hidden="true">⏎ DISPATCH · / FOCUS</span>
     </div>
     <div class="broadcast-error" id="broadcast-error" role="alert" hidden></div>

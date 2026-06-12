@@ -67,7 +67,7 @@ test.describe("AgentForge cockpit", () => {
     const input = page.locator("#broadcast-input");
     const error = page.locator("#broadcast-error");
     const count = page.locator("#broadcast-count");
-    await expect(input).toHaveAttribute("maxlength", "255");
+    await expect(input).toHaveAttribute("maxlength", "2000");
     // empty (whitespace) Enter → error shown, no dispatch
     await input.fill("   ");
     await input.press("Enter");
@@ -76,7 +76,7 @@ test.describe("AgentForge cockpit", () => {
     // typing clears the error and updates the counter
     await input.fill("check the build");
     await expect(error).toBeHidden();
-    await expect(count).toHaveText("15/255");
+    await expect(count).toHaveText("15/2000");
   });
 
   test("card opener is keyboard-focusable and hover lifts the card (Run 1.2)", async ({ page }) => {

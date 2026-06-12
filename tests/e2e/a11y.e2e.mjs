@@ -21,11 +21,16 @@ test.describe("AgentForge accessibility", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await page.locator(".lead-panel").waitFor();        // full render
-    const body = page.locator(".mascot-body").first();
-    await body.waitFor();
-    const dur = await body.evaluate((el) => getComputedStyle(el).animationDuration);
-    // Under reduce, the breathing animation (gated on no-preference) is absent.
-    expect(["0s", "0ms"]).toContain(dur);
+    await page.locator(".mascot-body").first().waitFor();
+    // Read the duration with an atomic query-then-measure inside the page: the
+    // mascot SVG is re-rendered (innerHTML swap) on every state change, so a
+    // resolved element handle can detach between waitFor() and evaluate() — and
+    // getComputedStyle() on a detached node returns "" (the source of a rare
+    // flake). expect.poll re-queries until the live node yields a stable value.
+    await expect.poll(() => page.evaluate(() => {
+      const el = document.querySelector(".mascot-body");
+      return el ? getComputedStyle(el).animationDuration : null;
+    })).toMatch(/^0m?s$/);  // 0s or 0ms — breathing animation is gated on no-preference
   });
 
   test("an open specialist drawer has no serious/critical axe violations (Run 1.4)", async ({ page }) => {

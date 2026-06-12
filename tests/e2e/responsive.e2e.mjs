@@ -42,15 +42,20 @@ test.describe("AgentForge touch ergonomics", () => {
     await page.goto("/");
     const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
     expect(coarse, "Chromium should report pointer: coarse under touch emulation").toBeTruthy();
-    const btn = page.locator(".tcard .card-btn").first();
-    await btn.waitFor();
-    const { minH, h } = await btn.evaluate((el) => ({
-      minH: getComputedStyle(el).minHeight,
-      h: el.getBoundingClientRect().height,
-    }));
+    await page.locator(".tcard .card-btn").first().waitFor();
+    // Atomic query-then-measure inside the page: the launch/stop card button is
+    // re-rendered (outerHTML swap) on PTY-status changes, so a resolved handle
+    // can detach between waitFor() and evaluate() — and getComputedStyle() on a
+    // detached node returns "" (a rare flake). expect.poll re-queries the live
+    // node until the value is stable.
+    const measure = () => page.evaluate(() => {
+      const el = document.querySelector(".tcard .card-btn");
+      return el ? { minH: getComputedStyle(el).minHeight, h: el.getBoundingClientRect().height } : null;
+    });
     // The CSS commits to a 44px target; mobile emulation renders it at ~43.9
     // CSS px due to sub-pixel device scaling, so round the measured box.
-    expect(minH).toBe("44px");
-    expect(Math.round(h)).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await measure())?.minH).toBe("44px");
+    const m = await measure();
+    expect(Math.round(m.h)).toBeGreaterThanOrEqual(44);
   });
 });
